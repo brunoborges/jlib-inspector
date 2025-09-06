@@ -12,7 +12,7 @@ public class JarInfo {
     public final String checksum;
     public volatile boolean isLoaded;
     public volatile Instant lastAccessed;
-    
+
     public JarInfo(String jarPath, String fileName, long size, String checksum, boolean isLoaded) {
         this.jarPath = jarPath;
         this.fileName = fileName;
@@ -21,7 +21,7 @@ public class JarInfo {
         this.isLoaded = isLoaded;
         this.lastAccessed = Instant.now();
     }
-    
+
     public void markLoaded() {
         this.isLoaded = true;
         this.lastAccessed = Instant.now();

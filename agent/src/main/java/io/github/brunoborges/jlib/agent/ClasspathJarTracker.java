@@ -13,24 +13,28 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Captures JARs present on the startup classpath (java.class.path & URLClassLoaders) even if
- * they have not (yet) defined any classes. This helps reveal unused or not-yet-loaded libraries.
+ * Captures JARs present on the startup classpath (java.class.path &
+ * URLClassLoaders) even if
+ * they have not (yet) defined any classes. This helps reveal unused or
+ * not-yet-loaded libraries.
  */
 public final class ClasspathJarTracker {
 
     private static final Logger LOG = Logger.getLogger(ClasspathJarTracker.class.getName());
 
-    private final Set<String> declaredClasspathJars = Collections.synchronizedSet(new LinkedHashSet<>()); // top-level declared
-    private final Set<String> declaredNestedJars   = Collections.synchronizedSet(new LinkedHashSet<>()); // nested declared
+    private final Set<String> declaredClasspathJars = Collections.synchronizedSet(new LinkedHashSet<>()); // top-level
+                                                                                                          // declared
+    private final Set<String> declaredNestedJars = Collections.synchronizedSet(new LinkedHashSet<>()); // nested
+                                                                                                       // declared
     private final JarInventory inventory;
 
     public ClasspathJarTracker(Instrumentation inst, JarInventory inventory) {
         this.inventory = inventory;
-        snapshotLoaded(inst);      // examine already loaded classes & their CodeSources
-        scanDeclaredClasspath();   // parse java.class.path
-        scanUrlClassLoaders();     // harvest URLs from system/app loaders
+        snapshotLoaded(inst); // examine already loaded classes & their CodeSources
+        scanDeclaredClasspath(); // parse java.class.path
+        scanUrlClassLoaders(); // harvest URLs from system/app loaders
         scanExecutableJarsForNested(); // enumerate nested jars generically
-        reportUnloaded();          // aggregate logging
+        reportUnloaded(); // aggregate logging
     }
 
     private void snapshotLoaded(Instrumentation inst) {
@@ -52,7 +56,8 @@ public final class ClasspathJarTracker {
 
     private void scanDeclaredClasspath() {
         String cp = System.getProperty("java.class.path", "");
-        if (cp.isEmpty()) return;
+        if (cp.isEmpty())
+            return;
         String[] parts = cp.split(File.pathSeparator);
         for (String p : parts) {
             if (p.endsWith(".jar")) {
@@ -82,16 +87,18 @@ public final class ClasspathJarTracker {
     }
 
     private void reportUnloaded() {
-        if (!LOG.isLoggable(Level.INFO)) return;
+        if (!LOG.isLoggable(Level.INFO))
+            return;
 
-    LOG.info(() -> "Classpath scan summary: topLevelDeclared=" + declaredClasspathJars.size() +
-        ", nestedDeclared=" + declaredNestedJars.size() + ", inventorySize=" + inventory.snapshot().size());
+        LOG.info(() -> "Classpath scan summary: topLevelDeclared=" + declaredClasspathJars.size() +
+                ", nestedDeclared=" + declaredNestedJars.size() + ", inventorySize=" + inventory.snapshot().size());
     }
 
     private String normalize(String loc) {
         // Remove trailing !/ for nested jars and ensure uniform file: prefix
         int bang = loc.indexOf('!');
-        if (bang > 0) loc = loc.substring(0, bang);
+        if (bang > 0)
+            loc = loc.substring(0, bang);
         return loc;
     }
 
@@ -106,7 +113,8 @@ public final class ClasspathJarTracker {
         int searchFrom = 0;
         while (true) {
             int idx = work.indexOf(".jar", searchFrom);
-            if (idx < 0) break;
+            if (idx < 0)
+                break;
             int end = idx + 4; // include .jar
             String jarPath = work.substring(0, end);
             layers.add(normalizeJarLayer(jarPath));
@@ -121,18 +129,21 @@ public final class ClasspathJarTracker {
     }
 
     private String normalizeJarLayer(String raw) {
-        // Ensure consistent file: prefix usage for top-level; nested path kept with outer!inner form
+        // Ensure consistent file: prefix usage for top-level; nested path kept with
+        // outer!inner form
         return raw;
     }
-
 
     private void scanExecutableJarsForNested() {
         for (String jarUri : declaredClasspathJars) {
             // jarUri like file:/.../app.jar
             File f = toFileIfPossible(jarUri);
-            if (f == null || !f.isFile()) continue;
-            // Heuristic: scan if size < 300MB to avoid huge archives & if contains potential nested libs
-            if (f.length() > 300L * 1024 * 1024) continue;
+            if (f == null || !f.isFile())
+                continue;
+            // Heuristic: scan if size < 300MB to avoid huge archives & if contains
+            // potential nested libs
+            if (f.length() > 300L * 1024 * 1024)
+                continue;
             try (JarFile jf = new JarFile(f)) {
                 boolean hasNested = false;
                 for (JarEntry e : Collections.list(jf.entries())) {
@@ -147,7 +158,8 @@ public final class ClasspathJarTracker {
                     }
                 }
                 if (hasNested && LOG.isLoggable(Level.FINE)) {
-                    LOG.fine(() -> "Discovered nested jars inside " + f.getName() + ": " + declaredNestedJars.stream().filter(s -> s.startsWith(f.toURI().toString())).count());
+                    LOG.fine(() -> "Discovered nested jars inside " + f.getName() + ": "
+                            + declaredNestedJars.stream().filter(s -> s.startsWith(f.toURI().toString())).count());
                 }
             } catch (IOException ioe) {
                 if (LOG.isLoggable(Level.FINE)) {
@@ -168,8 +180,13 @@ public final class ClasspathJarTracker {
         return null;
     }
 
-    public Set<String> getDeclaredClasspathJars() { return declaredClasspathJars; }
-    public Set<String> getDeclaredNestedJars() { return declaredNestedJars; }
+    public Set<String> getDeclaredClasspathJars() {
+        return declaredClasspathJars;
+    }
+
+    public Set<String> getDeclaredNestedJars() {
+        return declaredNestedJars;
+    }
 
     private void registerDeclared(String norm) {
         File f = toFileIfPossible(norm);

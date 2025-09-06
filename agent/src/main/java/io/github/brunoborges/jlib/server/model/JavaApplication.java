@@ -16,9 +16,9 @@ public class JavaApplication {
     public final Instant firstSeen;
     public volatile Instant lastUpdated;
     public final Map<String, JarInfo> jars = new ConcurrentHashMap<>();
-    
-    public JavaApplication(String appId, String commandLine, String jdkVersion, 
-                         String jdkVendor, String jdkPath) {
+
+    public JavaApplication(String appId, String commandLine, String jdkVersion,
+            String jdkVendor, String jdkPath) {
         this.appId = appId;
         this.commandLine = commandLine;
         this.jdkVersion = jdkVersion;
@@ -27,7 +27,7 @@ public class JavaApplication {
         this.firstSeen = Instant.now();
         this.lastUpdated = this.firstSeen;
     }
-    
+
     public void updateLastSeen() {
         this.lastUpdated = Instant.now();
     }

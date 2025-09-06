@@ -123,7 +123,6 @@ app.get('/', (req, res) => {
   // Try to serve React build first, fallback to public/index.html
   const reactIndexPath = path.join(__dirname, 'dist', 'index.html');
   const publicIndexPath = path.join(__dirname, 'public', 'index.html');
-  
   if (require('fs').existsSync(reactIndexPath)) {
     res.sendFile(reactIndexPath);
   } else {
@@ -131,17 +130,15 @@ app.get('/', (req, res) => {
   }
 });
 
-// Catch all handler: send back index.html for client-side routing
-app.get('*', (req, res) => {
+// Catch-all middleware for client-side routing (Express 5.x compatible)
+app.use((req, res, next) => {
   // Skip API routes
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
-  
   // Try to serve React build first, fallback to public/index.html
   const reactIndexPath = path.join(__dirname, 'dist', 'index.html');
   const publicIndexPath = path.join(__dirname, 'public', 'index.html');
-  
   if (require('fs').existsSync(reactIndexPath)) {
     res.sendFile(reactIndexPath);
   } else {

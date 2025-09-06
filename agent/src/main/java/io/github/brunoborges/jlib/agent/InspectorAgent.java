@@ -1,7 +1,5 @@
 package io.github.brunoborges.jlib.agent;
 
-import io.github.brunoborges.jlib.server.JLibServer;
-
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
@@ -15,6 +13,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+
+import io.github.brunoborges.jlib.util.ApplicationIdUtil;
 
 /**
  * Java instrumentation agent for tracking JAR loading and usage across applications.
@@ -165,8 +165,8 @@ public class InspectorAgent {
       
       LOG.info("Collected " + jarChecksums.size() + " top-level JAR checksums for application ID generation");
       
-      // Use the server's application ID generation logic
-      return JLibServer.computeApplicationId(commandLine, jarChecksums, 
+      // Use the utility class for application ID generation
+      return ApplicationIdUtil.computeApplicationId(commandLine, jarChecksums, 
                                             jdkVersion, jdkVendor, jdkPath);
     } catch (Exception e) {
       LOG.warning("Failed to generate application ID: " + e.getMessage());

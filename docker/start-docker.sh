@@ -17,7 +17,11 @@ fi
 
 # Build and start services
 echo "Building and starting services..."
-docker compose up --build
+
+if ! docker compose up --build; then
+    echo "Error: Failed to start services"
+    exit 1
+fi
 
 echo ""
 echo "Services started successfully!"

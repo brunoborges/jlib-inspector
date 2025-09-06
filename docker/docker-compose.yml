@@ -4,8 +4,8 @@ services:
   # JLib Server (Backend)
   jlib-server:
     build:
-      context: ./
-      dockerfile: Dockerfile.backend
+      context: ../
+      dockerfile: docker/Dockerfile.backend
     ports:
       - "8080:8080"
     environment:
@@ -16,8 +16,8 @@ services:
   # Frontend (Dashboard)
   jlib-frontend:
     build:
-      context: ./
-      dockerfile: Dockerfile.frontend
+      context: ../
+      dockerfile: docker/Dockerfile.frontend
     ports:
       - "3000:3000"
     environment:

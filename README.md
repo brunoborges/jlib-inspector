@@ -132,6 +132,26 @@ You can test with the sample Spring application contained in this project:
 java "-javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar=server:8080" -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
 ```
 
+## 🐳 Running with Docker
+
+For containerized deployment, JLib Inspector provides Docker images and Docker Compose orchestration. This approach simplifies deployment and ensures consistent environments across development, testing, and production.
+
+**Quick Docker Start:**
+```bash
+# Navigate to the docker directory
+cd docker
+
+# Start all services with Docker Compose
+./start-docker.sh
+```
+
+The Docker setup includes:
+- **Backend container** (JLib Server on port 8080)
+- **Frontend container** (Dashboard on port 3000)  
+- **Automatic networking** between containers
+- **Volume mounts** for persistent data
+
+📁 **For detailed Docker setup instructions, configuration options, and troubleshooting, see the [docker/README.md](docker/README.md) file.**
 
 ## 🌐 Access the Dashboard
 

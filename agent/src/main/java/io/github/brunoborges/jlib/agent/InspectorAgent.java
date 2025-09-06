@@ -1,7 +1,7 @@
 package io.github.brunoborges.jlib.agent;
 
-import io.github.brunoborges.jlib.util.ApplicationIdUtil;
-import io.github.brunoborges.jlib.shared.JarMetadata;
+import io.github.brunoborges.jlib.common.ApplicationIdUtil;
+import io.github.brunoborges.jlib.common.JarMetadata;
 
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;

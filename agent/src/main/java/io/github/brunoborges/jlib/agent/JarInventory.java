@@ -1,7 +1,5 @@
 package io.github.brunoborges.jlib.agent;
 
-import io.github.brunoborges.jlib.shared.JarMetadata;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -15,6 +13,8 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import io.github.brunoborges.jlib.common.JarMetadata;
 
 /**
  * Central inventory of all JARs (top-level + nested) observed or declared by

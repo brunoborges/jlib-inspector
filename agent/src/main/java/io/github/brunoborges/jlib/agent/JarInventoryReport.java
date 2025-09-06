@@ -1,11 +1,11 @@
 package io.github.brunoborges.jlib.agent;
 
-import io.github.brunoborges.jlib.shared.JarMetadata;
-
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import io.github.brunoborges.jlib.common.JarMetadata;
 
 /**
  * Handles reporting and formatting of JAR inventory data.

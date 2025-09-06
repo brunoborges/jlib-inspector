@@ -1,4 +1,4 @@
-package io.github.brunoborges.jlib.util;
+package io.github.brunoborges.jlib.common;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

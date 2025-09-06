@@ -1,11 +1,12 @@
 package io.github.brunoborges.jlib.server;
 
 import com.sun.net.httpserver.HttpServer;
+
+import io.github.brunoborges.jlib.common.ApplicationIdUtil;
 import io.github.brunoborges.jlib.server.handler.AppsHandler;
 import io.github.brunoborges.jlib.server.handler.HealthHandler;
 import io.github.brunoborges.jlib.server.service.ApplicationService;
 import io.github.brunoborges.jlib.server.service.JarService;
-import io.github.brunoborges.jlib.util.ApplicationIdUtil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

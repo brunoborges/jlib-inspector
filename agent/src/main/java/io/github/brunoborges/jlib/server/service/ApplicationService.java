@@ -1,9 +1,10 @@
 package io.github.brunoborges.jlib.server.service;
 
-import io.github.brunoborges.jlib.server.model.JavaApplication;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import io.github.brunoborges.jlib.common.JavaApplication;
+
 import java.util.Collection;
 
 /**

@@ -2,8 +2,9 @@ package io.github.brunoborges.jlib.server.handler;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+
+import io.github.brunoborges.jlib.json.JsonResponseBuilder;
 import io.github.brunoborges.jlib.server.service.ApplicationService;
-import io.github.brunoborges.jlib.util.JsonResponseBuilder;
 
 import java.io.IOException;
 import java.io.OutputStream;

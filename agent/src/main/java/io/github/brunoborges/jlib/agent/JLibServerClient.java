@@ -1,7 +1,5 @@
 package io.github.brunoborges.jlib.agent;
 
-import io.github.brunoborges.jlib.shared.JarMetadata;
-
 import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -9,6 +7,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.logging.Logger;
+
+import io.github.brunoborges.jlib.common.JarMetadata;
 
 /**
  * Handles HTTP communication with the JLib server.

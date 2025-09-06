@@ -1,8 +1,9 @@
 package io.github.brunoborges.jlib.server.service;
 
-import io.github.brunoborges.jlib.server.model.JavaApplication;
-import io.github.brunoborges.jlib.shared.JarMetadata;
-import io.github.brunoborges.jlib.util.JsonParser;
+import io.github.brunoborges.jlib.common.JarMetadata;
+import io.github.brunoborges.jlib.common.JavaApplication;
+import io.github.brunoborges.jlib.json.JsonParserFactory;
+import io.github.brunoborges.jlib.json.JsonParserInterface;
 
 import java.time.Instant;
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.logging.Logger;
 public class JarService {
 
     private static final Logger LOG = Logger.getLogger(JarService.class.getName());
+    private final JsonParserInterface jsonParser = JsonParserFactory.getDefaultParser();
 
     /**
      * Processes JAR updates for an application.
@@ -33,7 +35,7 @@ public class JarService {
         }
 
         // Split the JSON array into individual entries
-        List<String> jarEntries = JsonParser.splitJsonArray(jarsData);
+        List<String> jarEntries = jsonParser.splitJsonArray(jarsData);
         LOG.info("Found " + jarEntries.size() + " JAR entries");
 
         for (int i = 0; i < jarEntries.size(); i++) {
@@ -41,7 +43,7 @@ public class JarService {
             LOG.info("Processing entry " + (i + 1) + ": " + entry.substring(0, Math.min(100, entry.length()))
                     + "...");
 
-            Map<String, String> jarData = JsonParser.parseSimpleJson(entry);
+            Map<String, String> jarData = jsonParser.parseSimpleJson(entry);
             String path = jarData.get("path");
             String fileName = jarData.get("fileName");
 

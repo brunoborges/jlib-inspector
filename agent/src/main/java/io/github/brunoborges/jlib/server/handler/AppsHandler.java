@@ -2,11 +2,13 @@ package io.github.brunoborges.jlib.server.handler;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import io.github.brunoborges.jlib.server.model.JavaApplication;
+
+import io.github.brunoborges.jlib.common.JavaApplication;
+import io.github.brunoborges.jlib.json.JsonParserFactory;
+import io.github.brunoborges.jlib.json.JsonParserInterface;
+import io.github.brunoborges.jlib.json.JsonResponseBuilder;
 import io.github.brunoborges.jlib.server.service.ApplicationService;
 import io.github.brunoborges.jlib.server.service.JarService;
-import io.github.brunoborges.jlib.util.JsonParser;
-import io.github.brunoborges.jlib.util.JsonResponseBuilder;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -25,6 +27,7 @@ public class AppsHandler implements HttpHandler {
 
     private final ApplicationService applicationService;
     private final JarService jarService;
+    private final JsonParserInterface jsonParser = JsonParserFactory.getDefaultParser();
 
     public AppsHandler(ApplicationService applicationService, JarService jarService) {
         this.applicationService = applicationService;
@@ -125,7 +128,7 @@ public class AppsHandler implements HttpHandler {
         LOG.info("JSON data received: " + jsonData);
 
         // Simple JSON parsing - in production, use a proper JSON library
-        Map<String, String> data = JsonParser.parseSimpleJson(jsonData);
+        Map<String, String> data = jsonParser.parseSimpleJson(jsonData);
         LOG.info("Parsed data: " + data);
 
         String commandLine = data.get("commandLine");

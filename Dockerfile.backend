@@ -1,0 +1,24 @@
+# Use OpenJDK 21 as base image
+FROM openjdk:21-jdk-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy Maven wrapper and POM files
+COPY ./mvnw ./mvnw
+COPY ./.mvn ./.mvn
+COPY ./pom.xml ./
+COPY ./agent/pom.xml ./agent/
+COPY ./sample-spring-app/pom.xml ./sample-spring-app/
+
+# Copy source code
+COPY ./agent/src ./agent/src
+
+# Build the project
+RUN ./mvnw clean package -pl agent -amd
+
+# Expose port 8080
+EXPOSE 8080
+
+# Run the JLib server
+CMD ["java", "-cp", "agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar", "io.github.brunoborges.jlib.server.JLibServer", "8080"]

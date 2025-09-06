@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+screenshot.png
+
+# IDE files
+.vscode
+.idea
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Maven/Gradle build artifacts
+target/
+build/
+# Note: keeping .mvn/, mvnw, mvnw.cmd for Docker builds
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Frontend build (we'll build inside container)
+frontend/dist/
+
+# Docker files (don't copy into containers)
+Dockerfile*
+docker-compose*.yml
+.dockerignore

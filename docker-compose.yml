@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # JLib Server (Backend)
+  jlib-server:
+    build:
+      context: ./
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_OPTS=-Xms512m -Xmx1g
+    networks:
+      - jlib-network
+
+  # Frontend (Dashboard)
+  jlib-frontend:
+    build:
+      context: ./
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - JLIB_SERVER_URL=http://jlib-server:8080
+    depends_on:
+      - jlib-server
+    networks:
+      - jlib-network
+    restart: on-failure
+
+networks:
+  jlib-network:
+    driver: bridge

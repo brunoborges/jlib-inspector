@@ -17,7 +17,7 @@ fi
 
 # Build and start services
 echo "Building and starting services..."
-docker-compose up --build
+docker compose up --build
 
 echo ""
 echo "Services started successfully!"

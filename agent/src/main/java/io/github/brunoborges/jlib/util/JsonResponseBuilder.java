@@ -1,7 +1,7 @@
 package io.github.brunoborges.jlib.util;
 
 import io.github.brunoborges.jlib.server.model.JavaApplication;
-import io.github.brunoborges.jlib.server.model.JarInfo;
+import io.github.brunoborges.jlib.shared.JarMetadata;
 
 /**
  * Utility for building JSON responses.
@@ -56,16 +56,16 @@ public class JsonResponseBuilder {
         StringBuilder json = new StringBuilder();
         json.append("{\"jars\":[");
         boolean first = true;
-        for (JarInfo jar : app.jars.values()) {
+        for (JarMetadata jar : app.jars.values()) {
             if (!first)
                 json.append(",");
             json.append("{")
-                    .append("\"path\":\"").append(JsonParser.escapeJson(jar.jarPath)).append("\",")
+                    .append("\"path\":\"").append(JsonParser.escapeJson(jar.fullPath)).append("\",")
                     .append("\"fileName\":\"").append(jar.fileName).append("\",")
                     .append("\"size\":").append(jar.size).append(",")
-                    .append("\"checksum\":\"").append(jar.checksum).append("\",")
-                    .append("\"loaded\":").append(jar.isLoaded).append(",")
-                    .append("\"lastAccessed\":\"").append(jar.lastAccessed).append("\"")
+                    .append("\"checksum\":\"").append(jar.sha256Hash).append("\",")
+                    .append("\"loaded\":").append(jar.isLoaded()).append(",")
+                    .append("\"lastAccessed\":\"").append(jar.getLastAccessed()).append("\"")
                     .append("}");
             first = false;
         }

@@ -1,5 +1,8 @@
 package io.github.brunoborges.jlib.agent;
 
+import io.github.brunoborges.jlib.util.ApplicationIdUtil;
+import io.github.brunoborges.jlib.shared.JarMetadata;
+
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
@@ -13,8 +16,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
-
-import io.github.brunoborges.jlib.util.ApplicationIdUtil;
 
 /**
  * Java instrumentation agent for tracking JAR loading and usage across
@@ -167,11 +168,11 @@ public class InspectorAgent {
             List<String> jarChecksums = new ArrayList<>();
             for (String jarUri : classpathTracker.getDeclaredClasspathJars()) {
                 // Find the corresponding JAR record in the inventory
-                for (JarInventory.JarRecord jarRecord : inventory.snapshot()) {
-                    if (jarRecord.id.equals(jarUri)) {
+                for (JarMetadata jarRecord : inventory.snapshot()) {
+                    if (jarRecord.fullPath.equals(jarUri)) {
                         // Only include JARs that have valid checksums (not "?")
-                        if (!"?".equals(jarRecord.sha256)) {
-                            jarChecksums.add(jarRecord.sha256);
+                        if (!"?".equals(jarRecord.sha256Hash)) {
+                            jarChecksums.add(jarRecord.sha256Hash);
                         }
                         break;
                     }
@@ -244,15 +245,15 @@ public class InspectorAgent {
         // Include JAR inventory data as a proper JSON array (not escaped string)
         json.append("\"jars\":[");
         boolean first = true;
-        for (JarInventory.JarRecord jar : inventory.snapshot()) {
+        for (JarMetadata jar : inventory.snapshot()) {
             if (!first) {
                 json.append(",");
             }
             json.append("{");
-            json.append("\"path\":\"").append(escapeJson(jar.id)).append("\",");
+            json.append("\"path\":\"").append(escapeJson(jar.fullPath)).append("\",");
             json.append("\"fileName\":\"").append(escapeJson(jar.fileName)).append("\",");
             json.append("\"size\":").append(jar.size).append(",");
-            json.append("\"checksum\":\"").append(escapeJson(jar.sha256)).append("\",");
+            json.append("\"checksum\":\"").append(escapeJson(jar.sha256Hash)).append("\",");
             json.append("\"loaded\":").append(jar.isLoaded());
             json.append("}");
             first = false;

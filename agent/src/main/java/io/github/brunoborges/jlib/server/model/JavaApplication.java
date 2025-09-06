@@ -1,5 +1,7 @@
 package io.github.brunoborges.jlib.server.model;
 
+import io.github.brunoborges.jlib.shared.JarMetadata;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,7 +17,7 @@ public class JavaApplication {
     public final String jdkPath;
     public final Instant firstSeen;
     public volatile Instant lastUpdated;
-    public final Map<String, JarInfo> jars = new ConcurrentHashMap<>();
+    public final Map<String, JarMetadata> jars = new ConcurrentHashMap<>();
 
     public JavaApplication(String appId, String commandLine, String jdkVersion,
             String jdkVendor, String jdkPath) {

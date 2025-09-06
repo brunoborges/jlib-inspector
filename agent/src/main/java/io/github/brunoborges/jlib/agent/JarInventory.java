@@ -1,5 +1,7 @@
 package io.github.brunoborges.jlib.agent;
 
+import io.github.brunoborges.jlib.shared.JarMetadata;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -13,7 +15,6 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Central inventory of all JARs (top-level + nested) observed or declared by the agent.
@@ -22,29 +23,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class JarInventory {
 
-    public static final class JarRecord {
-        public final String id;          // full path uri, nested keeps outer.jar!/path/inner.jar
-        public final String fileName;    // simple filename
-        public final long size;          // bytes (-1 if unknown)
-        public final String sha256;      // hash or '?'
-        private final AtomicBoolean loaded = new AtomicBoolean(false);
-
-        JarRecord(String id, String fileName, long size, String sha256) {
-            this.id = id;
-            this.fileName = fileName;
-            this.size = size;
-            this.sha256 = sha256;
-        }
-
-        public boolean isLoaded() { return loaded.get(); }
-        void markLoaded() { loaded.set(true); }
-    }
-
-    private final Map<String, JarRecord> jars = new ConcurrentHashMap<>();
+    private final Map<String, JarMetadata> jars = new ConcurrentHashMap<>();
 
     /** Register a jar we discovered (declared) with optional size & hash supplier. */
-    public JarRecord registerDeclared(String id, long size, HashSupplier hashSupplier) {
-        return jars.computeIfAbsent(id, k -> new JarRecord(k, simpleName(k), size, computeHash(hashSupplier)));
+    public JarMetadata registerDeclared(String id, long size, HashSupplier hashSupplier) {
+        return jars.computeIfAbsent(id, k -> new JarMetadata(k, simpleName(k), size, computeHash(hashSupplier)));
     }
 
     /** Mark a jar (top-level or nested) as having provided at least one loaded class. */
@@ -52,14 +35,14 @@ public final class JarInventory {
         if (id == null) return;
         jars.compute(id, (k, existing) -> {
             if (existing == null) {
-                existing = new JarRecord(k, simpleName(k), -1L, "?");
+                existing = new JarMetadata(k, simpleName(k), -1L, "?");
             }
             existing.markLoaded();
             return existing;
         });
     }
 
-    public Collection<JarRecord> snapshot() { return new ArrayList<>(jars.values()); }
+    public Collection<JarMetadata> snapshot() { return new ArrayList<>(jars.values()); }
 
     private String computeHash(HashSupplier supplier) {
         if (supplier == null) return "?";
@@ -80,15 +63,15 @@ public final class JarInventory {
         list.sort((a,b) -> {
             int cmpLoaded = Boolean.compare(b.isLoaded(), a.isLoaded());
             if (cmpLoaded != 0) return cmpLoaded;
-            int cmpNest = Boolean.compare(isTopLevel(a.id), isTopLevel(b.id)); // top-level (true) should come first
+            int cmpNest = Boolean.compare(a.isTopLevel(), b.isTopLevel()); // top-level (true) should come first
             if (cmpNest != 0) return -cmpNest; // invert because true > false
             return a.fileName.compareToIgnoreCase(b.fileName);
         });
 
         int total = list.size();
-        long loaded = list.stream().filter(JarRecord::isLoaded).count();
-        long topLevel = list.stream().filter(r -> isTopLevel(r.id)).count();
-        long topLevelLoaded = list.stream().filter(r -> isTopLevel(r.id) && r.isLoaded()).count();
+        long loaded = list.stream().filter(JarMetadata::isLoaded).count();
+        long topLevel = list.stream().filter(r -> r.isTopLevel()).count();
+        long topLevelLoaded = list.stream().filter(r -> r.isTopLevel() && r.isLoaded()).count();
         long nested = total - topLevel;
         long nestedLoaded = loaded - topLevelLoaded;
         long totalBytes = list.stream().filter(r -> r.size >= 0).mapToLong(r -> r.size).sum();
@@ -115,15 +98,15 @@ public final class JarInventory {
         out.println(repeat('-', header.length()));
 
         int index = 1;
-        for (JarRecord r : list) {
+        for (JarMetadata r : list) {
             String idx = pad(String.valueOf(index++),3);
             String l = r.isLoaded() ? "Y" : "-";
-            String t = isTopLevel(r.id) ? "T" : "N"; // top-level or nested
+            String t = r.isTopLevel() ? "T" : "N"; // top-level or nested
             String sizeHuman = r.size >= 0 ? human(r.size) : "?";
             String sizeBytes = r.size >= 0 ? String.valueOf(r.size) : "?";
-            String hash = pad(shorten(r.sha256),12);
+            String hash = pad(shorten(r.sha256Hash),12);
             String name = pad(truncate(r.fileName,40),40);
-            out.printf("%s %s %s %8s %12s %s %s %s%n", idx, l, t, sizeHuman, sizeBytes, hash, name, r.id);
+            out.printf("%s %s %s %8s %12s %s %s %s%n", idx, l, t, sizeHuman, sizeBytes, hash, name, r.fullPath);
         }
         out.println(repeat('-', header.length()));
         out.printf("Legend: L=Loaded, T=Top-level, N=Nested. Size is human-readable (base 1024). Hash truncated to 12 chars.%n");
@@ -132,7 +115,6 @@ public final class JarInventory {
     private String shorten(String h) { return h == null ? "?" : h.length() > 12 ? h.substring(0,12) : h; }
     private String truncate(String s, int max) { return s==null||s.length()<=max? s : s.substring(0,max-3)+"..."; }
 
-    private static boolean isTopLevel(String id) { return !id.contains("!/"); }
     private static double pct(long part, long total) { if (total <= 0) return 0.0; return (part * 100.0) / total; }
     private static String repeat(char c, int n) { return String.valueOf(c).repeat(Math.max(0,n)); }
     private static String pad(String s, int width) { return s.length() >= width ? s : s + repeat(' ', width - s.length()); }

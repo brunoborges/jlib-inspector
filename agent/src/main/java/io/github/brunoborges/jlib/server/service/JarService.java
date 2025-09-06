@@ -1,9 +1,10 @@
 package io.github.brunoborges.jlib.server.service;
 
 import io.github.brunoborges.jlib.server.model.JavaApplication;
+import io.github.brunoborges.jlib.shared.JarMetadata;
 import io.github.brunoborges.jlib.util.JsonParser;
-import io.github.brunoborges.jlib.server.model.JarInfo;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -37,7 +38,8 @@ public class JarService {
 
         for (int i = 0; i < jarEntries.size(); i++) {
             String entry = jarEntries.get(i);
-            LOG.info("Processing entry " + (i + 1) + ": " + entry.substring(0, Math.min(100, entry.length())) + "...");
+            LOG.info("Processing entry " + (i + 1) + ": " + entry.substring(0, Math.min(100, entry.length()))
+                    + "...");
 
             Map<String, String> jarData = JsonParser.parseSimpleJson(entry);
             String path = jarData.get("path");
@@ -55,8 +57,8 @@ public class JarService {
             String checksum = jarData.get("checksum");
             boolean loaded = Boolean.parseBoolean(jarData.getOrDefault("loaded", "false"));
 
-            JarInfo jarInfo = app.jars.computeIfAbsent(path,
-                    p -> new JarInfo(p, fileName, size, checksum, loaded));
+            JarMetadata jarInfo = app.jars.computeIfAbsent(path,
+                    p -> new JarMetadata(p, fileName, size, checksum, Instant.now(), Instant.now(), loaded));
 
             if (loaded) {
                 jarInfo.markLoaded();

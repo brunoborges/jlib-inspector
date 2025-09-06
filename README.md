@@ -10,6 +10,39 @@
 
 A comprehensive Java application monitoring dashboard that tracks JAR dependencies loaded during application runtime. The system consists of a Java agent, data collection server, and a modern React-based web dashboard to exemplify data visualization. 
 
+## 🎯 Why JLib Inspector?
+
+When security vulnerabilities like **Log4Shell** strike, organizations face a critical challenge: **identifying which production systems are affected**. During the Log4j vulnerability crisis, many teams struggled with fundamental questions:
+
+- *"Which of our production applications use Log4j?"*
+- *"What version are they running?"*
+- *"Are there transitive dependencies we don't know about?"*
+- *"How can we quickly assess our exposure across hundreds of services?"*
+
+**The Traditional Approach is Reactive and Error-Prone:**
+- 🔍 Manual inspection of deployment artifacts
+- 📂 Digging through production file systems
+- 📋 Relying on outdated documentation or build scripts
+- ⏰ Time-consuming emergency audits during critical security incidents
+- 🎯 Missing transitive dependencies hidden deep in the dependency tree
+
+**JLib Inspector Enables Proactive Dependency Visibility:**
+- 🚀 **Real-time monitoring** of actual JAR files loaded by running JVMs
+- 🎯 **Complete visibility** including transitive dependencies
+- 📊 **Centralized dashboard** showing all applications and their dependencies
+- 🔄 **Continuous tracking** of what's actually running vs. what's deployed
+- ⚡ **Instant response** capability when new vulnerabilities are disclosed
+- 🛡️ **Proactive security posture** instead of reactive emergency responses
+
+**Production Reality Check:**
+Unlike static analysis of build files, JLib Inspector shows you **exactly what JARs are loaded at runtime** - capturing the full picture including:
+- JARs loaded dynamically through plugins or extensions
+- Nested JARs within fat/uber JARs  
+- Platform-specific dependencies loaded conditionally
+- The actual classpath used by the running JVM
+
+When the next security vulnerability emerges, you'll have immediate answers instead of emergency archaeology. 
+
 ## 🏗️ Architecture
 
 - **Java Agent**: Instruments Java applications to track JAR loading and usage

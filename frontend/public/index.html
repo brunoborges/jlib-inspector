@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="JLib Inspector - Java Applications and JAR Dependencies Dashboard" />
+    <title>JLib Inspector Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(100%); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .status-connected { color: #10b981; }
+        .status-disconnected { color: #ef4444; }
+        .status-unknown { color: #6b7280; }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transform: translateY(-1px);
+        }
+        
+        .app-card {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .app-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+        
+        .jar-item {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .jar-item:hover {
+            background-color: #f8fafc;
+            transform: translateX(4px);
+        }
+        
+        .search-input {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .search-input:focus {
+            transform: scale(1.02);
+        }
+        
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+        
+        .grid-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .list-view .app-card {
+            margin-bottom: 1rem;
+        }
+        
+        .compact-jar {
+            border-left: 3px solid #e5e7eb;
+            transition: border-color 0.2s ease-in-out;
+        }
+        
+        .compact-jar.loaded {
+            border-left-color: #10b981;
+        }
+        
+        .compact-jar.not-loaded {
+            border-left-color: #ef4444;
+        }
+        
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .tab-button:not(.active) {
+            background-color: white;
+            color: #6b7280;
+            border-color: #d1d5db;
+        }
+        
+        .tab-button:not(.active):hover {
+            background-color: #f9fafb;
+            color: #374151;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50">
+    <div id="app" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+                            <i data-lucide="package" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">JLib Inspector</h1>
+                            <p class="text-sm text-gray-500">Java Applications & JAR Dependencies Monitor</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-6">
+                        <div id="server-status" class="flex items-center space-x-2">
+                            <div id="status-indicator" class="w-3 h-3 rounded-full shadow-sm"></div>
+                            <span id="status-text" class="text-sm font-medium">Connecting...</span>
+                        </div>
+                        <div id="last-updated" class="text-sm text-gray-500">
+                            Never updated
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button id="view-toggle" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" title="Toggle View">
+                                <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loading" class="flex items-center justify-center py-20">
+            <div class="flex flex-col items-center space-y-4">
+                <div class="relative">
+                    <div class="w-12 h-12 border-4 border-blue-200 rounded-full animate-spin"></div>
+                    <div class="absolute top-0 left-0 w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <span class="text-gray-600 font-medium">Loading dashboard...</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main id="content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 hidden">
+            <!-- Search and Filters -->
+            <div class="card p-4 mb-6">
+                <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div class="flex-1 max-w-lg">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
+                            </div>
+                            <input 
+                                type="text" 
+                                id="search-input" 
+                                class="search-input block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" 
+                                placeholder="Search applications, JARs, or command lines..."
+                            />
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <select id="filter-select" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                            <option value="all">All Applications</option>
+                            <option value="loaded">With Loaded JARs</option>
+                            <option value="recent">Recently Updated</option>
+                        </select>
+                        <button id="refresh-btn" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="card p-6 bg-gradient-to-br from-blue-50 to-blue-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-blue-700">Total Applications</p>
+                            <p id="total-apps" class="text-3xl font-bold text-blue-900">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                            <i data-lucide="server" class="w-6 h-6 text-white"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6 bg-gradient-to-br from-green-50 to-green-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-green-700">Total JARs</p>
+                            <p id="total-jars" class="text-3xl font-bold text-green-900">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                            <i data-lucide="package" class="w-6 h-6 text-white"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6 bg-gradient-to-br from-yellow-50 to-yellow-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-yellow-700">Loaded JARs</p>
+                            <p id="loaded-jars" class="text-3xl font-bold text-yellow-900">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
+                            <i data-lucide="check-circle" class="w-6 h-6 text-white"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6 bg-gradient-to-br from-purple-50 to-purple-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-purple-700">Unique JARs</p>
+                            <p id="unique-jars" class="text-3xl font-bold text-purple-900">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
+                            <i data-lucide="layers" class="w-6 h-6 text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Applications Section -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Java Applications</h2>
+                        <p class="text-sm text-gray-500 mt-1">Monitored applications and their dependencies</p>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        <span id="filtered-count">0</span> of <span id="total-count">0</span> applications
+                    </div>
+                </div>
+                
+                <div id="applications-container" class="grid-view">
+                    <!-- Applications will be inserted here -->
+                </div>
+                
+                <div id="no-applications" class="text-center py-12 hidden">
+                    <i data-lucide="server" class="w-16 h-16 text-gray-300 mx-auto mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No Applications Found</h3>
+                    <p class="text-gray-500 mb-4">No Java applications are currently being monitored.</p>
+                    <button id="refresh-empty" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
+                        Refresh Now
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- JAR Details Modal -->
+        <div id="jar-modal" class="fixed inset-0 z-50 hidden">
+            <div class="modal-overlay absolute inset-0" onclick="closeJarModal()"></div>
+            <div class="relative min-h-screen flex items-center justify-center p-4">
+                <div class="slide-in bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                        <div>
+                            <h3 id="modal-title" class="text-xl font-bold text-gray-900">JAR Dependencies</h3>
+                            <p id="modal-subtitle" class="text-sm text-gray-500 mt-1">Application details and JAR inventory</p>
+                        </div>
+                        <button onclick="closeJarModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                    <div class="p-6 overflow-y-auto max-h-[70vh]">
+                        <div id="modal-content">
+                            <!-- JAR details will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        let dashboardData = {
+            applications: [],
+            lastUpdated: null,
+            serverStatus: 'unknown'
+        };
+        
+        let filteredApplications = [];
+        let currentView = 'grid'; // 'grid' or 'list'
+        let ws = null;
+        let isLoading = true;
+
+        // DOM elements
+        const loadingEl = document.getElementById('loading');
+        const contentEl = document.getElementById('content');
+        const statusIndicator = document.getElementById('status-indicator');
+        const statusText = document.getElementById('status-text');
+        const lastUpdatedEl = document.getElementById('last-updated');
+        const totalAppsEl = document.getElementById('total-apps');
+        const totalJarsEl = document.getElementById('total-jars');
+        const loadedJarsEl = document.getElementById('loaded-jars');
+        const uniqueJarsEl = document.getElementById('unique-jars');
+        const applicationsContainer = document.getElementById('applications-container');
+        const noApplicationsEl = document.getElementById('no-applications');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const refreshEmptyBtn = document.getElementById('refresh-empty');
+        const searchInput = document.getElementById('search-input');
+        const filterSelect = document.getElementById('filter-select');
+        const viewToggle = document.getElementById('view-toggle');
+        const filteredCountEl = document.getElementById('filtered-count');
+        const totalCountEl = document.getElementById('total-count');
+        const jarModal = document.getElementById('jar-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalSubtitle = document.getElementById('modal-subtitle');
+        const modalContent = document.getElementById('modal-content');
+
+        // Initialize Lucide icons
+        function initIcons() {
+            lucide.createIcons();
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0 || bytes === -1) return 'Unknown';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        // Extract JAR name for MvnRepository search (remove version and extension)
+        function extractJarNameForSearch(fileName) {
+            if (!fileName || fileName.endsWith('.class') || fileName === '') {
+                return null;
+            }
+            
+            // Skip system JARs (JRT modules)
+            if (fileName.startsWith('jdk.') || fileName.startsWith('java.')) {
+                return null;
+            }
+            
+            // Remove .jar extension
+            let name = fileName.replace(/\.jar$/, '');
+            
+            // Common version patterns to remove
+            // Pattern 1: name-1.2.3 or name-1.2.3-SNAPSHOT
+            name = name.replace(/-\d+(?:\.\d+)*(?:-[A-Z]+)?$/i, '');
+            
+            // Pattern 2: name-1.2.3.RELEASE or similar
+            name = name.replace(/-\d+(?:\.\d+)*\.[A-Z]+$/i, '');
+            
+            // Pattern 3: name_1_2_3 (underscore versions)
+            name = name.replace(/_\d+(?:_\d+)*$/, '');
+            
+            return name || null;
+        }
+
+        // Generate MvnRepository search URL
+        function getMvnRepositoryUrl(fileName) {
+            const searchName = extractJarNameForSearch(fileName);
+            if (!searchName) return null;
+            return `https://mvnrepository.com/search?q=${encodeURIComponent(searchName)}`;
+        }
+
+        // Format relative time
+        function formatRelativeTime(dateString) {
+            if (!dateString) return 'Never';
+            
+            const now = new Date();
+            const date = new Date(dateString);
+            const diffInSeconds = Math.floor((now - date) / 1000);
+            
+            if (diffInSeconds < 60) return 'Just now';
+            if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+            if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+            return `${Math.floor(diffInSeconds / 86400)}d ago`;
+        }
+
+        // Update server status
+        function updateServerStatus() {
+            const statusClasses = {
+                'connected': 'bg-green-500 status-connected',
+                'disconnected': 'bg-red-500 status-disconnected',
+                'unknown': 'bg-gray-400 status-unknown'
+            };
+            
+            const statusTexts = {
+                'connected': 'Connected',
+                'disconnected': 'Disconnected',
+                'unknown': 'Unknown'
+            };
+            
+            statusIndicator.className = `w-3 h-3 rounded-full shadow-sm ${statusClasses[dashboardData.serverStatus]}`;
+            statusText.textContent = statusTexts[dashboardData.serverStatus];
+            statusText.className = `text-sm font-medium ${dashboardData.serverStatus === 'connected' ? 'text-green-600' : dashboardData.serverStatus === 'disconnected' ? 'text-red-600' : 'text-gray-600'}`;
+        }
+
+        // Calculate and update statistics
+        function updateStatistics() {
+            const stats = {
+                totalApps: dashboardData.applications.length,
+                totalJars: dashboardData.applications.reduce((sum, app) => sum + (app.jars ? app.jars.length : 0), 0),
+                loadedJars: dashboardData.applications.reduce((sum, app) => 
+                    sum + (app.jars ? app.jars.filter(jar => jar.loaded).length : 0), 0),
+                uniqueJars: new Set(
+                    dashboardData.applications.flatMap(app => 
+                        app.jars ? app.jars.map(jar => jar.fileName).filter(name => name) : []
+                    )
+                ).size
+            };
+            
+            totalAppsEl.textContent = stats.totalApps;
+            totalJarsEl.textContent = stats.totalJars;
+            loadedJarsEl.textContent = stats.loadedJars;
+            uniqueJarsEl.textContent = stats.uniqueJars;
+            
+            totalCountEl.textContent = stats.totalApps;
+            filteredCountEl.textContent = filteredApplications.length;
+        }
+
+        // Filter applications based on search and filter criteria
+        function filterApplications() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filterType = filterSelect.value;
+            
+            filteredApplications = dashboardData.applications.filter(app => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    app.commandLine.toLowerCase().includes(searchTerm) ||
+                    (app.jars && app.jars.some(jar => 
+                        jar.fileName && jar.fileName.toLowerCase().includes(searchTerm)
+                    )) ||
+                    app.appId.toLowerCase().includes(searchTerm) ||
+                    app.jdkVersion.toLowerCase().includes(searchTerm);
+                
+                // Type filter
+                let matchesFilter = true;
+                switch (filterType) {
+                    case 'loaded':
+                        matchesFilter = app.jars && app.jars.some(jar => jar.loaded);
+                        break;
+                    case 'recent':
+                        const lastUpdate = new Date(app.lastUpdated);
+                        const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+                        matchesFilter = lastUpdate > thirtyMinutesAgo;
+                        break;
+                    default:
+                        matchesFilter = true;
+                }
+                
+                return matchesSearch && matchesFilter;
+            });
+            
+            renderApplications();
+            updateStatistics();
+        }
+
+        // Toggle view between grid and list
+        function toggleView() {
+            currentView = currentView === 'grid' ? 'list' : 'grid';
+            
+            if (currentView === 'grid') {
+                applicationsContainer.className = 'grid-view';
+                viewToggle.innerHTML = '<i data-lucide="list" class="w-5 h-5"></i>';
+                viewToggle.title = 'Switch to List View';
+            } else {
+                applicationsContainer.className = 'list-view space-y-4';
+                viewToggle.innerHTML = '<i data-lucide="layout-grid" class="w-5 h-5"></i>';
+                viewToggle.title = 'Switch to Grid View';
+            }
+            
+            initIcons();
+            renderApplications();
+        }
+
+        // Open JAR details modal
+        function openJarModal(app) {
+            modalTitle.textContent = `JAR Dependencies`;
+            modalSubtitle.textContent = `${app.jars ? app.jars.length : 0} dependencies for application ${app.appId.substring(0, 12)}...`;
+            
+            if (!app.jars || app.jars.length === 0) {
+                modalContent.innerHTML = `
+                    <div class="text-center py-8">
+                        <i data-lucide="package" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No JARs Found</h3>
+                        <p class="text-gray-500">This application has no JAR dependencies.</p>
+                    </div>
+                `;
+            } else {
+                const loadedJars = app.jars.filter(jar => jar.loaded);
+                const notLoadedJars = app.jars.filter(jar => !jar.loaded);
+                
+                modalContent.innerHTML = `
+                    <!-- Application Info -->
+                    <div class="bg-slate-50 rounded-lg p-4 mb-6">
+                        <h4 class="font-semibold text-gray-900 mb-3">Application Details</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-600">App ID:</span>
+                                <span class="font-mono text-gray-900 ml-2">${app.appId.substring(0, 16)}...</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">JDK Version:</span>
+                                <span class="text-gray-900 ml-2">${app.jdkVersion} (${app.jdkVendor})</span>
+                            </div>
+                            <div class="md:col-span-2">
+                                <span class="text-gray-600">Command:</span>
+                                <div class="bg-white p-2 rounded border mt-1">
+                                    <code class="text-xs break-all">${app.commandLine}</code>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- JAR Statistics -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">${app.jars.length}</div>
+                            <div class="text-sm text-gray-600">Total JARs</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">${loadedJars.length}</div>
+                            <div class="text-sm text-gray-600">Loaded</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-gray-600">${notLoadedJars.length}</div>
+                            <div class="text-sm text-gray-600">Not Loaded</div>
+                        </div>
+                    </div>
+                    
+                    <!-- JAR Search -->
+                    <div class="mb-4">
+                        <input 
+                            type="text" 
+                            id="jar-search" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" 
+                            placeholder="Search JARs..."
+                            oninput="filterJarsInModal()"
+                        />
+                    </div>
+                    
+                    <!-- JAR Tabs -->
+                    <div class="mb-4">
+                        <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+                            <button onclick="switchJarTab('all')" 
+                                    class="tab-button flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors active" 
+                                    id="tab-all">
+                                All JARs (${app.jars.length})
+                            </button>
+                            <button onclick="switchJarTab('loaded')" 
+                                    class="tab-button flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors" 
+                                    id="tab-loaded">
+                                <span class="flex items-center justify-center">
+                                    <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
+                                    Loaded (${loadedJars.length})
+                                </span>
+                            </button>
+                            <button onclick="switchJarTab('not-loaded')" 
+                                    class="tab-button flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors" 
+                                    id="tab-not-loaded">
+                                <span class="flex items-center justify-center">
+                                    <i data-lucide="circle" class="w-4 h-4 mr-2"></i>
+                                    Not Loaded (${notLoadedJars.length})
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- All JARs Tab Content -->
+                    <div id="tab-content-all" class="tab-content active">
+                        <div class="space-y-2 max-h-96 overflow-y-auto">
+                            ${app.jars.map(jar => renderJarItemDetailed(jar)).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Loaded JARs Tab Content -->
+                    <div id="tab-content-loaded" class="tab-content">
+                        ${loadedJars.length > 0 ? `
+                            <div class="space-y-2 max-h-96 overflow-y-auto">
+                                ${loadedJars.map(jar => renderJarItemDetailed(jar)).join('')}
+                            </div>
+                        ` : `
+                            <div class="text-center py-8">
+                                <i data-lucide="check-circle" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Loaded JARs</h3>
+                                <p class="text-gray-500">No JARs are currently loaded for this application.</p>
+                            </div>
+                        `}
+                    </div>
+                    
+                    <!-- Not Loaded JARs Tab Content -->
+                    <div id="tab-content-not-loaded" class="tab-content">
+                        ${notLoadedJars.length > 0 ? `
+                            <div class="space-y-2 max-h-96 overflow-y-auto">
+                                ${notLoadedJars.map(jar => renderJarItemDetailed(jar)).join('')}
+                            </div>
+                        ` : `
+                            <div class="text-center py-8">
+                                <i data-lucide="circle" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Unloaded JARs</h3>
+                                <p class="text-gray-500">All JARs are currently loaded for this application.</p>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }
+            
+            jarModal.classList.remove('hidden');
+            initIcons();
+        }
+
+        // Close JAR details modal
+        function closeJarModal() {
+            jarModal.classList.add('hidden');
+        }
+
+        // Switch JAR tabs
+        function switchJarTab(tabName) {
+            // Remove active class from all tabs and content
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab and content
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            document.getElementById(`tab-content-${tabName}`).classList.add('active');
+            
+            // Update search to work with current tab
+            filterJarsInModal();
+        }
+
+        // Filter JARs in modal (updated to work with tabs)
+        function filterJarsInModal() {
+            const searchTerm = document.getElementById('jar-search')?.value.toLowerCase() || '';
+            
+            // Get currently active tab content
+            const activeTabContent = document.querySelector('.tab-content.active');
+            if (!activeTabContent) return;
+            
+            const jarItems = activeTabContent.querySelectorAll('.jar-modal-item');
+            
+            jarItems.forEach(item => {
+                const jarName = (item.dataset.jarName || '').toLowerCase();
+                const jarPath = (item.dataset.jarPath || '').toLowerCase();
+                
+                if (jarName.includes(searchTerm) || jarPath.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Render detailed JAR item for modal
+        function renderJarItemDetailed(jar) {
+            const isSystemJar = jar.path.startsWith('jrt:/');
+            const iconClass = isSystemJar ? 'w-4 h-4 text-blue-500' : 'w-4 h-4 text-green-500';
+            const iconName = isSystemJar ? 'layers' : 'package';
+            const mvnUrl = getMvnRepositoryUrl(jar.fileName);
+            
+            return `
+                <div class="jar-modal-item p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors" 
+                     data-jar-name="${jar.fileName || ''}" 
+                     data-jar-path="${jar.path}">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start space-x-3 flex-1">
+                            <i data-lucide="${iconName}" class="${iconClass} mt-1 flex-shrink-0"></i>
+                            <div class="flex-1 min-w-0">
+                                <h5 class="text-sm font-medium text-gray-900 truncate">
+                                    ${jar.fileName || 'Unknown JAR'}
+                                </h5>
+                                <p class="text-xs text-gray-500 break-all mb-1">${jar.path}</p>
+                                ${jar.checksum && jar.checksum !== '?' ? `
+                                    <div class="flex items-center justify-between bg-gray-50 p-2 rounded border mb-2">
+                                        <div class="flex-1 min-w-0">
+                                            <span class="text-xs text-gray-600 font-medium">SHA-256:</span>
+                                            <span class="text-xs text-gray-800 font-mono ml-1 break-all">${jar.checksum}</span>
+                                        </div>
+                                        <button onclick="event.stopPropagation(); copyToClipboard('${jar.checksum}', this)" 
+                                                class="ml-2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors flex-shrink-0" 
+                                                title="Copy checksum">
+                                            <i data-lucide="copy" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                ` : ''}
+                                ${mvnUrl ? `
+                                    <a href="${mvnUrl}" target="_blank" rel="noopener noreferrer" 
+                                       class="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 hover:underline">
+                                        <i data-lucide="external-link" class="w-3 h-3 mr-1"></i>
+                                        Search on mvnrepository.com
+                                    </a>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="text-right flex-shrink-0 ml-3">
+                            <p class="text-xs text-gray-600">${formatFileSize(jar.size)}</p>
+                            <p class="text-xs ${jar.loaded ? 'text-green-600' : 'text-gray-400'} font-medium">
+                                ${jar.loaded ? 'Loaded' : 'Not loaded'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render compact JAR list for application cards
+        function renderCompactJarList(jars, maxItems = 5) {
+            if (!jars || jars.length === 0) {
+                return '<p class="text-sm text-gray-500">No JARs found</p>';
+            }
+            
+            const displayJars = jars.slice(0, maxItems);
+            const remainingCount = jars.length - maxItems;
+            
+            return `
+                <div class="space-y-1">
+                    ${displayJars.map(jar => {
+                        const mvnUrl = getMvnRepositoryUrl(jar.fileName);
+                        return `
+                            <div class="compact-jar ${jar.loaded ? 'loaded' : 'not-loaded'} flex items-center justify-between py-1 px-2 text-xs bg-gray-50 rounded">
+                                <div class="flex items-center flex-1 mr-2 min-w-0">
+                                    <span class="truncate">${jar.fileName || 'Unknown'}</span>
+                                    ${mvnUrl ? `
+                                        <a href="${mvnUrl}" target="_blank" rel="noopener noreferrer" 
+                                           onclick="event.stopPropagation()" 
+                                           class="ml-1 text-blue-500 hover:text-blue-700 flex-shrink-0" 
+                                           title="Search on mvnrepository.com">
+                                            <i data-lucide="external-link" class="w-3 h-3"></i>
+                                        </a>
+                                    ` : ''}
+                                </div>
+                                <span class="${jar.loaded ? 'text-green-600' : 'text-gray-400'} flex-shrink-0">
+                                    ${jar.loaded ? '●' : '○'}
+                                </span>
+                            </div>
+                        `;
+                    }).join('')}
+                    ${remainingCount > 0 ? `
+                        <p class="text-xs text-gray-500 pl-2">
+                            +${remainingCount} more JARs...
+                        </p>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Render applications
+        function renderApplications() {
+            if (filteredApplications.length === 0) {
+                applicationsContainer.classList.add('hidden');
+                noApplicationsEl.classList.remove('hidden');
+                return;
+            }
+            
+            applicationsContainer.classList.remove('hidden');
+            noApplicationsEl.classList.add('hidden');
+            
+            const isGridView = currentView === 'grid';
+            
+            applicationsContainer.innerHTML = filteredApplications.map(app => {
+                const loadedJars = app.jars ? app.jars.filter(jar => jar.loaded).length : 0;
+                const totalJars = app.jars ? app.jars.length : 0;
+                
+                return `
+                    <div class="app-card card p-6 fade-in" onclick="openJarModal(${JSON.stringify(app).replace(/"/g, '&quot;')})">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center shadow-lg">
+                                    <i data-lucide="coffee" class="w-6 h-6 text-white"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">Java Application</h3>
+                                    <p class="text-sm text-gray-500 font-mono">${app.appId.substring(0, 12)}...</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="flex items-center space-x-1 text-sm">
+                                    <span class="text-gray-600">${loadedJars}</span>
+                                    <span class="text-gray-400">/</span>
+                                    <span class="font-medium text-gray-900">${totalJars}</span>
+                                    <span class="text-gray-500">JARs</span>
+                                </div>
+                                <p class="text-xs text-gray-500">JDK ${app.jdkVersion}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm font-medium text-gray-700">Command Line</p>
+                                <button onclick="event.stopPropagation(); copyToClipboard('${app.commandLine.replace(/'/g, "\\'")}', this)" class="text-xs text-blue-600 hover:text-blue-800 flex items-center">
+                                    <i data-lucide="copy" class="w-3 h-3 mr-1"></i>
+                                    Copy
+                                </button>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg border">
+                                <p class="text-xs text-gray-800 font-mono break-all leading-relaxed line-clamp-2">${app.commandLine}</p>
+                            </div>
+                        </div>
+                        
+                        ${isGridView ? `
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-sm font-medium text-gray-900">Recent JARs</h4>
+                                <span class="text-xs text-gray-500">${loadedJars} loaded</span>
+                            </div>
+                            ${renderCompactJarList(app.jars)}
+                        </div>
+                        ` : ''}
+                        
+                        <div class="flex items-center justify-between text-xs text-gray-500">
+                            <span>Updated ${formatRelativeTime(app.lastUpdated)}</span>
+                            <span class="text-blue-600 font-medium">Click to view all JARs →</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Re-initialize icons for newly added elements
+            initIcons();
+        }
+
+        // Update the dashboard
+        function updateDashboard(data) {
+            dashboardData = data;
+            
+            updateServerStatus();
+            filterApplications(); // This will also update statistics and render applications
+            
+            if (data.lastUpdated) {
+                lastUpdatedEl.textContent = `Updated ${formatRelativeTime(data.lastUpdated)}`;
+            }
+            
+            if (isLoading) {
+                isLoading = false;
+                loadingEl.classList.add('hidden');
+                contentEl.classList.remove('hidden');
+            }
+        }
+
+        // Setup WebSocket connection
+        function setupWebSocket() {
+            ws = new WebSocket('ws://localhost:3001');
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    if (message.type === 'data-update') {
+                        updateDashboard(message.data);
+                    }
+                } catch (error) {
+                    console.error('Error parsing WebSocket message:', error);
+                }
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket disconnected, attempting to reconnect...');
+                setTimeout(setupWebSocket, 5000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        // Fetch initial data
+        async function fetchInitialData() {
+            try {
+                const response = await fetch('/api/dashboard');
+                if (response.ok) {
+                    const data = await response.json();
+                    updateDashboard(data);
+                } else {
+                    throw new Error('Failed to fetch data');
+                }
+            } catch (error) {
+                console.error('Error fetching initial data:', error);
+                // Show content anyway with empty state
+                isLoading = false;
+                loadingEl.classList.add('hidden');
+                contentEl.classList.remove('hidden');
+            }
+        }
+
+        // Manual refresh
+        async function performRefresh(button) {
+            button.disabled = true;
+            button.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i>Refreshing...';
+            
+            try {
+                await fetchInitialData();
+            } finally {
+                button.disabled = false;
+                button.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>Refresh';
+                initIcons();
+            }
+        }
+
+        // Copy text to clipboard
+        async function copyToClipboard(text, buttonElement) {
+            try {
+                await navigator.clipboard.writeText(text);
+                const originalHTML = buttonElement.innerHTML;
+                const isIconOnly = !buttonElement.textContent.trim() || buttonElement.textContent.trim() === '';
+                
+                if (isIconOnly) {
+                    buttonElement.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>';
+                    buttonElement.classList.add('text-green-600');
+                    buttonElement.title = 'Copied!';
+                } else {
+                    buttonElement.innerHTML = '<i data-lucide="check" class="w-3 h-3 mr-1"></i>Copied!';
+                    buttonElement.classList.add('text-green-600');
+                }
+                
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalHTML;
+                    buttonElement.classList.remove('text-green-600');
+                    if (isIconOnly) {
+                        buttonElement.title = 'Copy checksum';
+                    }
+                    initIcons();
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                const originalHTML = buttonElement.innerHTML;
+                const isIconOnly = !buttonElement.textContent.trim() || buttonElement.textContent.trim() === '';
+                
+                if (isIconOnly) {
+                    buttonElement.innerHTML = '<i data-lucide="x" class="w-3 h-3"></i>';
+                    buttonElement.classList.add('text-red-600');
+                    buttonElement.title = 'Failed to copy';
+                } else {
+                    buttonElement.innerHTML = '<i data-lucide="x" class="w-3 h-3 mr-1"></i>Failed';
+                    buttonElement.classList.add('text-red-600');
+                }
+                
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalHTML;
+                    buttonElement.classList.remove('text-red-600');
+                    if (isIconOnly) {
+                        buttonElement.title = 'Copy checksum';
+                    }
+                    initIcons();
+                }, 2000);
+            }
+        }
+
+        // Event listeners
+        refreshBtn.addEventListener('click', () => performRefresh(refreshBtn));
+        refreshEmptyBtn.addEventListener('click', () => performRefresh(refreshEmptyBtn));
+        viewToggle.addEventListener('click', toggleView);
+        searchInput.addEventListener('input', filterApplications);
+        filterSelect.addEventListener('change', filterApplications);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !jarModal.classList.contains('hidden')) {
+                closeJarModal();
+            }
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                searchInput.focus();
+            }
+        });
+
+        // Initialize the application
+        async function init() {
+            initIcons();
+            await fetchInitialData();
+            setupWebSocket();
+            
+            // Update relative times every minute
+            setInterval(() => {
+                if (dashboardData.lastUpdated) {
+                    lastUpdatedEl.textContent = `Updated ${formatRelativeTime(dashboardData.lastUpdated)}`;
+                }
+            }, 60000);
+        }
+
+        // Start the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

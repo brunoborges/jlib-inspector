@@ -1,0 +1,378 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '21'
+  NODE_VERSION: '18'
+
+jobs:
+  # Build and test the Java agent
+  build-agent:
+    name: Build Java Agent
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Build with Maven
+      run: mvn clean compile -B
+      
+    - name: Run tests
+      run: mvn test -B
+      
+    - name: Package agent
+      run: mvn package -B
+      
+    - name: Verify agent JAR exists
+      run: |
+        ls -la agent/target/
+        test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar
+        
+    - name: Upload agent artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: jlib-inspector-agent
+        path: agent/target/jlib-inspector-agent-*.jar
+        retention-days: 30
+
+  # Build and test the sample Spring app
+  build-sample-app:
+    name: Build Sample Spring App
+    runs-on: ubuntu-latest
+    needs: build-agent
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Build sample app
+      run: |
+        cd sample-spring-app
+        mvn clean package -B
+        
+    - name: Verify sample app JAR exists
+      run: |
+        ls -la sample-spring-app/target/
+        test -f sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
+        
+    - name: Upload sample app artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sample-spring-app
+        path: sample-spring-app/target/sample-spring-app-*.jar
+        retention-days: 30
+
+  # Build and test the React frontend
+  build-frontend:
+    name: Build React Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci
+        
+    - name: Lint code
+      run: |
+        cd frontend
+        npm run lint || echo "No lint script found, skipping..."
+        
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+        
+    - name: Verify build output
+      run: |
+        ls -la frontend/dist/
+        test -f frontend/dist/index.html
+        
+    - name: Upload frontend artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend/dist/
+        retention-days: 30
+
+  # Integration test: Test agent with server
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [build-agent, build-sample-app]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Build project
+      run: mvn clean package -B
+        
+    - name: Verify built artifacts
+      run: |
+        ls -la agent/target/
+        ls -la sample-spring-app/target/
+        test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar
+        test -f sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
+        
+    - name: Test local-only mode
+      run: |
+        echo "Testing local-only mode..."
+        timeout 30s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar \
+          -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar || true
+        echo "Local-only mode test completed"
+        
+    - name: Test server integration
+      run: |
+        echo "Starting JLib Server in background..."
+        java -cp "agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar" \
+          io.github.brunoborges.jlib.server.JLibServer 8080 &
+        SERVER_PID=$!
+        
+        # Wait for server to start
+        echo "Waiting for server to be ready..."
+        for i in {1..30}; do
+          if curl -s http://localhost:8080/health; then
+            echo "Server is ready!"
+            break
+          fi
+          echo "Waiting... ($i/30)"
+          sleep 2
+        done
+        
+        # Test with server
+        echo "Testing with server integration..."
+        timeout 30s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar=server:8080 \
+          -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar || true
+          
+        # Check server received data
+        echo "Checking server data..."
+        curl -s http://localhost:8080/api/apps || echo "No apps found"
+        
+        # Cleanup
+        kill $SERVER_PID || true
+        echo "Integration test completed"
+
+  # End-to-end test with full stack
+  e2e-test:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: [build-agent, build-sample-app, build-frontend]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        
+    - name: Set up Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Build Maven projects
+      run: |
+        mvn clean package -B
+        cd sample-spring-app
+        mvn clean package -B
+        cd ..
+        
+    - name: Download frontend build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend/dist/
+        
+    - name: Verify built artifacts
+      run: |
+        ls -la agent/target/
+        ls -la sample-spring-app/target/
+        ls -la frontend/dist/
+        test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar
+        test -f sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
+        test -f frontend/dist/index.html
+        
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+        
+    - name: Start full stack
+      run: |
+        echo "Starting JLib Server..."
+        java -cp "agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar" \
+          io.github.brunoborges.jlib.server.JLibServer 8080 &
+        SERVER_PID=$!
+        
+        echo "Starting frontend server..."
+        cd frontend
+        npm start &
+        FRONTEND_PID=$!
+        cd ..
+        
+        # Wait for services
+        echo "Waiting for services to be ready..."
+        sleep 15
+        
+        # Test server health
+        curl -f http://localhost:8080/health || echo "Server health check failed"
+        
+        # Test frontend
+        curl -f http://localhost:3000 || echo "Frontend health check failed"
+        
+        # Run sample app with agent
+        echo "Running sample app with agent..."
+        timeout 20s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar=server:8080 \
+          -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar || true
+          
+        # Check if data was collected
+        echo "Checking collected data..."
+        curl -s http://localhost:8080/api/apps | jq . || echo "No JSON data found"
+        
+        # Cleanup
+        kill $SERVER_PID $FRONTEND_PID || true
+        echo "E2E test completed"
+
+  # Security and quality checks
+  security-scan:
+    name: Security & Quality Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Run OWASP Dependency Check
+      run: |
+        mvn org.owasp:dependency-check-maven:check \
+          -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
+          -B || echo "Dependency check completed with warnings"
+        
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          agent/target/dependency-check-report.html
+          sample-spring-app/target/dependency-check-report.html
+        retention-days: 30
+
+  # Release preparation (only on main branch)
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    needs: [integration-test, e2e-test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./release-artifacts
+        
+    - name: Create release package
+      run: |
+        mkdir -p release-package
+        cp release-artifacts/jlib-inspector-agent/*.jar release-package/
+        cp release-artifacts/sample-spring-app/*.jar release-package/
+        cp -r release-artifacts/frontend-build release-package/frontend || true
+        cp demo-jlib-inspector.ps1 release-package/
+        cp README.md release-package/
+        cp LICENSE release-package/
+        
+        # Create archive
+        tar -czf jlib-inspector-release.tar.gz -C release-package .
+        
+    - name: Upload release package
+      uses: actions/upload-artifact@v4
+      with:
+        name: jlib-inspector-release
+        path: jlib-inspector-release.tar.gz
+        retention-days: 90

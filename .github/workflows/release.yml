@@ -1,0 +1,262 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '18'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        
+    - name: Set up Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+        
+    - name: Get version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Build Java components
+      run: |
+        mvn clean package -B
+        cd sample-spring-app
+        mvn clean package -B
+        cd ..
+        
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+        cd ..
+        
+    - name: Create release package
+      run: |
+        mkdir -p release-package
+        
+        # Copy built artifacts
+        cp agent/target/jlib-inspector-agent-*.jar release-package/
+        cp sample-spring-app/target/sample-spring-app-*.jar release-package/
+        
+        # Copy frontend build
+        mkdir -p release-package/frontend
+        cp -r frontend/dist/* release-package/frontend/
+        cp frontend/app.js release-package/frontend/
+        cp frontend/package.json release-package/frontend/
+        
+        # Copy documentation and scripts
+        cp demo-jlib-inspector.ps1 release-package/
+        cp README.md release-package/
+        cp LICENSE release-package/
+        cp logging.properties release-package/
+        
+        # Create installation script
+        cat > release-package/install.sh << 'EOF'
+        #!/bin/bash
+        # JLib Inspector Installation Script
+        
+        echo "=== JLib Inspector Installation ==="
+        echo "Version: ${{ steps.version.outputs.VERSION }}"
+        echo ""
+        
+        # Check Java
+        if ! command -v java &> /dev/null; then
+            echo "❌ Java is required but not installed."
+            echo "Please install Java 17 or later and try again."
+            exit 1
+        fi
+        
+        JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F '.' '{print $1}')
+        if [ "$JAVA_VERSION" -lt 17 ]; then
+            echo "❌ Java 17 or later is required. Found Java $JAVA_VERSION"
+            exit 1
+        fi
+        
+        echo "✅ Java $JAVA_VERSION detected"
+        
+        # Check Node.js (optional for frontend)
+        if command -v node &> /dev/null; then
+            NODE_VERSION=$(node --version | cut -d 'v' -f 2 | cut -d '.' -f 1)
+            if [ "$NODE_VERSION" -ge 18 ]; then
+                echo "✅ Node.js $NODE_VERSION detected (frontend available)"
+                HAS_NODE=true
+            else
+                echo "⚠️  Node.js 18+ recommended for frontend. Found $(node --version)"
+                HAS_NODE=false
+            fi
+        else
+            echo "⚠️  Node.js not found. Frontend will not be available."
+            HAS_NODE=false
+        fi
+        
+        echo ""
+        echo "Installation complete! Usage:"
+        echo ""
+        echo "1. Run agent with your Java application:"
+        echo "   java -javaagent:jlib-inspector-agent-*.jar -jar your-app.jar"
+        echo ""
+        echo "2. Run with server integration:"
+        echo "   java -javaagent:jlib-inspector-agent-*.jar=server:8080 -jar your-app.jar"
+        echo ""
+        echo "3. Run demo (requires PowerShell on Windows or pwsh on Linux/Mac):"
+        echo "   ./demo-jlib-inspector.ps1"
+        echo ""
+        if [ "$HAS_NODE" = true ]; then
+            echo "4. Start dashboard:"
+            echo "   cd frontend && npm install && npm start"
+            echo ""
+        fi
+        echo "For more information, see README.md"
+        EOF
+        
+        chmod +x release-package/install.sh
+        
+        # Create Windows installation batch file
+        cat > release-package/install.bat << 'EOF'
+        @echo off
+        echo === JLib Inspector Installation ===
+        echo Version: ${{ steps.version.outputs.VERSION }}
+        echo.
+        
+        REM Check Java
+        java -version >nul 2>&1
+        if errorlevel 1 (
+            echo ❌ Java is required but not installed.
+            echo Please install Java 17 or later and try again.
+            pause
+            exit /b 1
+        )
+        
+        echo ✅ Java detected
+        
+        REM Check Node.js (optional)
+        node --version >nul 2>&1
+        if errorlevel 1 (
+            echo ⚠️  Node.js not found. Frontend will not be available.
+            set HAS_NODE=false
+        ) else (
+            echo ✅ Node.js detected (frontend available)
+            set HAS_NODE=true
+        )
+        
+        echo.
+        echo Installation complete! Usage:
+        echo.
+        echo 1. Run agent with your Java application:
+        echo    java -javaagent:jlib-inspector-agent-*.jar -jar your-app.jar
+        echo.
+        echo 2. Run with server integration:
+        echo    java -javaagent:jlib-inspector-agent-*.jar=server:8080 -jar your-app.jar
+        echo.
+        echo 3. Run demo:
+        echo    .\demo-jlib-inspector.ps1
+        echo.
+        if "%HAS_NODE%"=="true" (
+            echo 4. Start dashboard:
+            echo    cd frontend ^&^& npm install ^&^& npm start
+            echo.
+        )
+        echo For more information, see README.md
+        pause
+        EOF
+        
+        # Create archives
+        tar -czf jlib-inspector-${{ steps.version.outputs.VERSION }}-linux.tar.gz -C release-package .
+        
+        # Create Windows zip (using tar for simplicity, though zip would be more native)
+        tar -czf jlib-inspector-${{ steps.version.outputs.VERSION }}-windows.tar.gz -C release-package .
+        
+        # Create universal archive
+        tar -czf jlib-inspector-${{ steps.version.outputs.VERSION }}.tar.gz -C release-package .
+        
+    - name: Generate changelog
+      id: changelog
+      run: |
+        if [ "${{ github.event_name }}" = "push" ]; then
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%an)" $LAST_TAG..HEAD)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%an)" --max-count=10)
+          fi
+        else
+          CHANGELOG="Manual release of ${{ steps.version.outputs.VERSION }}"
+        fi
+        
+        echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+        echo "## What's Changed" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "## Installation" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "1. Download the appropriate archive for your platform" >> $GITHUB_OUTPUT
+        echo "2. Extract the archive" >> $GITHUB_OUTPUT
+        echo "3. Run the installation script (\`install.sh\` or \`install.bat\`)" >> $GITHUB_OUTPUT
+        echo "4. Follow the usage instructions in the README.md" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "## Quick Start" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "\`\`\`bash" >> $GITHUB_OUTPUT
+        echo "# Run the demo" >> $GITHUB_OUTPUT
+        echo "./demo-jlib-inspector.ps1" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "# Use with your application" >> $GITHUB_OUTPUT
+        echo "java -javaagent:jlib-inspector-agent-*.jar -jar your-app.jar" >> $GITHUB_OUTPUT
+        echo "\`\`\`" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        name: JLib Inspector ${{ steps.version.outputs.VERSION }}
+        body: ${{ steps.changelog.outputs.CHANGELOG }}
+        draft: false
+        prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
+        files: |
+          jlib-inspector-${{ steps.version.outputs.VERSION }}.tar.gz
+          jlib-inspector-${{ steps.version.outputs.VERSION }}-linux.tar.gz
+          jlib-inspector-${{ steps.version.outputs.VERSION }}-windows.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

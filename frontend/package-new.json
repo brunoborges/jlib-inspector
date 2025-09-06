@@ -1,0 +1,27 @@
+{
+  "name": "jlib-inspector-dashboard",
+  "version": "2.0.0",
+  "description": "Simplified JLib Inspector Dashboard - Single Node.js Application",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": ["java", "jar", "monitoring", "dashboard", "nodejs"],
+  "author": "JLib Inspector Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "axios": "^1.6.0",
+    "ws": "^8.14.2",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

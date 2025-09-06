@@ -52,7 +52,7 @@ When the next security vulnerability emerges, you'll have immediate answers inst
 ## 📋 Prerequisites
 
 - **Java 21+** (JDK with module system support)
-- **Maven 3.6+** 
+- **Maven 3.9.11+** 
 - **Node.js 14+** and **npm**
 - **PowerShell** (for Windows) or equivalent shell
 
@@ -65,7 +65,7 @@ When the next security vulnerability emerges, you'll have immediate answers inst
 cd jlib-inspector
 
 # Build all components (agent + sample app)
-mvn clean package -DskipTests
+mvn clean package
 ```
 
 ### 2. Start the JLib Server

@@ -3,3 +3,6 @@ frontend/node_modules/**
 sample-spring-app/target/**
 target/**
 frontend/dist/**
+
+# IntelliJ IDE files
+.idea/

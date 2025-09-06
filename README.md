@@ -264,22 +264,33 @@ java -Djava.util.logging.config.file=logging.properties -javaagent:agent/target/
 # Dashboard logs appear in console with timestamp
 ```
 
-## 🏃‍♂️ Demo Script
+## 🏃‍♂️ Demo Scripts
 
-For a quick demonstration, run the unified testing script:
+For a quick demonstration, run the comprehensive testing script:
 
+**Windows (PowerShell):**
 ```powershell
 # Comprehensive test of all agent modes and server integration
-.\test-unified-agent.ps1
+.\demo-jlib-inspector.ps1
 ```
 
-This script will:
+**Linux/macOS (Bash):**
+```bash
+# Comprehensive test of all agent modes and server integration
+./demo-jlib-inspector.sh
+```
+
+These scripts will:
 1. Build the project automatically
-2. Test local-only mode
+2. Test local-only mode (no server arguments)
 3. Test server mode with graceful fallback
-4. Test full server integration
-5. Test custom host:port formats
-6. Display results and usage examples
+4. Test full server integration when server is available
+5. Test custom host:port argument formats
+6. Display comprehensive results and usage examples
+
+**Prerequisites for bash script:**
+- `curl` (for server health checks)
+- `java` and `mvn` (automatically checked)
 
 For manual testing, use:
 

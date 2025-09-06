@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -66,11 +67,11 @@ public class InspectorAgent {
     inst.addTransformer(classTransformer, false);
 
     // Capture declared vs actually loaded classpath JARs at startup (registers into inventory)
-    new ClasspathJarTracker(inst, inventory);
+    ClasspathJarTracker classpathTracker = new ClasspathJarTracker(inst, inventory);
 
     // Generate application ID if server mode is enabled
     if (serverHost != null && serverPort > 0) {
-      applicationId = generateApplicationId();
+      applicationId = generateApplicationId(inventory, classpathTracker);
       LOG.info("Application ID: " + applicationId + " (will report to " + serverHost + ":" + serverPort + ")");
     }
 
@@ -137,7 +138,7 @@ public class InspectorAgent {
    * 
    * @return SHA-256 hash representing this unique application configuration
    */
-  private static String generateApplicationId() {
+  private static String generateApplicationId(JarInventory inventory, ClasspathJarTracker classpathTracker) {
     try {
       // Get complete command line
       String commandLine = getFullCommandLine();
@@ -147,8 +148,25 @@ public class InspectorAgent {
       String jdkVendor = System.getProperty("java.vendor");
       String jdkPath = System.getProperty("java.home");
       
+      // Extract checksums of top-level JARs from the classpath
+      List<String> jarChecksums = new ArrayList<>();
+      for (String jarUri : classpathTracker.getDeclaredClasspathJars()) {
+        // Find the corresponding JAR record in the inventory
+        for (JarInventory.JarRecord jarRecord : inventory.snapshot()) {
+          if (jarRecord.id.equals(jarUri)) {
+            // Only include JARs that have valid checksums (not "?")
+            if (!"?".equals(jarRecord.sha256)) {
+              jarChecksums.add(jarRecord.sha256);
+            }
+            break;
+          }
+        }
+      }
+      
+      LOG.info("Collected " + jarChecksums.size() + " top-level JAR checksums for application ID generation");
+      
       // Use the server's application ID generation logic
-      return JLibServer.computeApplicationId(commandLine, Collections.emptyList(), 
+      return JLibServer.computeApplicationId(commandLine, jarChecksums, 
                                             jdkVersion, jdkVendor, jdkPath);
     } catch (Exception e) {
       LOG.warning("Failed to generate application ID: " + e.getMessage());

@@ -14,7 +14,16 @@ export const useDashboardData = () => {
     // Fetch initial data
     const fetchInitialData = useCallback(async () => {
         try {
-            const response = await fetch('/api/dashboard');
+            // Add cache-busting timestamp and headers
+            const timestamp = new Date().getTime();
+            const response = await fetch(`/api/dashboard?_t=${timestamp}`, {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
                 setDashboardData(data);
@@ -36,7 +45,7 @@ export const useDashboardData = () => {
         
         websocket.onopen = () => {
             console.log('WebSocket connected');
-            setDashboardData(prev => ({ ...prev, serverStatus: 'connected' }));
+            // Don't override serverStatus here - it should come from the backend
         };
         
         websocket.onmessage = (event) => {
@@ -52,13 +61,13 @@ export const useDashboardData = () => {
         
         websocket.onclose = () => {
             console.log('WebSocket disconnected, attempting to reconnect...');
-            setDashboardData(prev => ({ ...prev, serverStatus: 'disconnected' }));
+            // Don't override serverStatus here - WebSocket is just the transport
             setTimeout(setupWebSocket, 5000);
         };
         
         websocket.onerror = (error) => {
             console.error('WebSocket error:', error);
-            setDashboardData(prev => ({ ...prev, serverStatus: 'disconnected' }));
+            // Don't override serverStatus here
         };
 
         setWs(websocket);

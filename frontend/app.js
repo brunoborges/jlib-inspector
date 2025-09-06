@@ -13,6 +13,17 @@ const JLIB_SERVER_URL = process.env.JLIB_SERVER_URL || 'http://localhost:8080';
 app.use(cors());
 app.use(express.json());
 
+// Disable caching for API routes
+app.use('/api', (req, res, next) => {
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Last-Modified': new Date().toUTCString()
+  });
+  next();
+});
+
 // Serve static files - prioritize React build over public directory
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -157,12 +168,14 @@ wss.on('connection', (ws) => {
   });
 });
 
-// Schedule periodic data fetching
+// Initial data fetch with small delay to allow WebSocket connections
+console.log('Performing initial data fetch...');
+fetchApplicationData(); // Immediate fetch
+setTimeout(fetchApplicationData, 500); // Wait 500ms for a second check
+
+// Schedule periodic data fetching  
 console.log('Setting up data fetching schedule...');
 cron.schedule('*/10 * * * * *', fetchApplicationData); // Every 10 seconds
-
-// Initial data fetch
-fetchApplicationData();
 
 // Start server
 app.listen(PORT, () => {

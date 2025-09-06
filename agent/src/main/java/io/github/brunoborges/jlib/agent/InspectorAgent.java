@@ -6,10 +6,6 @@ import io.github.brunoborges.jlib.shared.JarMetadata;
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -43,8 +39,7 @@ public class InspectorAgent {
     private static final Set<WeakReference<ClassLoader>> LOADERS = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     // Server configuration (null if local-only mode)
-    private static String serverHost;
-    private static int serverPort;
+    private static JLibServerClient serverClient;
     private static String applicationId;
 
     public static void premain(String args, Instrumentation inst) {
@@ -81,9 +76,9 @@ public class InspectorAgent {
         ClasspathJarTracker classpathTracker = new ClasspathJarTracker(inst, inventory);
 
         // Generate application ID if server mode is enabled
-        if (serverHost != null && serverPort > 0) {
+        if (serverClient != null) {
             applicationId = generateApplicationId(inventory, classpathTracker);
-            LOG.info("Application ID: " + applicationId + " (will report to " + serverHost + ":" + serverPort + ")");
+            LOG.info("Application ID: " + applicationId + " (will report to server)");
         }
 
         // Shutdown hook to emit consolidated report
@@ -93,9 +88,9 @@ public class InspectorAgent {
             System.out.println("");
 
             // Send to server if configured
-            if (serverHost != null && serverPort > 0) {
+            if (serverClient != null) {
                 try {
-                    sendToServer(inventory);
+                    serverClient.sendApplicationData(applicationId, inventory);
                 } catch (Exception e) {
                     LOG.warning("Failed to send data to server: " + e.getMessage());
                 }
@@ -135,6 +130,9 @@ public class InspectorAgent {
             String serverSpec = args.substring(7);
             String[] parts = serverSpec.split(":");
 
+            String serverHost;
+            int serverPort;
+            
             if (parts.length == 1) {
                 // server:port
                 serverHost = "localhost";
@@ -143,8 +141,12 @@ public class InspectorAgent {
                 // server:host:port
                 serverHost = parts[0];
                 serverPort = Integer.parseInt(parts[1]);
+            } else {
+                LOG.warning("Invalid server specification: " + args);
+                return;
             }
 
+            serverClient = new JLibServerClient(serverHost, serverPort);
             LOG.info("Configured to report to server at " + serverHost + ":" + serverPort);
         }
     }
@@ -188,80 +190,6 @@ public class InspectorAgent {
             LOG.warning("Failed to generate application ID: " + e.getMessage());
             return "unknown-" + System.currentTimeMillis();
         }
-    }
-
-    /**
-     * Sends application and JAR inventory data to the configured server.
-     * 
-     * @param inventory The jar inventory to send
-     * @throws Exception if sending fails
-     */
-    private static void sendToServer(JarInventory inventory) throws Exception {
-        LOG.info("Sending data to server at " + serverHost + ":" + serverPort);
-
-        // Build JSON payload
-        String json = buildApplicationJson(inventory);
-
-        // Send PUT request using modern HTTP client
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://" + serverHost + ":" + serverPort + "/api/apps/" + applicationId))
-                .PUT(HttpRequest.BodyPublishers.ofString(json))
-                .header("Content-Type", "application/json")
-                .build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() == 200) {
-            LOG.info("Successfully sent data to server");
-        } else {
-            LOG.warning("Server returned error code: " + response.statusCode() + " - " + response.body());
-        }
-    }
-
-    /**
-     * Builds JSON representation of the application for server reporting.
-     * 
-     * @param inventory The jar inventory
-     * @return JSON string representing the application data
-     */
-    private static String buildApplicationJson(JarInventory inventory) {
-        StringBuilder json = new StringBuilder();
-
-        // Get JDK information
-        String jdkVersion = System.getProperty("java.version");
-        String jdkVendor = System.getProperty("java.vendor");
-        String jdkPath = System.getProperty("java.home");
-
-        // Get the complete command line including main class and arguments
-        String commandLine = getFullCommandLine();
-
-        json.append("{");
-        json.append("\"commandLine\":\"").append(escapeJson(commandLine)).append("\",");
-        json.append("\"jdkVersion\":\"").append(jdkVersion).append("\",");
-        json.append("\"jdkVendor\":\"").append(escapeJson(jdkVendor)).append("\",");
-        json.append("\"jdkPath\":\"").append(escapeJson(jdkPath)).append("\",");
-
-        // Include JAR inventory data as a proper JSON array (not escaped string)
-        json.append("\"jars\":[");
-        boolean first = true;
-        for (JarMetadata jar : inventory.snapshot()) {
-            if (!first) {
-                json.append(",");
-            }
-            json.append("{");
-            json.append("\"path\":\"").append(escapeJson(jar.fullPath)).append("\",");
-            json.append("\"fileName\":\"").append(escapeJson(jar.fileName)).append("\",");
-            json.append("\"size\":").append(jar.size).append(",");
-            json.append("\"checksum\":\"").append(escapeJson(jar.sha256Hash)).append("\",");
-            json.append("\"loaded\":").append(jar.isLoaded());
-            json.append("}");
-            first = false;
-        }
-        json.append("]");
-        json.append("}");
-
-        return json.toString();
     }
 
     /**
@@ -334,21 +262,5 @@ public class InspectorAgent {
             }
             return fallback.toString();
         }
-    }
-
-    /**
-     * Escapes special characters for JSON string values.
-     * 
-     * @param str The string to escape
-     * @return JSON-safe escaped string
-     */
-    private static String escapeJson(String str) {
-        if (str == null)
-            return "";
-        return str.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
     }
 }

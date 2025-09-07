@@ -7,7 +7,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JLIB_SERVER_URL = process.env.JLIB_SERVER_URL || 'http://localhost:8080';
+let JLIB_SERVER_URL = process.env.JLIB_SERVER_URL || 'http://localhost:8080';
 
 // Middleware
 app.use(cors());
@@ -95,6 +95,56 @@ async function fetchApplicationData() {
 // API Routes
 app.get('/api/dashboard', (req, res) => {
   res.json(dashboardData);
+});
+
+app.get('/api/server-config', (req, res) => {
+  res.json({
+    jlibServerUrl: JLIB_SERVER_URL,
+    lastUpdated: dashboardData.lastUpdated,
+    serverStatus: dashboardData.serverStatus
+  });
+});
+
+app.post('/api/server-config', (req, res) => {
+  const { jlibServerUrl } = req.body;
+  
+  if (!jlibServerUrl) {
+    return res.status(400).json({ error: 'jlibServerUrl is required' });
+  }
+  
+  // Validate URL format
+  try {
+    new URL(jlibServerUrl);
+  } catch (error) {
+    return res.status(400).json({ error: 'Invalid URL format' });
+  }
+  
+  const oldUrl = JLIB_SERVER_URL;
+  JLIB_SERVER_URL = jlibServerUrl;
+  
+  console.log(`JLib Server URL changed from ${oldUrl} to ${JLIB_SERVER_URL}`);
+  
+  // Reset server status and trigger immediate data fetch
+  dashboardData.serverStatus = 'connecting';
+  dashboardData.applications = [];
+  
+  // Broadcast configuration change to all clients
+  broadcastUpdate({
+    type: 'config-update',
+    data: {
+      jlibServerUrl: JLIB_SERVER_URL,
+      serverStatus: dashboardData.serverStatus
+    }
+  });
+  
+  // Trigger immediate data fetch with new URL
+  setTimeout(fetchApplicationData, 100);
+  
+  res.json({
+    success: true,
+    jlibServerUrl: JLIB_SERVER_URL,
+    message: 'JLib Server URL updated successfully'
+  });
 });
 
 app.get('/api/applications', (req, res) => {

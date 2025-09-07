@@ -1,14 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import LoadingSpinner from './components/LoadingSpinner';
 import StatisticsCards from './components/StatisticsCards';
 import SearchAndFilter from './components/SearchAndFilter';
 import ApplicationsList from './components/ApplicationsList';
-import JarModal from './components/JarModal';
-import UniqueJarsModal from './components/UniqueJarsModal';
 import { useDashboardData } from './hooks/useDashboardData';
 import { initLucideIcons } from './utils/helpers';
 import './styles/globals.css';
+
+// Lazy load modal components to reduce initial bundle size
+const JarModal = lazy(() => import('./components/JarModal'));
+const UniqueJarsModal = lazy(() => import('./components/UniqueJarsModal'));
+const ServerConfig = lazy(() => import('./components/ServerConfig'));
 
 const App = () => {
     const { dashboardData, isLoading, error, refreshData } = useDashboardData();
@@ -17,6 +20,8 @@ const App = () => {
     const [filterType, setFilterType] = useState('all');
     const [selectedApplication, setSelectedApplication] = useState(null);
     const [showUniqueJarsModal, setShowUniqueJarsModal] = useState(false);
+    const [showServerConfig, setShowServerConfig] = useState(false);
+    const [currentServerUrl, setCurrentServerUrl] = useState('http://localhost:8080');
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     useEffect(() => {
@@ -80,6 +85,32 @@ const App = () => {
         setShowUniqueJarsModal(false);
     };
 
+    const handleOpenServerConfig = () => {
+        setShowServerConfig(true);
+    };
+
+    const handleCloseServerConfig = () => {
+        setShowServerConfig(false);
+    };
+
+    const handleServerUrlChange = (newUrl) => {
+        setCurrentServerUrl(newUrl);
+    };
+
+    // Fetch current server configuration on mount
+    useEffect(() => {
+        const fetchServerConfig = async () => {
+            try {
+                const response = await fetch('/api/server-config');
+                const config = await response.json();
+                setCurrentServerUrl(config.jlibServerUrl);
+            } catch (error) {
+                console.error('Failed to fetch server config:', error);
+            }
+        };
+        fetchServerConfig();
+    }, []);
+
     // Handle keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -88,6 +119,8 @@ const App = () => {
                     handleCloseJarModal();
                 } else if (showUniqueJarsModal) {
                     handleCloseUniqueJarsModal();
+                } else if (showServerConfig) {
+                    handleCloseServerConfig();
                 }
             }
             if (e.ctrlKey && e.key === 'k') {
@@ -100,7 +133,7 @@ const App = () => {
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [selectedApplication, showUniqueJarsModal]);
+    }, [selectedApplication, showUniqueJarsModal, showServerConfig]);
 
     if (isLoading) {
         return (
@@ -150,6 +183,7 @@ const App = () => {
                 lastUpdated={dashboardData.lastUpdated}
                 currentView={currentView}
                 onViewToggle={handleViewToggle}
+                onOpenServerConfig={handleOpenServerConfig}
             />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -177,17 +211,30 @@ const App = () => {
                 />
             </main>
 
-            <JarModal 
-                isOpen={!!selectedApplication}
-                onClose={handleCloseJarModal}
-                application={selectedApplication}
-            />
+            <Suspense fallback={<div></div>}>
+                <JarModal 
+                    isOpen={!!selectedApplication}
+                    onClose={handleCloseJarModal}
+                    application={selectedApplication}
+                />
+            </Suspense>
 
-            <UniqueJarsModal 
-                isOpen={showUniqueJarsModal}
-                onClose={handleCloseUniqueJarsModal}
-                applications={dashboardData.applications}
-            />
+            <Suspense fallback={<div></div>}>
+                <UniqueJarsModal 
+                    isOpen={showUniqueJarsModal}
+                    onClose={handleCloseUniqueJarsModal}
+                    applications={dashboardData.applications}
+                />
+            </Suspense>
+
+            <Suspense fallback={<div></div>}>
+                <ServerConfig 
+                    isOpen={showServerConfig}
+                    onClose={handleCloseServerConfig}
+                    currentUrl={currentServerUrl}
+                    onUrlChange={handleServerUrlChange}
+                />
+            </Suspense>
         </div>
     );
 };

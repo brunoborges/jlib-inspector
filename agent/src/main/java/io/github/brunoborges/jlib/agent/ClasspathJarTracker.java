@@ -2,13 +2,15 @@ package io.github.brunoborges.jlib.agent;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import java.lang.instrument.Instrumentation;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.security.CodeSource;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

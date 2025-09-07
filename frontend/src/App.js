@@ -5,6 +5,7 @@ import StatisticsCards from './components/StatisticsCards';
 import SearchAndFilter from './components/SearchAndFilter';
 import ApplicationsList from './components/ApplicationsList';
 import JarModal from './components/JarModal';
+import UniqueJarsModal from './components/UniqueJarsModal';
 import { useDashboardData } from './hooks/useDashboardData';
 import { initLucideIcons } from './utils/helpers';
 import './styles/globals.css';
@@ -15,6 +16,7 @@ const App = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all');
     const [selectedApplication, setSelectedApplication] = useState(null);
+    const [showUniqueJarsModal, setShowUniqueJarsModal] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     useEffect(() => {
@@ -70,11 +72,23 @@ const App = () => {
         setSelectedApplication(null);
     };
 
+    const handleOpenUniqueJarsModal = () => {
+        setShowUniqueJarsModal(true);
+    };
+
+    const handleCloseUniqueJarsModal = () => {
+        setShowUniqueJarsModal(false);
+    };
+
     // Handle keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === 'Escape' && selectedApplication) {
-                handleCloseJarModal();
+            if (e.key === 'Escape') {
+                if (selectedApplication) {
+                    handleCloseJarModal();
+                } else if (showUniqueJarsModal) {
+                    handleCloseUniqueJarsModal();
+                }
             }
             if (e.ctrlKey && e.key === 'k') {
                 e.preventDefault();
@@ -86,7 +100,7 @@ const App = () => {
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [selectedApplication]);
+    }, [selectedApplication, showUniqueJarsModal]);
 
     if (isLoading) {
         return (
@@ -148,7 +162,10 @@ const App = () => {
                     isRefreshing={isRefreshing}
                 />
 
-                <StatisticsCards applications={dashboardData.applications} />
+                <StatisticsCards 
+                    applications={dashboardData.applications} 
+                    onUniqueJarsClick={handleOpenUniqueJarsModal}
+                />
 
                 <ApplicationsList 
                     applications={filteredApplications}
@@ -164,6 +181,12 @@ const App = () => {
                 isOpen={!!selectedApplication}
                 onClose={handleCloseJarModal}
                 application={selectedApplication}
+            />
+
+            <UniqueJarsModal 
+                isOpen={showUniqueJarsModal}
+                onClose={handleCloseUniqueJarsModal}
+                applications={dashboardData.applications}
             />
         </div>
     );

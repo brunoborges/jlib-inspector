@@ -52,6 +52,31 @@
                 </configuration>
             </plugin>
 
+            <!-- Shade plugin to build an uber-jar including dependencies -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Keep original pom dependencies; avoid dependency-reduced-pom -->
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>io.github.brunoborges.jlib.server.JLibServer</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Surefire plugin for JUnit 5 support -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

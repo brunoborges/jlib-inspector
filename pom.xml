@@ -13,13 +13,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <modules>
-        <module>common</module>
-        <module>agent</module>
-        <module>server</module>
-        <module>sample-spring-app</module>
-    </modules>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -56,4 +49,34 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>server</id>
+            <modules>
+                <module>common</module>
+                <module>server</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>agent</id>
+            <modules>
+                <module>common</module>
+                <module>agent</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>all</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <modules>
+                <module>common</module>
+                <module>server</module>
+                <module>agent</module>
+                <module>sample-spring-app</module>
+            </modules>
+        </profile>
+    </profiles>
+
 </project>

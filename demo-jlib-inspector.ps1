@@ -17,7 +17,8 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "2. Testing local-only mode (no server arguments)..." -ForegroundColor Green
 Write-Host "   Running: java -javaagent:agent.jar -jar ...\sample-spring-app-1.0-SNAPSHOT.jar" -ForegroundColor Gray
 
-$agentPath = "agent\target\jlib-inspector-agent-1.0-SNAPSHOT.jar"
+$agentPath = "agent\target\jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar"
+$serverPath = "server\target\jlib-inspector-server-1.0-SNAPSHOT-shaded.jar"
 $springJar = "sample-spring-app\target\sample-spring-app-1.0-SNAPSHOT.jar"
 
 # Test 1: Local-only mode (no args)
@@ -36,10 +37,10 @@ Write-Host "   Running: java -javaagent:agent.jar=server:8080 -jar spring-app.ja
 Write-Host ""
 Write-Host "Starting HTTP server for full integration test..." -ForegroundColor Green
 
-# Start server
+# Start server with shaded server JAR
 $serverJob = Start-Job -ScriptBlock {
     cd "D:\work\jlib-inspector"
-    java -cp "agent\target\classes" io.github.brunoborges.jlib.server.JLibServer 8080
+    java -jar "$serverPath" 8080
 }
 
 # Wait for server to be ready
@@ -135,6 +136,6 @@ Write-Host "✓ Full server integration when available" -ForegroundColor Green
 Write-Host "✓ Flexible argument parsing (server:port and server:host:port)" -ForegroundColor Green
 Write-Host ""
 Write-Host "Usage Examples:" -ForegroundColor Yellow
-Write-Host "  -javaagent:jlib-inspector-agent.jar                    # Local only" -ForegroundColor Gray
-Write-Host "  -javaagent:jlib-inspector-agent.jar=server:8080        # Report to localhost:8080" -ForegroundColor Gray
-Write-Host "  -javaagent:jlib-inspector-agent.jar=server:remote:9000 # Report to remote:9000" -ForegroundColor Gray
+Write-Host "  -javaagent:jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar                    # Local only" -ForegroundColor Gray
+Write-Host "  -javaagent:jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080        # Report to localhost:8080" -ForegroundColor Gray
+Write-Host "  -javaagent:jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:remote:9000 # Report to remote:9000" -ForegroundColor Gray

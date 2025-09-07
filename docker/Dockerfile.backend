@@ -4,21 +4,25 @@ FROM openjdk:21-jdk-slim
 # Set working directory
 WORKDIR /app
 
-# Copy Maven wrapper and POM files
+# Copy JAR
+# COPY ./server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
+
 COPY ./mvnw ./mvnw
 COPY ./.mvn ./.mvn
-COPY ./pom.xml ./
-COPY ./agent/pom.xml ./agent/
-COPY ./sample-spring-app/pom.xml ./sample-spring-app/
 
-# Copy source code
-COPY ./agent/src ./agent/src
+COPY ./pom.xml ./pom.xml
+COPY ./common/pom.xml ./common/pom.xml
+COPY ./server/pom.xml ./server/pom.xml
 
-# Build the project
-RUN ./mvnw clean package -pl agent -amd
+COPY ./common/src ./common/src
+COPY ./server/src ./server/src
+
+RUN chmod +x ./mvnw
+RUN ./mvnw -P server clean package
+RUN cp ./server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar ./jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
 
 # Expose port 8080
 EXPOSE 8080
 
-# Run the JLib server
-CMD ["java", "-cp", "agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar", "io.github.brunoborges.jlib.server.JLibServer", "8080"]
+# Run the JLib server shaded jar
+CMD ["java", "-jar", "jlib-inspector-server-1.0-SNAPSHOT-shaded.jar", "8080"]

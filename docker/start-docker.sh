@@ -15,12 +15,23 @@ if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/
     exit 1
 fi
 
+# Move to the directory containing this script (and docker-compose.yml)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
 # Build and start services
 echo "Building and starting services..."
 
-if ! docker compose up --build; then
-    echo "Error: Failed to start services"
-    exit 1
+if command -v docker-compose &> /dev/null; then
+    if ! docker-compose -f docker-compose.yml up --build; then
+            echo "Error: Failed to start services"
+            exit 1
+    fi
+else
+    if ! docker compose -f docker-compose.yml up --build; then
+            echo "Error: Failed to start services"
+            exit 1
+    fi
 fi
 
 echo ""
@@ -28,4 +39,4 @@ echo "Services started successfully!"
 echo "Frontend: http://localhost:3000"
 echo "Backend API: http://localhost:8080"
 echo ""
-echo "To stop the services, press Ctrl+C or run: docker-compose down"
+echo "To stop the services, press Ctrl+C or run: (cd docker && docker compose down)"

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import java.util.Map;
@@ -25,52 +25,47 @@ class JsonParserTest {
     void shouldDetectOrgJsonAvailability() {
         boolean isAvailable = JsonParserFactory.isOrgJsonAvailable();
         // Just verify the method doesn't throw an exception
-        assertThat(isAvailable).isNotNull();
+        assertNotNull(isAvailable);
     }
 
     @Test
     @DisplayName("Should get configured parser type")
     void shouldGetConfiguredParserType() {
         JsonParserFactory.ParserType type = JsonParserFactory.getConfiguredParserType();
-        assertThat(type).isNotNull();
-        assertThat(type).isIn(
-            JsonParserFactory.ParserType.AUTO,
-            JsonParserFactory.ParserType.BUILTIN,
-            JsonParserFactory.ParserType.ORG_JSON
-        );
+        assertNotNull(type);
+        assertTrue(type == JsonParserFactory.ParserType.AUTO ||
+                   type == JsonParserFactory.ParserType.BUILTIN ||
+                   type == JsonParserFactory.ParserType.ORG_JSON);
     }
 
     @Test
     @DisplayName("Should get default parser")
     void shouldGetDefaultParser() {
         JsonParserInterface parser = JsonParserFactory.getDefaultParser();
-        assertThat(parser).isNotNull();
+        assertNotNull(parser);
     }
 
     @Test
     @DisplayName("Should create builtin parser")
     void shouldCreateBuiltinParser() {
         JsonParserInterface parser = JsonParserFactory.createParser(JsonParserFactory.ParserType.BUILTIN);
-        assertThat(parser).isInstanceOf(JsonParser.class);
+        assertTrue(parser instanceof JsonParser);
     }
 
     @Test
     @DisplayName("Should create org.json parser")
     void shouldCreateOrgJsonParser() {
         JsonParserInterface parser = JsonParserFactory.createParser(JsonParserFactory.ParserType.ORG_JSON);
-        assertThat(parser).isInstanceOf(OrgJsonParser.class);
+        assertTrue(parser instanceof OrgJsonParser);
     }
 
     @Test
     @DisplayName("Should create auto parser")
     void shouldCreateAutoParser() {
         JsonParserInterface parser = JsonParserFactory.createParser(JsonParserFactory.ParserType.AUTO);
-        assertThat(parser).isNotNull();
+        assertNotNull(parser);
         // Auto parser returns either JsonParser or OrgJsonParser
-        assertThat(parser).satisfiesAnyOf(
-            p -> assertThat(p).isInstanceOf(JsonParser.class),
-            p -> assertThat(p).isInstanceOf(OrgJsonParser.class)
-        );
+        assertTrue(parser instanceof JsonParser || parser instanceof OrgJsonParser);
     }
 
     @Nested
@@ -88,22 +83,24 @@ class JsonParserTest {
         @DisplayName("Should escape JSON strings correctly")
         void shouldEscapeJsonStrings() {
             // Test basic string (no escaping needed)
-            assertThat(parser.escapeJson("hello")).isEqualTo("hello");
+            assertEquals("hello", parser.escapeJson("hello"));
             
             // Test quote escaping
-            assertThat(parser.escapeJson("Hello \"World\"")).contains("\\\"");
+            assertTrue(parser.escapeJson("Hello \"World\"").contains("\\\""));
             
             // Test backslash escaping
-            assertThat(parser.escapeJson("path\\to\\file")).contains("\\\\");
+            assertTrue(parser.escapeJson("path\\to\\file").contains("\\\\"));
             
             // Test newline and tab escaping
-            assertThat(parser.escapeJson("line1\nline2\ttab")).contains("\\n").contains("\\t");
+            String escaped = parser.escapeJson("line1\nline2\ttab");
+            assertTrue(escaped.contains("\\n"));
+            assertTrue(escaped.contains("\\t"));
             
             // Test null input
-            assertThat(parser.escapeJson(null)).isEqualTo("");
+            assertEquals("", parser.escapeJson(null));
             
             // Test empty string
-            assertThat(parser.escapeJson("")).isEqualTo("");
+            assertEquals("", parser.escapeJson(""));
         }
         
         @Test
@@ -112,11 +109,10 @@ class JsonParserTest {
             String json = "{\"name\":\"test\",\"value\":\"123\",\"flag\":\"true\"}";
             Map<String, String> result = parser.parseSimpleJson(json);
             
-            assertThat(result)
-                .hasSize(3)
-                .containsEntry("name", "test")
-                .containsEntry("value", "123")
-                .containsEntry("flag", "true");
+            assertEquals(3, result.size());
+            assertEquals("test", result.get("name"));
+            assertEquals("123", result.get("value"));
+            assertEquals("true", result.get("flag"));
         }
         
         @Test
@@ -125,24 +121,24 @@ class JsonParserTest {
             String jsonArray = "[{\"a\":\"1\"},{\"b\":\"2\"},{\"c\":\"3\"}]";
             List<String> result = parser.splitJsonArray(jsonArray);
             
-            assertThat(result).hasSize(3);
-            assertThat(result.get(0)).contains("\"a\"");
-            assertThat(result.get(1)).contains("\"b\"");
-            assertThat(result.get(2)).contains("\"c\"");
+            assertEquals(3, result.size());
+            assertTrue(result.get(0).contains("\"a\""));
+            assertTrue(result.get(1).contains("\"b\""));
+            assertTrue(result.get(2).contains("\"c\""));
         }
         
         @Test
         @DisplayName("Should handle empty JSON array")
         void shouldHandleEmptyJsonArray() {
             List<String> result = parser.splitJsonArray("[]");
-            assertThat(result).isEmpty();
+            assertTrue(result.isEmpty());
         }
         
         @Test
         @DisplayName("Should handle empty JSON object")
         void shouldHandleEmptyJsonObject() {
             Map<String, String> result = parser.parseSimpleJson("{}");
-            assertThat(result).isEmpty();
+            assertTrue(result.isEmpty());
         }
         
         @Test
@@ -150,15 +146,13 @@ class JsonParserTest {
         void shouldHandleMalformedJson() {
             // Invalid JSON object - should return empty map
             Map<String, String> result = parser.parseSimpleJson("{invalid}");
-            assertThat(result).isEmpty();
+            assertTrue(result.isEmpty());
             
             // Invalid JSON array - implementation may return the malformed content as-is
             List<String> arrayResult = parser.splitJsonArray("[invalid");
             // The built-in parser may return the content rather than empty list
-            assertThat(arrayResult).satisfiesAnyOf(
-                list -> assertThat(list).isEmpty(),
-                list -> assertThat(list).hasSize(1).first().asString().contains("invalid")
-            );
+            assertTrue(arrayResult.isEmpty() || 
+                       (arrayResult.size() == 1 && arrayResult.get(0).contains("invalid")));
         }
     }
     
@@ -176,11 +170,13 @@ class JsonParserTest {
         @Test
         @DisplayName("Should escape JSON strings using org.json")
         void shouldEscapeJsonStrings() {
-            assertThat(parser.escapeJson("hello")).isEqualTo("hello");
-            assertThat(parser.escapeJson("Hello \"World\"")).contains("\\\"");
-            assertThat(parser.escapeJson("path\\to\\file")).contains("\\\\");
-            assertThat(parser.escapeJson("line1\nline2\ttab")).contains("\\n").contains("\\t");
-            assertThat(parser.escapeJson(null)).isEqualTo("");
+            assertEquals("hello", parser.escapeJson("hello"));
+            assertTrue(parser.escapeJson("Hello \"World\"").contains("\\\""));
+            assertTrue(parser.escapeJson("path\\to\\file").contains("\\\\"));
+            String escaped = parser.escapeJson("line1\nline2\ttab");
+            assertTrue(escaped.contains("\\n"));
+            assertTrue(escaped.contains("\\t"));
+            assertEquals("", parser.escapeJson(null));
         }
         
         @Test
@@ -189,10 +185,10 @@ class JsonParserTest {
             String json = "{\"name\":\"test\",\"value\":\"123\",\"flag\":\"true\"}";
             Map<String, String> result = parser.parseSimpleJson(json);
             
-            assertThat(result).hasSize(3);
-            assertThat(result.get("name")).isEqualTo("test");
-            assertThat(result.get("value")).isEqualTo("123");
-            assertThat(result.get("flag")).isEqualTo("true");
+            assertEquals(3, result.size());
+            assertEquals("test", result.get("name"));
+            assertEquals("123", result.get("value"));
+            assertEquals("true", result.get("flag"));
         }
         
         @Test
@@ -201,10 +197,10 @@ class JsonParserTest {
             String jsonArray = "[{\"a\":\"1\"},{\"b\":\"2\"},{\"c\":\"3\"}]";
             List<String> result = parser.splitJsonArray(jsonArray);
             
-            assertThat(result).hasSize(3);
-            assertThat(result.get(0)).contains("\"a\"");
-            assertThat(result.get(1)).contains("\"b\"");
-            assertThat(result.get(2)).contains("\"c\"");
+            assertEquals(3, result.size());
+            assertTrue(result.get(0).contains("\"a\""));
+            assertTrue(result.get(1).contains("\"b\""));
+            assertTrue(result.get(2).contains("\"c\""));
         }
         
         @Test
@@ -213,8 +209,8 @@ class JsonParserTest {
             String complex = "{\"nested\":{\"key\":\"value\"},\"array\":[1,2,3],\"string\":\"test\"}";
             Map<String, String> result = parser.parseSimpleJson(complex);
             
-            assertThat(result).containsKey("string");
-            assertThat(result.get("string")).isEqualTo("test");
+            assertTrue(result.containsKey("string"));
+            assertEquals("test", result.get("string"));
             // Note: parseSimpleJson may flatten nested structures or convert them to strings
         }
         
@@ -224,8 +220,8 @@ class JsonParserTest {
             String json = "{\"key\":null,\"value\":\"test\"}";
             Map<String, String> result = parser.parseSimpleJson(json);
             
-            assertThat(result).containsKey("value");
-            assertThat(result.get("value")).isEqualTo("test");
+            assertTrue(result.containsKey("value"));
+            assertEquals("test", result.get("value"));
             // Note: null values may be handled differently by parseSimpleJson
         }
     }

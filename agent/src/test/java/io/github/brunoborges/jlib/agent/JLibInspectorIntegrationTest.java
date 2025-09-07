@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.io.TempDir;
-import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -42,24 +42,24 @@ class JLibInspectorIntegrationTest {
         JarMetadata libJar = inventory.registerDeclared(jar2.getAbsolutePath(), jar2.length(), hash2);
         
         // Verify initial state
-        assertThat(appJar.isLoaded()).isFalse();
-        assertThat(libJar.isLoaded()).isFalse();
+        assertFalse(appJar.isLoaded());
+        assertFalse(libJar.isLoaded());
         
         // Mark one JAR as loaded (simulating class loading)
         inventory.markLoaded(jar1.getAbsolutePath());
         
         // Verify loaded state
-        assertThat(appJar.isLoaded()).isTrue();
-        assertThat(libJar.isLoaded()).isFalse();
+        assertTrue(appJar.isLoaded());
+        assertFalse(libJar.isLoaded());
         
         // Get snapshot and verify contents
         Collection<JarMetadata> snapshot = inventory.snapshot();
-        assertThat(snapshot).hasSize(2);
+        assertEquals(2, snapshot.size());
         
         // Verify hash computation worked
-        assertThat(appJar.sha256Hash).isNotEqualTo("?");
-        assertThat(libJar.sha256Hash).isNotEqualTo("?");
-        assertThat(appJar.sha256Hash).isNotEqualTo(libJar.sha256Hash);
+        assertNotEquals("?", appJar.sha256Hash);
+        assertNotEquals("?", libJar.sha256Hash);
+        assertNotEquals(libJar.sha256Hash, appJar.sha256Hash);
     }
 
     @Test
@@ -80,12 +80,12 @@ class JLibInspectorIntegrationTest {
         String json = (String) buildJsonMethod.invoke(client, inventory);
         
         // Verify JSON contains expected data
-        assertThat(json).contains("\"path\":\"/test/app.jar\"");
-        assertThat(json).contains("\"path\":\"/test/lib.jar\"");
-        assertThat(json).contains("\"loaded\":true");
-        assertThat(json).contains("\"loaded\":false");
-        assertThat(json).contains("\"jdkVersion\":");
-        assertThat(json).contains("\"commandLine\":");
+        assertTrue(json.contains("\"path\":\"/test/app.jar\""));
+        assertTrue(json.contains("\"path\":\"/test/lib.jar\""));
+        assertTrue(json.contains("\"loaded\":true"));
+        assertTrue(json.contains("\"loaded\":false"));
+        assertTrue(json.contains("\"jdkVersion\":"));
+        assertTrue(json.contains("\"commandLine\":"));
     }
 
     @Test
@@ -106,7 +106,7 @@ class JLibInspectorIntegrationTest {
         inventory.markLoaded(nestedLib1);
         
         Collection<JarMetadata> snapshot = inventory.snapshot();
-        assertThat(snapshot).hasSize(3);
+        assertEquals(3, snapshot.size());
         
         // Verify nested JAR properties
         JarMetadata springCore = snapshot.stream()
@@ -114,11 +114,11 @@ class JLibInspectorIntegrationTest {
             .findFirst()
             .orElse(null);
             
-        assertThat(springCore).isNotNull();
-        assertThat(springCore.fileName).isEqualTo("spring-core.jar");
-        assertThat(springCore.isNested()).isTrue();
-        assertThat(springCore.getContainerJarPath()).isEqualTo("myapp.jar");
-        assertThat(springCore.isLoaded()).isTrue();
+        assertNotNull(springCore);
+        assertEquals("spring-core.jar", springCore.fileName);
+        assertTrue(springCore.isNested());
+        assertEquals("myapp.jar", springCore.getContainerJarPath());
+        assertTrue(springCore.isLoaded());
         
         // Verify unloaded nested JAR
         JarMetadata springContext = snapshot.stream()
@@ -126,8 +126,8 @@ class JLibInspectorIntegrationTest {
             .findFirst()
             .orElse(null);
             
-        assertThat(springContext).isNotNull();
-        assertThat(springContext.isLoaded()).isFalse();
+        assertNotNull(springContext);
+        assertFalse(springContext.isLoaded());
     }
 
     @Test
@@ -165,14 +165,14 @@ class JLibInspectorIntegrationTest {
         
         // Verify final state
         Collection<JarMetadata> snapshot = inventory.snapshot();
-        assertThat(snapshot).hasSize(threadCount * jarsPerThread);
+        assertEquals(threadCount * jarsPerThread, snapshot.size());
         
         // Count loaded vs unloaded JARs
         long loadedCount = snapshot.stream().mapToLong(jar -> jar.isLoaded() ? 1 : 0).sum();
         long unloadedCount = snapshot.stream().mapToLong(jar -> jar.isLoaded() ? 0 : 1).sum();
         
-        assertThat(loadedCount).isEqualTo(threadCount * (jarsPerThread / 2));
-        assertThat(unloadedCount).isEqualTo(threadCount * (jarsPerThread / 2));
+        assertEquals(threadCount * (jarsPerThread / 2), loadedCount);
+        assertEquals(threadCount * (jarsPerThread / 2), unloadedCount);
     }
 
     @Test
@@ -201,11 +201,11 @@ class JLibInspectorIntegrationTest {
             JarMetadata jar = inventory.registerDeclared(path, 1000L, null);
             
             if (jar != null) {
-                assertThat(jar.fullPath).isEqualTo(path);
+                assertEquals(path, jar.fullPath);
                 
                 // Verify filename extraction works for valid paths
                 if (path.contains("/") || path.contains("\\")) {
-                    assertThat(jar.fileName).isNotEmpty();
+                    assertFalse(jar.fileName.isEmpty());
                 }
             }
         }
@@ -218,8 +218,8 @@ class JLibInspectorIntegrationTest {
         
         // Register JAR
         JarMetadata jar1 = inventory.registerDeclared(jarPath, 1000L, null);
-        assertThat(jar1).isNotNull();
-        assertThat(jar1.isLoaded()).isFalse();
+        assertNotNull(jar1);
+        assertFalse(jar1.isLoaded());
         
         // Get snapshot and verify consistency
         Collection<JarMetadata> snapshot1 = inventory.snapshot();
@@ -228,11 +228,11 @@ class JLibInspectorIntegrationTest {
             .findFirst()
             .orElse(null);
         
-        assertThat(jarFromSnapshot).isSameAs(jar1);
+        assertSame(jar1, jarFromSnapshot);
         
         // Mark as loaded
         inventory.markLoaded(jarPath);
-        assertThat(jar1.isLoaded()).isTrue();
+        assertTrue(jar1.isLoaded());
         
         // Verify snapshot still contains same instance
         Collection<JarMetadata> snapshot2 = inventory.snapshot();
@@ -241,8 +241,8 @@ class JLibInspectorIntegrationTest {
             .findFirst()
             .orElse(null);
         
-        assertThat(jarFromSnapshot2).isSameAs(jar1);
-        assertThat(jarFromSnapshot2.isLoaded()).isTrue();
+        assertSame(jar1, jarFromSnapshot2);
+        assertTrue(jarFromSnapshot2.isLoaded());
     }
 
     /**

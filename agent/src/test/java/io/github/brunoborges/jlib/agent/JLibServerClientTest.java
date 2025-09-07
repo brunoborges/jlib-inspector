@@ -3,7 +3,7 @@ package io.github.brunoborges.jlib.agent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.lang.reflect.Method;
 
@@ -26,7 +26,7 @@ class JLibServerClientTest {
     @DisplayName("Should create client with correct host and port")
     void shouldCreateClientWithCorrectHostAndPort() {
         JLibServerClient testClient = new JLibServerClient("example.com", 9090);
-        assertThat(testClient).isNotNull();
+        assertNotNull(testClient);
     }
 
     @Test
@@ -38,14 +38,14 @@ class JLibServerClientTest {
         
         String json = (String) buildJsonMethod.invoke(client, inventory);
         
-        assertThat(json).isNotNull();
-        assertThat(json).contains("\"commandLine\":");
-        assertThat(json).contains("\"jdkVersion\":");
-        assertThat(json).contains("\"jdkVendor\":");
-        assertThat(json).contains("\"jdkPath\":");
-        assertThat(json).contains("\"jars\":[]");
-        assertThat(json).startsWith("{");
-        assertThat(json).endsWith("}");
+        assertNotNull(json);
+        assertTrue(json.contains("\"commandLine\":"));
+        assertTrue(json.contains("\"jdkVersion\":"));
+        assertTrue(json.contains("\"jdkVendor\":"));
+        assertTrue(json.contains("\"jdkPath\":"));
+        assertTrue(json.contains("\"jars\":[]"));
+        assertTrue(json.startsWith("{"));
+        assertTrue(json.endsWith("}"));
     }
 
     @Test
@@ -62,15 +62,15 @@ class JLibServerClientTest {
         
         String json = (String) buildJsonMethod.invoke(client, inventory);
         
-        assertThat(json).isNotNull();
-        assertThat(json).contains("\"path\":\"/path/to/test1.jar\"");
-        assertThat(json).contains("\"path\":\"/path/to/test2.jar\"");
-        assertThat(json).contains("\"fileName\":\"test1.jar\"");
-        assertThat(json).contains("\"fileName\":\"test2.jar\"");
-        assertThat(json).contains("\"size\":1024");
-        assertThat(json).contains("\"size\":2048");
-        assertThat(json).contains("\"loaded\":true");
-        assertThat(json).contains("\"loaded\":false");
+        assertNotNull(json);
+        assertTrue(json.contains("\"path\":\"/path/to/test1.jar\""));
+        assertTrue(json.contains("\"path\":\"/path/to/test2.jar\""));
+        assertTrue(json.contains("\"fileName\":\"test1.jar\""));
+        assertTrue(json.contains("\"fileName\":\"test2.jar\""));
+        assertTrue(json.contains("\"size\":1024"));
+        assertTrue(json.contains("\"size\":2048"));
+        assertTrue(json.contains("\"loaded\":true"));
+        assertTrue(json.contains("\"loaded\":false"));
     }
 
     @Test
@@ -86,9 +86,9 @@ class JLibServerClientTest {
         
         String json = (String) buildJsonMethod.invoke(client, inventory);
         
-        assertThat(json).contains("\\\\"); // Escaped backslashes
-        assertThat(json).contains("\\\""); // Escaped quotes
-        assertThat(json).doesNotContain("\"App\""); // Original quotes should be escaped
+        assertTrue(json.contains("\\\\")); // Escaped backslashes
+        assertTrue(json.contains("\\\"")); // Escaped quotes
+        assertFalse(json.contains("\"App\"")); // Original quotes should be escaped
     }
 
     @Test
@@ -100,20 +100,20 @@ class JLibServerClientTest {
         
         // Test various special characters
         String result1 = (String) escapeJsonMethod.invoke(null, "Path with \"quotes\"");
-        assertThat(result1).isEqualTo("Path with \\\"quotes\\\"");
+        assertEquals("Path with \\\"quotes\\\"", result1);
         
         String result2 = (String) escapeJsonMethod.invoke(null, "Path\\with\\backslashes");
-        assertThat(result2).isEqualTo("Path\\\\with\\\\backslashes");
+        assertEquals("Path\\\\with\\\\backslashes", result2);
         
         String result3 = (String) escapeJsonMethod.invoke(null, "Line\nwith\nnewlines");
-        assertThat(result3).isEqualTo("Line\\nwith\\nnewlines");
+        assertEquals("Line\\nwith\\nnewlines", result3);
         
         String result4 = (String) escapeJsonMethod.invoke(null, "Tab\tseparated\tvalues");
-        assertThat(result4).isEqualTo("Tab\\tseparated\\tvalues");
+        assertEquals("Tab\\tseparated\\tvalues", result4);
         
         // Test null input
         String result5 = (String) escapeJsonMethod.invoke(null, (String) null);
-        assertThat(result5).isEqualTo("");
+        assertEquals("", result5);
     }
 
     @Test
@@ -125,9 +125,9 @@ class JLibServerClientTest {
         
         String commandLine = (String) getCommandLineMethod.invoke(null);
         
-        assertThat(commandLine).isNotNull();
-        assertThat(commandLine).isNotEmpty();
-        assertThat(commandLine).contains("java");
+        assertNotNull(commandLine);
+        assertFalse(commandLine.isEmpty());
+        assertTrue(commandLine.contains("java"));
     }
 
     @Test
@@ -143,9 +143,9 @@ class JLibServerClientTest {
         
         String json = (String) buildJsonMethod.invoke(client, inventory);
         
-        assertThat(json).contains("\"path\":\"outer.jar!/BOOT-INF/lib/inner.jar\"");
-        assertThat(json).contains("\"fileName\":\"inner.jar\"");
-        assertThat(json).contains("\"size\":512");
+        assertTrue(json.contains("\"path\":\"outer.jar!/BOOT-INF/lib/inner.jar\""));
+        assertTrue(json.contains("\"fileName\":\"inner.jar\""));
+        assertTrue(json.contains("\"size\":512"));
     }
 
     @Test
@@ -160,8 +160,8 @@ class JLibServerClientTest {
         
         String json = (String) buildJsonMethod.invoke(client, inventory);
         
-        assertThat(json).contains("\"checksum\":\"?\"");
-        assertThat(json).contains("\"size\":-1");
+        assertTrue(json.contains("\"checksum\":\"?\""));
+        assertTrue(json.contains("\"size\":-1"));
     }
 
     @Test
@@ -176,9 +176,9 @@ class JLibServerClientTest {
         // Check for JDK information
         String jdkVersion = System.getProperty("java.version");
         
-        assertThat(json).contains("\"jdkVersion\":\"" + jdkVersion + "\"");
-        assertThat(json).contains("\"jdkVendor\":");
-        assertThat(json).contains("\"jdkPath\":");
+        assertTrue(json.contains("\"jdkVersion\":\"" + jdkVersion + "\""));
+        assertTrue(json.contains("\"jdkVendor\":"));
+        assertTrue(json.contains("\"jdkPath\":"));
     }
 
     @Test
@@ -199,20 +199,20 @@ class JLibServerClientTest {
         String json = (String) buildJsonMethod.invoke(client, inventory);
         
         // Count JAR entries in JSON
-        assertThat(json).contains("jar1.jar");
-        assertThat(json).contains("jar2.jar");
-        assertThat(json).contains("jar3.jar");
+        assertTrue(json.contains("jar1.jar"));
+        assertTrue(json.contains("jar2.jar"));
+        assertTrue(json.contains("jar3.jar"));
         
         // Check for proper JSON array structure
         int jarArrayStart = json.indexOf("\"jars\":[");
         int jarArrayEnd = json.indexOf("]", jarArrayStart);
-        assertThat(jarArrayStart).isGreaterThan(-1);
-        assertThat(jarArrayEnd).isGreaterThan(jarArrayStart);
+        assertTrue(jarArrayStart > -1);
+        assertTrue(jarArrayEnd > jarArrayStart);
         
         String jarSection = json.substring(jarArrayStart, jarArrayEnd + 1);
         // Should contain 3 JAR objects
         int jarObjectCount = jarSection.split("\\{").length - 1;
-        assertThat(jarObjectCount).isEqualTo(3);
+        assertEquals(3, jarObjectCount);
     }
 
     @Test
@@ -229,17 +229,17 @@ class JLibServerClientTest {
         String json = (String) buildJsonMethod.invoke(client, inventory);
         
         // Verify JSON structure
-        assertThat(json).startsWith("{");
-        assertThat(json).endsWith("}");
+        assertTrue(json.startsWith("{"));
+        assertTrue(json.endsWith("}"));
         
         // Count braces to ensure they're balanced
         long openBraces = json.chars().filter(ch -> ch == '{').count();
         long closeBraces = json.chars().filter(ch -> ch == '}').count();
-        assertThat(openBraces).isEqualTo(closeBraces);
+        assertEquals(openBraces, closeBraces);
         
         // Count brackets to ensure they're balanced  
         long openBrackets = json.chars().filter(ch -> ch == '[').count();
         long closeBrackets = json.chars().filter(ch -> ch == ']').count();
-        assertThat(openBrackets).isEqualTo(closeBrackets);
+        assertEquals(openBrackets, closeBrackets);
     }
 }

@@ -6,7 +6,7 @@ import io.github.brunoborges.jlib.common.JavaApplication;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for JarService.
@@ -33,21 +33,21 @@ class JarServiceTest {
 
         jarService.processJarUpdates(testApp, jarsData);
 
-        assertThat(testApp.jars).hasSize(2);
+        assertEquals(2, testApp.jars.size());
         
         JarMetadata jar1 = testApp.jars.get("/path/to/jar1.jar");
-        assertThat(jar1).isNotNull();
-        assertThat(jar1.fileName).isEqualTo("jar1.jar");
-        assertThat(jar1.size).isEqualTo(1000L);
-        assertThat(jar1.sha256Hash).isEqualTo("hash1");
-        assertThat(jar1.isLoaded()).isTrue();
+        assertNotNull(jar1);
+        assertEquals("jar1.jar", jar1.fileName);
+        assertEquals(1000L, jar1.size);
+        assertEquals("hash1", jar1.sha256Hash);
+        assertTrue(jar1.isLoaded());
 
         JarMetadata jar2 = testApp.jars.get("/path/to/jar2.jar");
-        assertThat(jar2).isNotNull();
-        assertThat(jar2.fileName).isEqualTo("jar2.jar");
-        assertThat(jar2.size).isEqualTo(2000L);
-        assertThat(jar2.sha256Hash).isEqualTo("hash2");
-        assertThat(jar2.isLoaded()).isFalse();
+        assertNotNull(jar2);
+        assertEquals("jar2.jar", jar2.fileName);
+        assertEquals(2000L, jar2.size);
+        assertEquals("hash2", jar2.sha256Hash);
+        assertFalse(jar2.isLoaded());
     }
 
     @Test
@@ -57,7 +57,7 @@ class JarServiceTest {
 
         jarService.processJarUpdates(testApp, jarsData);
 
-        assertThat(testApp.jars).isEmpty();
+        assertTrue(testApp.jars.isEmpty());
     }
 
     @Test
@@ -68,7 +68,7 @@ class JarServiceTest {
         // Should not throw exception
         jarService.processJarUpdates(testApp, malformedData);
 
-        assertThat(testApp.jars).isEmpty();
+        assertTrue(testApp.jars.isEmpty());
     }
 
     @Test
@@ -82,8 +82,8 @@ class JarServiceTest {
         jarService.processJarUpdates(testApp, jarsData);
 
         // Should only process the valid entry
-        assertThat(testApp.jars).hasSize(1);
-        assertThat(testApp.jars.get("/valid/path.jar")).isNotNull();
+        assertEquals(1, testApp.jars.size());
+        assertNotNull(testApp.jars.get("/valid/path.jar"));
     }
 
     @Test
@@ -95,13 +95,13 @@ class JarServiceTest {
 
         jarService.processJarUpdates(testApp, jarsData);
 
-        assertThat(testApp.jars).hasSize(1);
+        assertEquals(1, testApp.jars.size());
         
         JarMetadata nestedJar = testApp.jars.get("outer.jar!/BOOT-INF/lib/inner.jar");
-        assertThat(nestedJar).isNotNull();
-        assertThat(nestedJar.isNested()).isTrue();
-        assertThat(nestedJar.getContainerJarPath()).isEqualTo("outer.jar");
-        assertThat(nestedJar.getInnerPath()).isEqualTo("BOOT-INF/lib/inner.jar");
+        assertNotNull(nestedJar);
+        assertTrue(nestedJar.isNested());
+        assertEquals("outer.jar", nestedJar.getContainerJarPath());
+        assertEquals("BOOT-INF/lib/inner.jar", nestedJar.getInnerPath());
     }
 
     @Test
@@ -111,19 +111,19 @@ class JarServiceTest {
         String initialData = "[{\"path\":\"/test.jar\",\"fileName\":\"test.jar\",\"size\":1000,\"checksum\":\"hash1\",\"loaded\":false}]";
         jarService.processJarUpdates(testApp, initialData);
 
-        assertThat(testApp.jars).hasSize(1);
+        assertEquals(1, testApp.jars.size());
         JarMetadata initialJar = testApp.jars.get("/test.jar");
-        assertThat(initialJar.isLoaded()).isFalse();
+        assertFalse(initialJar.isLoaded());
 
         // Update the same JAR
         String updatedData = "[{\"path\":\"/test.jar\",\"fileName\":\"test.jar\",\"size\":1100,\"checksum\":\"hash2\",\"loaded\":true}]";
         jarService.processJarUpdates(testApp, updatedData);
 
-        assertThat(testApp.jars).hasSize(1);
+        assertEquals(1, testApp.jars.size());
         JarMetadata updatedJar = testApp.jars.get("/test.jar");
-        assertThat(updatedJar.size).isEqualTo(1100L);
-        assertThat(updatedJar.sha256Hash).isEqualTo("hash2");
-        assertThat(updatedJar.isLoaded()).isTrue();
+        assertEquals(1100L, updatedJar.size);
+        assertEquals("hash2", updatedJar.sha256Hash);
+        assertTrue(updatedJar.isLoaded());
     }
 
     @Test
@@ -135,14 +135,14 @@ class JarServiceTest {
 
         jarService.processJarUpdates(testApp, jarsData);
 
-        assertThat(testApp.jars).hasSize(1);
+        assertEquals(1, testApp.jars.size());
         
         JarMetadata jar = testApp.jars.get("/minimal.jar");
-        assertThat(jar).isNotNull();
-        assertThat(jar.fileName).isEqualTo("minimal.jar");
-        assertThat(jar.size).isEqualTo(0L); // Default value
-        assertThat(jar.sha256Hash).isNull(); // Default for missing checksum
-        assertThat(jar.isLoaded()).isFalse(); // Default value
+        assertNotNull(jar);
+        assertEquals("minimal.jar", jar.fileName);
+        assertEquals(0L, jar.size); // Default value
+        assertNull(jar.sha256Hash); // Default for missing checksum
+        assertFalse(jar.isLoaded()); // Default value
     }
 
     @Test
@@ -161,17 +161,17 @@ class JarServiceTest {
 
         jarService.processJarUpdates(testApp, jarsDataBuilder.toString());
 
-        assertThat(testApp.jars).hasSize(100);
+        assertEquals(100, testApp.jars.size());
         
         // Verify some random entries
         JarMetadata jar0 = testApp.jars.get("/path/to/jar0.jar");
-        assertThat(jar0.isLoaded()).isTrue(); // 0 % 2 == 0
+        assertTrue(jar0.isLoaded()); // 0 % 2 == 0
         
         JarMetadata jar1 = testApp.jars.get("/path/to/jar1.jar");
-        assertThat(jar1.isLoaded()).isFalse(); // 1 % 2 != 0
+        assertFalse(jar1.isLoaded()); // 1 % 2 != 0
         
         JarMetadata jar99 = testApp.jars.get("/path/to/jar99.jar");
-        assertThat(jar99.size).isEqualTo(1099L);
+        assertEquals(1099L, jar99.size);
     }
 
     @Test
@@ -184,7 +184,7 @@ class JarServiceTest {
         String jarsData = "[{\"path\":\"/test.jar\",\"fileName\":\"test.jar\",\"size\":1000,\"checksum\":\"hash\",\"loaded\":true}]";
         jarService.processJarUpdates(testApp, jarsData);
 
-        assertThat(testApp.lastUpdated).isAfter(originalLastUpdated);
+        assertTrue(testApp.lastUpdated.compareTo(originalLastUpdated) > 0);
     }
 
     @Test
@@ -196,8 +196,8 @@ class JarServiceTest {
 
         jarService.processJarUpdates(testApp, jarsData);
 
-        assertThat(testApp.jars).hasSize(1);
+        assertEquals(1, testApp.jars.size());
         // The parser should handle the escaped quotes correctly
-        assertThat(testApp.jars.keySet()).anyMatch(path -> path.contains("quotes"));
+        assertTrue(testApp.jars.keySet().stream().anyMatch(path -> path.contains("quotes")));
     }
 }

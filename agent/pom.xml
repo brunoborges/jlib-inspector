@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.example</groupId>
@@ -13,14 +13,14 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
     </properties>
-    
+
     <dependencies>
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20250517</version>
         </dependency>
-        
+
         <!-- JUnit 5 Dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -28,7 +28,7 @@
             <version>5.10.0</version>
             <scope>test</scope>
         </dependency>
-        
+
         <!-- Mockito for mocking -->
         <dependency>
             <groupId>org.mockito</groupId>
@@ -36,7 +36,7 @@
             <version>5.5.0</version>
             <scope>test</scope>
         </dependency>
-        
+
         <!-- Mockito JUnit 5 extension -->
         <dependency>
             <groupId>org.mockito</groupId>
@@ -44,16 +44,8 @@
             <version>5.5.0</version>
             <scope>test</scope>
         </dependency>
-        
-        <!-- AssertJ for fluent assertions -->
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>3.24.2</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-    
+
     <build>
         <plugins>
             <plugin>
@@ -68,7 +60,7 @@
                     </archive>
                 </configuration>
             </plugin>
-            
+
             <!-- Surefire plugin for JUnit 5 support -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -81,7 +73,7 @@
                     </includes>
                 </configuration>
             </plugin>
-            
+
             <!-- JaCoCo for code coverage -->
             <plugin>
                 <groupId>org.jacoco</groupId>

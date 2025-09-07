@@ -1,12 +1,16 @@
 package io.github.brunoborges.jlib.agent;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import static org.assertj.core.api.Assertions.*;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Field;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for InspectorAgent.
@@ -26,16 +30,16 @@ class InspectorAgentTest {
         // Use reflection to access the private method
         Method parseArgsMethod = InspectorAgent.class.getDeclaredMethod("parseArguments", String.class);
         parseArgsMethod.setAccessible(true);
-        
+
         // Test localhost with port
         parseArgsMethod.invoke(null, "server:8080");
-        
+
         // Verify serverClient was created (check through reflection)
         Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
         serverClientField.setAccessible(true);
         Object serverClient = serverClientField.get(null);
-        
-        assertThat(serverClient).isNotNull();
+
+        assertNotNull(serverClient);
     }
 
     @Test
@@ -44,16 +48,16 @@ class InspectorAgentTest {
         // Use reflection to access the private method
         Method parseArgsMethod = InspectorAgent.class.getDeclaredMethod("parseArguments", String.class);
         parseArgsMethod.setAccessible(true);
-        
+
         // Test remote host with port
         parseArgsMethod.invoke(null, "server:example.com:9090");
-        
+
         // Verify serverClient was created
         Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
         serverClientField.setAccessible(true);
         Object serverClient = serverClientField.get(null);
-        
-        assertThat(serverClient).isNotNull();
+
+        assertNotNull(serverClient);
     }
 
     @Test
@@ -62,16 +66,16 @@ class InspectorAgentTest {
         // Use reflection to access the private method
         Method parseArgsMethod = InspectorAgent.class.getDeclaredMethod("parseArguments", String.class);
         parseArgsMethod.setAccessible(true);
-        
+
         // Test null arguments
         parseArgsMethod.invoke(null, (String) null);
-        
+
         // Verify serverClient remains null
         Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
         serverClientField.setAccessible(true);
         Object serverClient = serverClientField.get(null);
-        
-        assertThat(serverClient).isNull();
+
+        assertNull(serverClient);
     }
 
     @Test
@@ -80,17 +84,17 @@ class InspectorAgentTest {
         // Use reflection to access the private method
         Method parseArgsMethod = InspectorAgent.class.getDeclaredMethod("parseArguments", String.class);
         parseArgsMethod.setAccessible(true);
-        
+
         // Test empty arguments
         parseArgsMethod.invoke(null, "");
         parseArgsMethod.invoke(null, "   ");
-        
+
         // Verify serverClient remains null
         Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
         serverClientField.setAccessible(true);
         Object serverClient = serverClientField.get(null);
-        
-        assertThat(serverClient).isNull();
+
+        assertNull(serverClient);
     }
 
     @Test
@@ -99,17 +103,17 @@ class InspectorAgentTest {
         // Use reflection to access the private method
         Method parseArgsMethod = InspectorAgent.class.getDeclaredMethod("parseArguments", String.class);
         parseArgsMethod.setAccessible(true);
-        
+
         // Test invalid server specifications
         parseArgsMethod.invoke(null, "server:invalid:port:extra");
         parseArgsMethod.invoke(null, "notserver:8080");
-        
+
         // Should not throw exception and serverClient should remain null
         Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
         serverClientField.setAccessible(true);
         Object serverClient = serverClientField.get(null);
-        
-        assertThat(serverClient).isNull();
+
+        assertNull(serverClient);
     }
 
     @Test
@@ -118,30 +122,30 @@ class InspectorAgentTest {
         // Use reflection to access the private method
         Method normalizeMethod = InspectorAgent.class.getDeclaredMethod("normalizeLocation", String.class);
         normalizeMethod.setAccessible(true);
-        
+
         // Test JAR file URL
         String result1 = (String) normalizeMethod.invoke(null, "file:/path/to/lib.jar");
-        assertThat(result1).isEqualTo("file:/path/to/lib.jar");
-        
+        assertEquals("file:/path/to/lib.jar", result1);
+
         // Test JAR file URL with nested path
         String result2 = (String) normalizeMethod.invoke(null, "file:/path/to/lib.jar!/some/class");
-        assertThat(result2).isEqualTo("file:/path/to/lib.jar");
-        
+        assertEquals("file:/path/to/lib.jar", result2);
+
         // Test directory URL
         String result3 = (String) normalizeMethod.invoke(null, "file:/path/to/classes");
-        assertThat(result3).isEqualTo("file:/path/to/classes/");
-        
+        assertEquals("file:/path/to/classes/", result3);
+
         // Test directory URL already ending with slash
         String result4 = (String) normalizeMethod.invoke(null, "file:/path/to/classes/");
-        assertThat(result4).isEqualTo("file:/path/to/classes/");
-        
+        assertEquals("file:/path/to/classes/", result4);
+
         // Test null input
         String result5 = (String) normalizeMethod.invoke(null, (String) null);
-        assertThat(result5).isNull();
-        
+        assertNull(result5);
+
         // Test non-file URL
         String result6 = (String) normalizeMethod.invoke(null, "http://example.com/resource");
-        assertThat(result6).isEqualTo("http://example.com/resource");
+        assertEquals("http://example.com/resource", result6);
     }
 
     @Test
@@ -150,11 +154,11 @@ class InspectorAgentTest {
         // Use reflection to access the private method
         Method normalizeMethod = InspectorAgent.class.getDeclaredMethod("normalizeLocation", String.class);
         normalizeMethod.setAccessible(true);
-        
+
         // Test nested JAR URLs
         String nestedJar = "jar:file:/path/to/outer.jar!/BOOT-INF/lib/inner.jar!/some/class";
         String result = (String) normalizeMethod.invoke(null, nestedJar);
-        assertThat(result).isEqualTo("jar:file:/path/to/outer.jar");
+        assertEquals("jar:file:/path/to/outer.jar", result);
     }
 
     @Test
@@ -163,20 +167,20 @@ class InspectorAgentTest {
         // Use reflection to access the private method
         Method normalizeMethod = InspectorAgent.class.getDeclaredMethod("normalizeLocation", String.class);
         normalizeMethod.setAccessible(true);
-        
+
         // Test various URL formats
         String[] testUrls = {
-            "file:/C:/Program Files/app.jar",
-            "file:/usr/local/lib/library.jar",
-            "jar:file:/path/to/app.jar!/",
-            "file:/path/to/build/classes/",
-            "/absolute/path/without/protocol.jar",
-            "relative/path/lib.jar"
+                "file:/C:/Program Files/app.jar",
+                "file:/usr/local/lib/library.jar",
+                "jar:file:/path/to/app.jar!/",
+                "file:/path/to/build/classes/",
+                "/absolute/path/without/protocol.jar",
+                "relative/path/lib.jar"
         };
-        
+
         for (String url : testUrls) {
             String result = (String) normalizeMethod.invoke(null, url);
-            assertThat(result).isNotNull();
+            assertNotNull(result);
             // Just ensure no exceptions are thrown and we get some result
         }
     }
@@ -187,28 +191,28 @@ class InspectorAgentTest {
         // Use reflection to access the private method
         Method parseArgsMethod = InspectorAgent.class.getDeclaredMethod("parseArguments", String.class);
         parseArgsMethod.setAccessible(true);
-        
+
         // Test valid numeric ports
         parseArgsMethod.invoke(null, "server:8080");
-        
+
         Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
         serverClientField.setAccessible(true);
         Object serverClient = serverClientField.get(null);
-        assertThat(serverClient).isNotNull();
-        
+        assertNotNull(serverClient);
+
         // Reset for next test
         resetAgentState();
-        
+
         // Test edge case ports
         parseArgsMethod.invoke(null, "server:1");
         serverClient = serverClientField.get(null);
-        assertThat(serverClient).isNotNull();
-        
+        assertNotNull(serverClient);
+
         resetAgentState();
-        
+
         parseArgsMethod.invoke(null, "server:65535");
         serverClient = serverClientField.get(null);
-        assertThat(serverClient).isNotNull();
+        assertNotNull(serverClient);
     }
 
     @Test
@@ -217,20 +221,20 @@ class InspectorAgentTest {
         // Use reflection to access the private method
         Method parseArgsMethod = InspectorAgent.class.getDeclaredMethod("parseArguments", String.class);
         parseArgsMethod.setAccessible(true);
-        
+
         // Test invalid port numbers (should not throw but also not create client)
         try {
             parseArgsMethod.invoke(null, "server:notanumber");
         } catch (Exception e) {
             // Exception is expected due to NumberFormatException, but should be handled
-            assertThat(e.getCause()).isInstanceOf(NumberFormatException.class);
+            assertInstanceOf(NumberFormatException.class, e.getCause());
         }
-        
+
         // Verify serverClient remains null after invalid port
         Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
         serverClientField.setAccessible(true);
         Object serverClient = serverClientField.get(null);
-        assertThat(serverClient).isNull();
+        assertNull(serverClient);
     }
 
     /**
@@ -240,7 +244,7 @@ class InspectorAgentTest {
         Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
         serverClientField.setAccessible(true);
         serverClientField.set(null, null);
-        
+
         Field applicationIdField = InspectorAgent.class.getDeclaredField("applicationId");
         applicationIdField.setAccessible(true);
         applicationIdField.set(null, null);

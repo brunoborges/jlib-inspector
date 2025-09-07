@@ -2,7 +2,7 @@ package io.github.brunoborges.jlib.common;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
-import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.Instant;
 
@@ -23,14 +23,14 @@ class JavaApplicationTest {
 
         JavaApplication app = new JavaApplication(appId, commandLine, jdkVersion, jdkVendor, jdkPath);
 
-        assertThat(app.appId).isEqualTo(appId);
-        assertThat(app.commandLine).isEqualTo(commandLine);
-        assertThat(app.jdkVersion).isEqualTo(jdkVersion);
-        assertThat(app.jdkVendor).isEqualTo(jdkVendor);
-        assertThat(app.jdkPath).isEqualTo(jdkPath);
-        assertThat(app.firstSeen).isNotNull();
-        assertThat(app.lastUpdated).isNotNull();
-        assertThat(app.jars).isEmpty();
+        assertEquals(appId, app.appId);
+        assertEquals(commandLine, app.commandLine);
+        assertEquals(jdkVersion, app.jdkVersion);
+        assertEquals(jdkVendor, app.jdkVendor);
+        assertEquals(jdkPath, app.jdkPath);
+        assertNotNull(app.firstSeen);
+        assertNotNull(app.lastUpdated);
+        assertTrue(app.jars.isEmpty());
     }
 
     @Test
@@ -38,9 +38,9 @@ class JavaApplicationTest {
     void shouldInitializeTimestampsCorrectly() {
         JavaApplication app = new JavaApplication("test", "java -jar test.jar", "17", "OpenJDK", "/java");
 
-        assertThat(app.firstSeen).isBeforeOrEqualTo(app.lastUpdated);
-        assertThat(app.firstSeen).isBeforeOrEqualTo(Instant.now());
-        assertThat(app.lastUpdated).isBeforeOrEqualTo(Instant.now());
+        assertTrue(app.firstSeen.compareTo(app.lastUpdated) <= 0);
+        assertTrue(app.firstSeen.compareTo(Instant.now()) <= 0);
+        assertTrue(app.lastUpdated.compareTo(Instant.now()) <= 0);
     }
 
     @Test
@@ -52,8 +52,8 @@ class JavaApplicationTest {
         Thread.sleep(10);
         app.lastUpdated = Instant.now();
 
-        assertThat(app.lastUpdated).isAfter(originalLastUpdated);
-        assertThat(app.firstSeen).isEqualTo(app.firstSeen); // Should not change
+        assertTrue(app.lastUpdated.isAfter(originalLastUpdated));
+        assertEquals(app.firstSeen, app.firstSeen); // Should not change
     }
 
     @Test
@@ -68,9 +68,9 @@ class JavaApplicationTest {
         app.jars.put(jar1.fullPath, jar1);
         app.jars.put(jar2.fullPath, jar2);
 
-        assertThat(app.jars).hasSize(2);
-        assertThat(app.jars.get("/path/to/jar1.jar")).isEqualTo(jar1);
-        assertThat(app.jars.get("/path/to/jar2.jar")).isEqualTo(jar2);
+        assertEquals(2, app.jars.size());
+        assertEquals(jar1, app.jars.get("/path/to/jar1.jar"));
+        assertEquals(jar2, app.jars.get("/path/to/jar2.jar"));
     }
 
     @Test
@@ -79,14 +79,14 @@ class JavaApplicationTest {
         // These should not throw exceptions
         JavaApplication app = new JavaApplication(null, null, null, null, null);
 
-        assertThat(app.appId).isNull();
-        assertThat(app.commandLine).isNull();
-        assertThat(app.jdkVersion).isNull();
-        assertThat(app.jdkVendor).isNull();
-        assertThat(app.jdkPath).isNull();
-        assertThat(app.firstSeen).isNotNull();
-        assertThat(app.lastUpdated).isNotNull();
-        assertThat(app.jars).isNotNull();
+        assertNull(app.appId);
+        assertNull(app.commandLine);
+        assertNull(app.jdkVersion);
+        assertNull(app.jdkVendor);
+        assertNull(app.jdkPath);
+        assertNotNull(app.firstSeen);
+        assertNotNull(app.lastUpdated);
+        assertNotNull(app.jars);
     }
 
     @Test
@@ -94,11 +94,11 @@ class JavaApplicationTest {
     void shouldHandleEmptyStrings() {
         JavaApplication app = new JavaApplication("", "", "", "", "");
 
-        assertThat(app.appId).isEmpty();
-        assertThat(app.commandLine).isEmpty();
-        assertThat(app.jdkVersion).isEmpty();
-        assertThat(app.jdkVendor).isEmpty();
-        assertThat(app.jdkPath).isEmpty();
+        assertTrue(app.appId.isEmpty());
+        assertTrue(app.commandLine.isEmpty());
+        assertTrue(app.jdkVersion.isEmpty());
+        assertTrue(app.jdkVendor.isEmpty());
+        assertTrue(app.jdkPath.isEmpty());
     }
 
     @Test
@@ -108,7 +108,7 @@ class JavaApplicationTest {
         
         JavaApplication app = new JavaApplication("complex-app", complexCommandLine, "17", "OpenJDK", "/java");
 
-        assertThat(app.commandLine).isEqualTo(complexCommandLine);
+        assertEquals(complexCommandLine, app.commandLine);
     }
 
     @Test
@@ -120,20 +120,20 @@ class JavaApplicationTest {
         JarMetadata jar = new JarMetadata("/path/to/test.jar", "test.jar", 1000L, "hash1");
         app.jars.put(jar.fullPath, jar);
 
-        assertThat(app.jars).hasSize(1);
-        assertThat(jar.isLoaded()).isFalse();
+        assertEquals(1, app.jars.size());
+        assertFalse(jar.isLoaded());
 
         // Update JAR (mark as loaded)
         jar.markLoaded();
-        assertThat(jar.isLoaded()).isTrue();
+        assertTrue(jar.isLoaded());
 
         // Replace with new version
         JarMetadata updatedJar = new JarMetadata("/path/to/test.jar", "test.jar", 1100L, "hash2");
         app.jars.put(updatedJar.fullPath, updatedJar);
 
-        assertThat(app.jars).hasSize(1);
-        assertThat(app.jars.get("/path/to/test.jar")).isEqualTo(updatedJar);
-        assertThat(app.jars.get("/path/to/test.jar").size).isEqualTo(1100L);
+        assertEquals(1, app.jars.size());
+        assertEquals(updatedJar, app.jars.get("/path/to/test.jar"));
+        assertEquals(1100L, app.jars.get("/path/to/test.jar").size);
     }
 
     @Test
@@ -152,15 +152,15 @@ class JavaApplicationTest {
         app.jars.put(nestedJar1.fullPath, nestedJar1);
         app.jars.put(nestedJar2.fullPath, nestedJar2);
 
-        assertThat(app.jars).hasSize(3);
+        assertEquals(3, app.jars.size());
         
         // Verify nested JAR detection
-        assertThat(nestedJar1.isNested()).isTrue();
-        assertThat(nestedJar2.isNested()).isTrue();
-        assertThat(mainJar.isNested()).isFalse();
+        assertTrue(nestedJar1.isNested());
+        assertTrue(nestedJar2.isNested());
+        assertFalse(mainJar.isNested());
         
         // Verify container JAR paths
-        assertThat(nestedJar1.getContainerJarPath()).isEqualTo("spring-boot-app.jar");
-        assertThat(nestedJar2.getContainerJarPath()).isEqualTo("spring-boot-app.jar");
+        assertEquals("spring-boot-app.jar", nestedJar1.getContainerJarPath());
+        assertEquals("spring-boot-app.jar", nestedJar2.getContainerJarPath());
     }
 }

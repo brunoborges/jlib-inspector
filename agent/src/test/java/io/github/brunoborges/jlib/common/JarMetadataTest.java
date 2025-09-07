@@ -2,7 +2,7 @@ package io.github.brunoborges.jlib.common;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
-import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.Instant;
 
@@ -22,13 +22,13 @@ class JarMetadataTest {
 
         JarMetadata jar = new JarMetadata(fullPath, fileName, size, hash);
 
-        assertThat(jar.fullPath).isEqualTo(fullPath);
-        assertThat(jar.fileName).isEqualTo(fileName);
-        assertThat(jar.size).isEqualTo(size);
-        assertThat(jar.sha256Hash).isEqualTo(hash);
-        assertThat(jar.isLoaded()).isFalse();
-        assertThat(jar.firstSeen).isNotNull();
-        assertThat(jar.getLastAccessed()).isNotNull();
+        assertEquals(fullPath, jar.fullPath);
+        assertEquals(fileName, jar.fileName);
+        assertEquals(size, jar.size);
+        assertEquals(hash, jar.sha256Hash);
+        assertFalse(jar.isLoaded());
+        assertNotNull(jar.firstSeen);
+        assertNotNull(jar.getLastAccessed());
     }
 
     @Test
@@ -39,8 +39,8 @@ class JarMetadataTest {
 
         JarMetadata jar = new JarMetadata(nestedPath, fileName, 1000L, "hash123");
 
-        assertThat(jar.fullPath).isEqualTo(nestedPath);
-        assertThat(jar.fileName).isEqualTo(fileName);
+        assertEquals(nestedPath, jar.fullPath);
+        assertEquals(fileName, jar.fileName);
     }
 
     @Test
@@ -48,8 +48,8 @@ class JarMetadataTest {
     void shouldHandleUnknownSizeAndHash() {
         JarMetadata jar = new JarMetadata("/path/to/unknown.jar", "unknown.jar", -1L, "?");
 
-        assertThat(jar.size).isEqualTo(-1L);
-        assertThat(jar.sha256Hash).isEqualTo("?");
+        assertEquals(-1L, jar.size);
+        assertEquals("?", jar.sha256Hash);
     }
 
     @Test
@@ -57,14 +57,14 @@ class JarMetadataTest {
     void shouldTrackLoadedStateThreadSafely() {
         JarMetadata jar = new JarMetadata("/path/to/test.jar", "test.jar", 1000L, "hash");
 
-        assertThat(jar.isLoaded()).isFalse();
+        assertFalse(jar.isLoaded());
 
         jar.markLoaded();
-        assertThat(jar.isLoaded()).isTrue();
+        assertTrue(jar.isLoaded());
 
         // Should remain true
         jar.markLoaded();
-        assertThat(jar.isLoaded()).isTrue();
+        assertTrue(jar.isLoaded());
     }
 
     @Test
@@ -79,7 +79,7 @@ class JarMetadataTest {
         jar.markLoaded();
         Instant updatedAccessed = jar.getLastAccessed();
 
-        assertThat(updatedAccessed).isAfter(initialAccessed);
+        assertTrue(updatedAccessed.compareTo(initialAccessed) > 0);
     }
 
     @Test
@@ -89,11 +89,10 @@ class JarMetadataTest {
 
         String result = jar.toString();
 
-        assertThat(result)
-            .contains("example.jar")
-            .contains("12345")
-            .contains("hash123")
-            .contains("loaded=false");
+        assertTrue(result.contains("example.jar"));
+        assertTrue(result.contains("12345"));
+        assertTrue(result.contains("hash123"));
+        assertTrue(result.contains("loaded=false"));
     }
 
     @Test
@@ -104,7 +103,7 @@ class JarMetadataTest {
 
         String result = jar.toString();
 
-        assertThat(result).contains("loaded=true");
+        assertTrue(result.contains("loaded=true"));
     }
 
     @Test
@@ -113,10 +112,10 @@ class JarMetadataTest {
         // These should not throw exceptions
         JarMetadata jar = new JarMetadata(null, null, 0L, null);
 
-        assertThat(jar.fullPath).isNull();
-        assertThat(jar.fileName).isNull();
-        assertThat(jar.sha256Hash).isNull();
-        assertThat(jar.size).isEqualTo(0L);
+        assertNull(jar.fullPath);
+        assertNull(jar.fileName);
+        assertNull(jar.sha256Hash);
+        assertEquals(0L, jar.size);
     }
 
     @Test
@@ -128,14 +127,14 @@ class JarMetadataTest {
         Instant lastAccessed = jar.getLastAccessed();
 
         // Initially, first seen should be before or equal to last accessed
-        assertThat(firstSeen).isBeforeOrEqualTo(lastAccessed);
+        assertTrue(firstSeen.compareTo(lastAccessed) <= 0);
 
         jar.markLoaded();
         Instant newLastAccessed = jar.getLastAccessed();
 
         // After loading, last accessed should be after or equal to original
-        assertThat(newLastAccessed).isAfterOrEqualTo(lastAccessed);
-        assertThat(jar.firstSeen).isEqualTo(firstSeen); // First seen should not change
+        assertTrue(newLastAccessed.compareTo(lastAccessed) >= 0);
+        assertEquals(firstSeen, jar.firstSeen); // First seen should not change
     }
 
     @Test
@@ -143,9 +142,9 @@ class JarMetadataTest {
     void shouldHandleEmptyStrings() {
         JarMetadata jar = new JarMetadata("", "", 0L, "");
 
-        assertThat(jar.fullPath).isEmpty();
-        assertThat(jar.fileName).isEmpty();
-        assertThat(jar.sha256Hash).isEmpty();
+        assertTrue(jar.fullPath.isEmpty());
+        assertTrue(jar.fileName.isEmpty());
+        assertTrue(jar.sha256Hash.isEmpty());
     }
 
     @Test
@@ -163,8 +162,8 @@ class JarMetadataTest {
 
         for (String path : testPaths) {
             JarMetadata jar = new JarMetadata(path, "example.jar", 1000L, "hash");
-            assertThat(jar.fullPath).isEqualTo(path);
-            assertThat(jar.isLoaded()).isFalse();
+            assertEquals(path, jar.fullPath);
+            assertFalse(jar.isLoaded());
         }
     }
 
@@ -174,11 +173,11 @@ class JarMetadataTest {
         JarMetadata nestedJar = new JarMetadata("outer.jar!/BOOT-INF/lib/inner.jar", "inner.jar", 1000L, "hash");
         JarMetadata topLevelJar = new JarMetadata("/path/to/toplevel.jar", "toplevel.jar", 2000L, "hash2");
 
-        assertThat(nestedJar.isNested()).isTrue();
-        assertThat(nestedJar.isTopLevel()).isFalse();
+        assertTrue(nestedJar.isNested());
+        assertFalse(nestedJar.isTopLevel());
         
-        assertThat(topLevelJar.isNested()).isFalse();
-        assertThat(topLevelJar.isTopLevel()).isTrue();
+        assertFalse(topLevelJar.isNested());
+        assertTrue(topLevelJar.isTopLevel());
     }
 
     @Test
@@ -187,8 +186,8 @@ class JarMetadataTest {
         JarMetadata nestedJar = new JarMetadata("outer.jar!/BOOT-INF/lib/inner.jar", "inner.jar", 1000L, "hash");
         JarMetadata topLevelJar = new JarMetadata("/path/to/toplevel.jar", "toplevel.jar", 2000L, "hash2");
 
-        assertThat(nestedJar.getContainerJarPath()).isEqualTo("outer.jar");
-        assertThat(topLevelJar.getContainerJarPath()).isNull();
+        assertEquals("outer.jar", nestedJar.getContainerJarPath());
+        assertNull(topLevelJar.getContainerJarPath());
     }
 
     @Test
@@ -197,8 +196,8 @@ class JarMetadataTest {
         JarMetadata nestedJar = new JarMetadata("outer.jar!/BOOT-INF/lib/inner.jar", "inner.jar", 1000L, "hash");
         JarMetadata topLevelJar = new JarMetadata("/path/to/toplevel.jar", "toplevel.jar", 2000L, "hash2");
 
-        assertThat(nestedJar.getInnerPath()).isEqualTo("BOOT-INF/lib/inner.jar");
-        assertThat(topLevelJar.getInnerPath()).isEqualTo("/path/to/toplevel.jar");
+        assertEquals("BOOT-INF/lib/inner.jar", nestedJar.getInnerPath());
+        assertEquals("/path/to/toplevel.jar", topLevelJar.getInnerPath());
     }
 
     @Test
@@ -208,11 +207,11 @@ class JarMetadataTest {
         JarMetadata jar2 = new JarMetadata("/path/to/same.jar", "same.jar", 2000L, "hash2");
         JarMetadata jar3 = new JarMetadata("/path/to/different.jar", "different.jar", 1000L, "hash1");
 
-        assertThat(jar1).isEqualTo(jar2); // Same path, different size/hash
-        assertThat(jar1).isNotEqualTo(jar3); // Different path
+        assertEquals(jar2, jar1); // Same path, different size/hash
+        assertNotEquals(jar3, jar1); // Different path
         
-        assertThat(jar1.hashCode()).isEqualTo(jar2.hashCode());
-        assertThat(jar1.hashCode()).isNotEqualTo(jar3.hashCode());
+        assertEquals(jar2.hashCode(), jar1.hashCode());
+        assertNotEquals(jar3.hashCode(), jar1.hashCode());
     }
 
     @Test
@@ -224,9 +223,9 @@ class JarMetadataTest {
         JarMetadata jar = new JarMetadata("/path/to/test.jar", "test.jar", 1000L, "hash", 
                                         specificFirstSeen, specificLastAccessed, true);
 
-        assertThat(jar.firstSeen).isEqualTo(specificFirstSeen);
-        assertThat(jar.getLastAccessed()).isEqualTo(specificLastAccessed);
-        assertThat(jar.isLoaded()).isTrue();
+        assertEquals(specificFirstSeen, jar.firstSeen);
+        assertEquals(specificLastAccessed, jar.getLastAccessed());
+        assertTrue(jar.isLoaded());
     }
 
     @Test
@@ -238,6 +237,6 @@ class JarMetadataTest {
         Thread.sleep(10);
         jar.updateLastAccessed();
 
-        assertThat(jar.getLastAccessed()).isAfter(originalLastAccessed);
+        assertTrue(jar.getLastAccessed().compareTo(originalLastAccessed) > 0);
     }
 }

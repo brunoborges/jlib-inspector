@@ -5,9 +5,11 @@ import io.github.brunoborges.jlib.common.JavaApplication;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Unit tests for ApplicationService.
@@ -33,12 +35,12 @@ class ApplicationServiceTest {
 
         JavaApplication app = applicationService.getOrCreateApplication(appId, commandLine, jdkVersion, jdkVendor, jdkPath);
 
-        assertThat(app).isNotNull();
-        assertThat(app.appId).isEqualTo(appId);
-        assertThat(app.commandLine).isEqualTo(commandLine);
-        assertThat(app.jdkVersion).isEqualTo(jdkVersion);
-        assertThat(app.jdkVendor).isEqualTo(jdkVendor);
-        assertThat(app.jdkPath).isEqualTo(jdkPath);
+        assertNotNull(app);
+        assertEquals(appId, app.appId);
+        assertEquals(commandLine, app.commandLine);
+        assertEquals(jdkVersion, app.jdkVersion);
+        assertEquals(jdkVendor, app.jdkVendor);
+        assertEquals(jdkPath, app.jdkPath);
     }
 
     @Test
@@ -52,9 +54,9 @@ class ApplicationServiceTest {
         // Get same application with different parameters (should ignore new params)
         JavaApplication app2 = applicationService.getOrCreateApplication(appId, "java -jar different.jar", "11", "Oracle", "/different");
 
-        assertThat(app1).isSameAs(app2);
-        assertThat(app2.commandLine).isEqualTo("java -jar app.jar"); // Original command line
-        assertThat(app2.jdkVersion).isEqualTo("17"); // Original JDK version
+        assertSame(app1, app2);
+        assertEquals("java -jar app.jar", app2.commandLine); // Original command line
+        assertEquals("17", app2.jdkVersion); // Original JDK version
     }
 
     @Test
@@ -68,14 +70,14 @@ class ApplicationServiceTest {
         // Get by ID
         JavaApplication retrieved = applicationService.getApplication(appId);
 
-        assertThat(retrieved).isSameAs(created);
+        assertSame(retrieved, created);
     }
 
     @Test
     @DisplayName("Should return null for non-existent application")
     void shouldReturnNullForNonExistentApplication() {
         JavaApplication app = applicationService.getApplication("non-existent");
-        assertThat(app).isNull();
+        assertNull(app);
     }
 
     @Test
@@ -83,7 +85,7 @@ class ApplicationServiceTest {
     void shouldReturnAllApplications() {
         // Initially empty
         Collection<JavaApplication> apps = applicationService.getAllApplications();
-        assertThat(apps).isEmpty();
+        assertTrue(apps.isEmpty());
 
         // Add some applications
         applicationService.getOrCreateApplication("app1", "java -jar app1.jar", "17", "OpenJDK", "/java");
@@ -91,27 +93,27 @@ class ApplicationServiceTest {
         applicationService.getOrCreateApplication("app3", "java -jar app3.jar", "8", "AdoptOpenJDK", "/adopt");
 
         apps = applicationService.getAllApplications();
-        assertThat(apps).hasSize(3);
+        assertEquals(3, apps.size());
 
         // Verify all apps are present
-        assertThat(apps).extracting(app -> app.appId)
-            .containsExactlyInAnyOrder("app1", "app2", "app3");
+        Set<String> appIds = apps.stream().map(app -> app.appId).collect(Collectors.toSet());
+        assertEquals(Set.of("app1", "app2", "app3"), appIds);
     }
 
     @Test
     @DisplayName("Should return application count")
     void shouldReturnApplicationCount() {
-        assertThat(applicationService.getApplicationCount()).isEqualTo(0);
+        assertEquals(0, applicationService.getApplicationCount());
 
         applicationService.getOrCreateApplication("app1", "java -jar app1.jar", "17", "OpenJDK", "/java");
-        assertThat(applicationService.getApplicationCount()).isEqualTo(1);
+        assertEquals(1, applicationService.getApplicationCount());
 
         applicationService.getOrCreateApplication("app2", "java -jar app2.jar", "11", "Oracle", "/oracle");
-        assertThat(applicationService.getApplicationCount()).isEqualTo(2);
+        assertEquals(2, applicationService.getApplicationCount());
 
         // Adding same app should not increase count
         applicationService.getOrCreateApplication("app1", "java -jar different.jar", "11", "Different", "/different");
-        assertThat(applicationService.getApplicationCount()).isEqualTo(2);
+        assertEquals(2, applicationService.getApplicationCount());
     }
 
     @Test
@@ -139,32 +141,30 @@ class ApplicationServiceTest {
 
         // All threads should have received the same instance
         for (int i = 1; i < threadCount; i++) {
-            assertThat(results[i]).isSameAs(results[0]);
+            assertSame(results[0], results[i]);
         }
 
         // Should have only one application
-        assertThat(applicationService.getApplicationCount()).isEqualTo(1);
+        assertEquals(1, applicationService.getApplicationCount());
     }
 
     @Test
     @DisplayName("Should handle null and empty values gracefully")
     void shouldHandleNullAndEmptyValuesGracefully() {
         // ConcurrentHashMap doesn't allow null keys, so null appId should throw NPE
-        assertThatThrownBy(() -> 
-            applicationService.getOrCreateApplication(null, null, null, null, null))
-            .isInstanceOf(NullPointerException.class);
+        assertThrows(NullPointerException.class, () -> 
+            applicationService.getOrCreateApplication(null, null, null, null, null));
         
         // Empty string should work fine
         JavaApplication app2 = applicationService.getOrCreateApplication("", "", "", "", "");
-        assertThat(app2).isNotNull();
-        assertThat(app2.appId).isEmpty();
+        assertNotNull(app2);
+        assertTrue(app2.appId.isEmpty());
         
         // Null queries should also throw NPE
-        assertThatThrownBy(() -> applicationService.getApplication(null))
-            .isInstanceOf(NullPointerException.class);
+        assertThrows(NullPointerException.class, () -> applicationService.getApplication(null));
         
-        assertThat(applicationService.getApplication("")).isSameAs(app2);
-        assertThat(applicationService.getApplicationCount()).isEqualTo(1);
+        assertSame(app2, applicationService.getApplication(""));
+        assertEquals(1, applicationService.getApplicationCount());
     }
 
     @Test
@@ -181,8 +181,8 @@ class ApplicationServiceTest {
 
         // Retrieve again - should be same instance with modifications
         JavaApplication retrieved = applicationService.getApplication(appId);
-        assertThat(retrieved).isSameAs(app);
-        assertThat(retrieved.jars).hasSize(1);
-        assertThat(retrieved.jars.get("/test.jar")).isNotNull();
+        assertSame(app, retrieved);
+        assertEquals(1, retrieved.jars.size());
+        assertNotNull(retrieved.jars.get("/test.jar"));
     }
 }

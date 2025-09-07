@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
-import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for JsonParserFactory.
@@ -34,21 +34,21 @@ class JsonParserFactoryTest {
     @DisplayName("Should detect org.json availability correctly")
     void shouldDetectOrgJsonAvailability() {
         boolean isAvailable = JsonParserFactory.isOrgJsonAvailable();
-        assertThat(isAvailable).isTrue(); // org.json should be available in our test environment
+        assertTrue(isAvailable); // org.json should be available in our test environment
     }
 
     @Test
     @DisplayName("Should return default parser type as AUTO")
     void shouldReturnDefaultParserTypeAsAuto() {
-        assertThat(JsonParserFactory.getConfiguredParserType())
-            .isEqualTo(JsonParserFactory.ParserType.AUTO);
+        assertEquals(JsonParserFactory.ParserType.AUTO, JsonParserFactory.getConfiguredParserType());
     }
 
     @Test
     @DisplayName("Should create built-in parser when requested")
     void shouldCreateBuiltinParser() {
         JsonParserInterface parser = JsonParserFactory.createParser(JsonParserFactory.ParserType.BUILTIN);
-        assertThat(parser).isInstanceOf(JsonParser.class);
+        
+        assertTrue(parser instanceof JsonParser);
     }
 
     @Test
@@ -57,10 +57,10 @@ class JsonParserFactoryTest {
         JsonParserInterface parser = JsonParserFactory.createParser(JsonParserFactory.ParserType.ORG_JSON);
         
         if (JsonParserFactory.isOrgJsonAvailable()) {
-            assertThat(parser).isInstanceOf(OrgJsonParser.class);
+            assertTrue(parser instanceof OrgJsonParser);
         } else {
             // Should fallback to built-in parser
-            assertThat(parser).isInstanceOf(JsonParser.class);
+            assertTrue(parser instanceof JsonParser);
         }
     }
 
@@ -70,9 +70,9 @@ class JsonParserFactoryTest {
         JsonParserInterface parser = JsonParserFactory.createParser(JsonParserFactory.ParserType.AUTO);
         
         if (JsonParserFactory.isOrgJsonAvailable()) {
-            assertThat(parser).isInstanceOf(OrgJsonParser.class);
+            assertTrue(parser instanceof OrgJsonParser);
         } else {
-            assertThat(parser).isInstanceOf(JsonParser.class);
+            assertTrue(parser instanceof JsonParser);
         }
     }
 
@@ -82,18 +82,17 @@ class JsonParserFactoryTest {
         JsonParserInterface parser1 = JsonParserFactory.getDefaultParser();
         JsonParserInterface parser2 = JsonParserFactory.getDefaultParser();
         
-        assertThat(parser1).isSameAs(parser2);
+        assertSame(parser1, parser2);
     }
 
     @Test
     @DisplayName("Should update default parser type")
     void shouldUpdateDefaultParserType() {
         JsonParserFactory.setDefaultParserType(JsonParserFactory.ParserType.BUILTIN);
-        assertThat(JsonParserFactory.getConfiguredParserType())
-            .isEqualTo(JsonParserFactory.ParserType.BUILTIN);
+        assertEquals(JsonParserFactory.ParserType.BUILTIN, JsonParserFactory.getConfiguredParserType());
         
         JsonParserInterface parser = JsonParserFactory.getDefaultParser();
-        assertThat(parser).isInstanceOf(JsonParser.class);
+        assertTrue(parser instanceof JsonParser);
     }
 
     @Test
@@ -104,9 +103,9 @@ class JsonParserFactoryTest {
         JsonParserInterface parser2 = JsonParserFactory.getDefaultParser();
         
         // Different instances after cache clear
-        assertThat(parser1).isNotSameAs(parser2);
+        assertNotSame(parser1, parser2);
         // But same class
-        assertThat(parser1.getClass()).isEqualTo(parser2.getClass());
+        assertEquals(parser1.getClass(), parser2.getClass());
     }
 
     @Test
@@ -118,7 +117,7 @@ class JsonParserFactoryTest {
         JsonParserFactory.setDefaultParserType(JsonParserFactory.ParserType.BUILTIN);
         JsonParserInterface parser2 = JsonParserFactory.getDefaultParser();
         
-        assertThat(parser2).isInstanceOf(JsonParser.class);
-        assertThat(parser1).isNotSameAs(parser2);
+        assertTrue(parser2 instanceof JsonParser);
+        assertNotSame(parser1, parser2);
     }
 }

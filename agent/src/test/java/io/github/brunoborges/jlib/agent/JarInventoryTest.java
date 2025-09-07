@@ -6,7 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.io.TempDir;
-import static org.assertj.core.api.Assertions.*;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -31,7 +32,7 @@ class JarInventoryTest {
     @DisplayName("Should start with empty inventory")
     void shouldStartWithEmptyInventory() {
         Collection<JarMetadata> jars = jarInventory.snapshot();
-        assertThat(jars).isEmpty();
+        assertTrue(jars.isEmpty());
     }
 
     @Test
@@ -41,11 +42,11 @@ class JarInventoryTest {
         
         JarMetadata jar = jarInventory.registerDeclared(jarPath, 1000L, null);
         
-        assertThat(jar).isNotNull();
-        assertThat(jar.fullPath).isEqualTo(jarPath);
-        assertThat(jar.fileName).isEqualTo("test.jar");
-        assertThat(jar.isLoaded()).isFalse();
-        assertThat(jar.size).isEqualTo(1000L);
+        assertNotNull(jar);
+        assertEquals(jarPath, jar.fullPath);
+        assertEquals("test.jar", jar.fileName);
+        assertFalse(jar.isLoaded());
+        assertEquals(1000L, jar.size);
     }
 
     @Test
@@ -63,8 +64,8 @@ class JarInventoryTest {
             .findFirst()
             .orElse(null);
         
-        assertThat(loadedJar).isNotNull();
-        assertThat(loadedJar.isLoaded()).isTrue();
+        assertNotNull(loadedJar);
+        assertTrue(loadedJar.isLoaded());
     }
 
     @Test
@@ -74,11 +75,11 @@ class JarInventoryTest {
         
         JarMetadata jar = jarInventory.registerDeclared(nestedPath, 1000L, null);
         
-        assertThat(jar).isNotNull();
-        assertThat(jar.fullPath).isEqualTo(nestedPath);
-        assertThat(jar.fileName).isEqualTo("inner.jar");
-        assertThat(jar.isNested()).isTrue();
-        assertThat(jar.getContainerJarPath()).isEqualTo("outer.jar");
+        assertNotNull(jar);
+        assertEquals(nestedPath, jar.fullPath);
+        assertEquals("inner.jar", jar.fileName);
+        assertTrue(jar.isNested());
+        assertEquals("outer.jar", jar.getContainerJarPath());
     }
 
     @Test
@@ -90,11 +91,11 @@ class JarInventoryTest {
         jarInventory.registerDeclared(jarPath, 2000L, null); // Register same JAR again
         
         Collection<JarMetadata> jars = jarInventory.snapshot();
-        assertThat(jars).hasSize(1);
+        assertEquals(1, jars.size());
         
         // Should keep the first registration
         JarMetadata jar = jars.iterator().next();
-        assertThat(jar.size).isEqualTo(1000L);
+        assertEquals(1000L, jar.size);
     }
 
     @Test
@@ -109,9 +110,9 @@ class JarInventoryTest {
         JarInventory.HashSupplier hashSupplier = JarInventory.fileHashSupplier(tempJar);
         JarMetadata jar = jarInventory.registerDeclared(tempJar.getAbsolutePath(), tempJar.length(), hashSupplier);
         
-        assertThat(jar).isNotNull();
-        assertThat(jar.sha256Hash).isNotEqualTo("?"); // Should have computed hash
-        assertThat(jar.size).isEqualTo(tempJar.length());
+        assertNotNull(jar);
+        assertNotEquals("?", jar.sha256Hash); // Should have computed hash
+        assertEquals(tempJar.length(), jar.size);
     }
 
     @Test
@@ -121,9 +122,9 @@ class JarInventoryTest {
         
         JarMetadata jar = jarInventory.registerDeclared(jarPath, -1L, null);
         
-        assertThat(jar).isNotNull();
-        assertThat(jar.sha256Hash).isEqualTo("?"); // Hash unavailable
-        assertThat(jar.size).isEqualTo(-1L); // Size unknown
+        assertNotNull(jar);
+        assertEquals("?", jar.sha256Hash); // Hash unavailable
+        assertEquals(-1L, jar.size); // Size unknown
     }
 
     @Test
@@ -144,9 +145,7 @@ class JarInventoryTest {
             
             JarMetadata jar = jarInventory.registerDeclared(path, 1000L, null);
             
-            assertThat(jar.fileName)
-                .withFailMessage("Failed for path: " + path)
-                .isEqualTo(expectedFilename);
+            assertEquals(expectedFilename, jar.fileName, "Failed for path: " + path);
         }
     }
 
@@ -173,11 +172,11 @@ class JarInventoryTest {
         
         // Should have all JARs
         Collection<JarMetadata> jars = jarInventory.snapshot();
-        assertThat(jars).hasSize(threadCount);
+        assertEquals(threadCount, jars.size());
         
         // All should be marked as loaded
         for (JarMetadata jar : jars) {
-            assertThat(jar.isLoaded()).isTrue();
+            assertTrue(jar.isLoaded());
         }
     }
 
@@ -188,13 +187,13 @@ class JarInventoryTest {
         jarInventory.markLoaded("/non/existent.jar");
         
         Collection<JarMetadata> jars = jarInventory.snapshot();
-        assertThat(jars).hasSize(1);
+        assertEquals(1, jars.size());
         
         JarMetadata jar = jars.iterator().next();
-        assertThat(jar.fullPath).isEqualTo("/non/existent.jar");
-        assertThat(jar.isLoaded()).isTrue();
-        assertThat(jar.size).isEqualTo(-1L);
-        assertThat(jar.sha256Hash).isEqualTo("?");
+        assertEquals("/non/existent.jar", jar.fullPath);
+        assertTrue(jar.isLoaded());
+        assertEquals(-1L, jar.size);
+        assertEquals("?", jar.sha256Hash);
     }
 
     @Test
@@ -212,8 +211,8 @@ class JarInventoryTest {
             .orElse(null);
         
         // Should be same instance
-        assertThat(jar1).isSameAs(jar2);
-        assertThat(jar2.isLoaded()).isTrue();
+        assertSame(jar2, jar1);
+        assertTrue(jar2.isLoaded());
     }
 
     @Test
@@ -225,12 +224,12 @@ class JarInventoryTest {
             String path = "/path/to/archive" + ext;
             JarMetadata jar = jarInventory.registerDeclared(path, 1000L, null);
             
-            assertThat(jar).isNotNull();
-            assertThat(jar.fileName).isEqualTo("archive" + ext);
+            assertNotNull(jar);
+            assertEquals("archive" + ext, jar.fileName);
         }
         
         Collection<JarMetadata> jars = jarInventory.snapshot();
-        assertThat(jars).hasSize(extensions.length);
+        assertEquals(extensions.length, jars.size());
     }
 
     @Test
@@ -240,6 +239,6 @@ class JarInventoryTest {
         jarInventory.markLoaded(null);
         
         // Should still be empty
-        assertThat(jarInventory.snapshot()).isEmpty();
+        assertTrue(jarInventory.snapshot().isEmpty());
     }
 }

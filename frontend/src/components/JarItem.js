@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatFileSize, getMvnRepositoryUrl, copyToClipboard, initLucideIcons } from '../utils/helpers';
 
-const JarItem = ({ jar, isCompact = false }) => {
+const JarItem = ({ jar, isCompact = false, isUniqueJar = false }) => {
     const [copyStatus, setCopyStatus] = useState(null);
     
     useEffect(() => {
@@ -41,6 +41,63 @@ const JarItem = ({ jar, isCompact = false }) => {
                 <span className={`${jar.loaded ? 'text-green-600' : 'text-gray-400'} flex-shrink-0`}>
                     {jar.loaded ? '●' : '○'}
                 </span>
+            </div>
+        );
+    }
+
+    if (isUniqueJar) {
+        return (
+            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                            <i data-lucide="package" className="w-4 h-4 text-gray-500"></i>
+                            <h4 className="font-medium text-gray-900">{jar.fileName}</h4>
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                {jar.applications.length} app{jar.applications.length !== 1 ? 's' : ''}
+                            </span>
+                            {jar.size && (
+                                <span className="text-xs text-gray-500">
+                                    {formatFileSize(jar.size)}
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                            <span className="font-mono text-xs bg-gray-200 px-2 py-1 rounded">
+                                {jar.path}
+                            </span>
+                            <button
+                                onClick={() => copyToClipboard(jar.path)}
+                                className="text-gray-400 hover:text-blue-600 transition-colors"
+                                title="Copy path"
+                            >
+                                <i data-lucide="copy" className="w-3 h-3"></i>
+                            </button>
+                            {mvnUrl && (
+                                <a 
+                                    href={mvnUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="text-blue-500 hover:text-blue-700 transition-colors" 
+                                    title="Search on mvnrepository.com"
+                                >
+                                    <i data-lucide="external-link" className="w-3 h-3"></i>
+                                </a>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {jar.applications.map((app, appIndex) => (
+                                <span
+                                    key={appIndex}
+                                    className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded"
+                                    title={`App ID: ${app.appId}`}
+                                >
+                                    {app.name}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }

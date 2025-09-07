@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { initLucideIcons, copyToClipboard } from '../utils/helpers';
+import JarItem from './JarItem';
+import { initLucideIcons } from '../utils/helpers';
 
 const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -81,24 +82,6 @@ const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
             setSortBy(field);
             setSortOrder('asc');
         }
-    };
-
-    const handleCopyPath = async (path) => {
-        await copyToClipboard(path);
-    };
-
-    const formatFileSize = (bytes) => {
-        if (!bytes) return 'Unknown';
-        const units = ['B', 'KB', 'MB', 'GB'];
-        let size = bytes;
-        let unitIndex = 0;
-        
-        while (size >= 1024 && unitIndex < units.length - 1) {
-            size /= 1024;
-            unitIndex++;
-        }
-        
-        return `${size.toFixed(1)} ${units[unitIndex]}`;
     };
 
     const EmptyState = () => (
@@ -192,47 +175,11 @@ const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
                             ) : (
                                 <div className="space-y-3">
                                     {sortedJars.map((jar, index) => (
-                                        <div key={index} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        <i data-lucide="package" className="w-4 h-4 text-gray-500"></i>
-                                                        <h4 className="font-medium text-gray-900">{jar.fileName}</h4>
-                                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                                                            {jar.applications.length} app{jar.applications.length !== 1 ? 's' : ''}
-                                                        </span>
-                                                        {jar.size && (
-                                                            <span className="text-xs text-gray-500">
-                                                                {formatFileSize(jar.size)}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                                                        <span className="font-mono text-xs bg-gray-200 px-2 py-1 rounded">
-                                                            {jar.path}
-                                                        </span>
-                                                        <button
-                                                            onClick={() => handleCopyPath(jar.path)}
-                                                            className="text-gray-400 hover:text-blue-600 transition-colors"
-                                                            title="Copy path"
-                                                        >
-                                                            <i data-lucide="copy" className="w-3 h-3"></i>
-                                                        </button>
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {jar.applications.map((app, appIndex) => (
-                                                            <span
-                                                                key={appIndex}
-                                                                className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded"
-                                                                title={`App ID: ${app.appId}`}
-                                                            >
-                                                                {app.name}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <JarItem 
+                                            key={index}
+                                            jar={jar}
+                                            isUniqueJar={true}
+                                        />
                                     ))}
                                 </div>
                             )}

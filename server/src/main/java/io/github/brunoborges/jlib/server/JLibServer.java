@@ -40,32 +40,13 @@ import java.util.logging.Logger;
  * </ul>
  */
 public class JLibServer {
+
     private static final Logger logger = Logger.getLogger(JLibServer.class.getName());
     private static final int PORT = 8080;
 
     private HttpServer server;
     private ApplicationService applicationService;
     private JarService jarService;
-
-    /**
-     * Starts the HTTP server and initializes all services.
-     */
-    public void start() throws IOException {
-        // Initialize services
-        applicationService = new ApplicationService();
-        jarService = new JarService();
-
-        // Create HTTP server
-        server = HttpServer.create(new InetSocketAddress(PORT), 0);
-        server.setExecutor(Executors.newCachedThreadPool());
-
-        // Configure handlers with dependency injection
-        server.createContext("/api/apps", new AppsHandler(applicationService, jarService));
-        server.createContext("/health", new HealthHandler(applicationService));
-
-        server.start();
-        logger.info("JLib Server started on port " + PORT);
-    }
 
     /**
      * Starts the HTTP server on the specified port.

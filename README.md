@@ -8,7 +8,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
 <!-- /BADGES -->
 
-A comprehensive Java application monitoring dashboard that tracks JAR dependencies loaded during application runtime. The system consists of a Java agent, data collection server, and a modern React-based web dashboard to exemplify data visualization. 
+A comprehensive Java application monitoring dashboard that tracks JAR dependencies loaded during application runtime. The system consists of a Java agent, a standalone data collection server, and a modern React-based web dashboard to exemplify data visualization.
 
 ## 🎯 Why JLib Inspector?
 
@@ -45,8 +45,8 @@ When the next security vulnerability emerges, you'll have immediate answers inst
 
 ## 🏗️ Architecture
 
-- **Java Agent**: Instruments Java applications to track JAR loading and usage
-- **JLib Server**: Collects and aggregates data from instrumented applications (Port 8080)
+- **Java Agent**: Instruments Java applications to track JAR loading and usage (shaded agent JAR)
+- **JLib Server**: Standalone server that collects and aggregates data from instrumented applications (Port 8080, shaded server JAR)
 - **Web Dashboard**: React-based frontend with real-time updates (Ports 3000 for http and 3001 for websocket)
 
 ## 📋 Prerequisites
@@ -73,8 +73,8 @@ mvn clean package
 The JLib Server collects data from instrumented Java applications:
 
 ```powershell
-# Start the data collection server on port 8080
-java -cp "agent/target/*" io.github.brunoborges.jlib.server.JLibServer
+# Start the data collection server on port 8080 (shaded jar)
+java -jar server/target/jlib-inspector-server-1.0-SNAPSHOT.jar 8080
 ```
 
 **Expected Output:**
@@ -121,7 +121,7 @@ Instrument any Java application with the JLib Inspector agent:
 
 **For your own applications:**
 ```powershell
-java "-javaagent:path/to/jlib-inspector-agent-1.0-SNAPSHOT.jar=server:8080" -jar your-application.jar
+java "-javaagent:path/to/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080" -jar your-application.jar
 ```
 
 You can test with the sample Spring application contained in this project:
@@ -129,7 +129,7 @@ You can test with the sample Spring application contained in this project:
 
 ```powershell
 # Run the sample Spring Boot application with monitoring
-java "-javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar=server:8080" -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
+java "-javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080" -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
 ```
 
 ## 🐳 Running with Docker
@@ -138,11 +138,8 @@ For containerized deployment, JLib Inspector provides Docker images and Docker C
 
 **Quick Docker Start:**
 ```bash
-# Navigate to the docker directory
-cd docker
-
-# Start all services with Docker Compose
-./start-docker.sh
+# Start all services with Docker Compose (runs from repo root)
+./docker/start-docker.sh
 ```
 
 The Docker setup includes:
@@ -298,14 +295,14 @@ For manual testing, use:
 # Build the project
 mvn verify
 
-# Terminal 1: Start JLib Server
-java -cp "agent/target/*" io.github.brunoborges.jlib.server.JLibServer
+# Terminal 1: Start JLib Server (shaded jar)
+java -jar server/target/jlib-inspector-server-1.0-SNAPSHOT.jar 8080
 
 # Terminal 2: Start Dashboard
 cd frontend && npm start
 
-# Terminal 3: Run sample application
-java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar=server:8080 -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
+# Terminal 3: Run sample application with shaded agent
+java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
 
 # Open browser to http://localhost:3000
 ```
@@ -314,20 +311,14 @@ java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar=server:8080 -
 
 ```
 jlib-inspector/
-├── agent/                          # Java agent source code
-│   └── src/main/java/io/github/brunoborges/jlib/
-│       ├── inspector/              # Agent instrumentation code
-│       └── server/                 # Data collection server
-├── sample-spring-app/              # Sample Spring Boot application
-├── frontend/                       # React dashboard
-│   ├── src/                       # React source code
-│   │   ├── components/            # React components
-│   │   ├── hooks/                 # Custom React hooks
-│   │   ├── utils/                 # Utility functions
-│   │   └── styles/                # CSS styles
-│   ├── public/                    # Static assets
-│   └── app.js                     # Express server
-└── README.md                      # This file
+├── agent/                # Java Agent module (produces shaded agent JAR)
+├── common/               # Shared code used by agent and server
+├── server/               # Standalone JLib Server module (produces shaded server JAR)
+├── sample-spring-app/    # Sample Spring Boot application
+├── frontend/             # React dashboard (Express-based)
+├── docker/               # Dockerfiles, compose, helper script
+├── README.md             # Project overview (this file)
+└── DOCKER.md             # Docker-specific docs
 ```
 
 ## 🎯 Key Features

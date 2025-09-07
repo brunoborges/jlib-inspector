@@ -1,7 +1,12 @@
-agent/target/**
-frontend/node_modules/**
-sample-spring-app/target/**
+# Maven target folders
 target/**
+common/target/**
+agent/target/**
+server/target/**
+sample-spring-app/target/**
+
+# Node folders
+frontend/node_modules/**
 frontend/dist/**
 
 # IntelliJ IDE files

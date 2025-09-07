@@ -1,6 +1,7 @@
-package io.github.brunoborges.jlib.server.service;
+package io.github.brunoborges.jlib.server;
 
 import io.github.brunoborges.jlib.common.JavaApplication;
+import io.github.brunoborges.jlib.server.service.ApplicationService;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;

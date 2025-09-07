@@ -1,4 +1,4 @@
-package io.github.brunoborges.jlib.util;
+package io.github.brunoborges.jlib.json;
 
 import io.github.brunoborges.jlib.json.JsonParser;
 import io.github.brunoborges.jlib.json.JsonParserInterface;

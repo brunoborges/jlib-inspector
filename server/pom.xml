@@ -10,8 +10,8 @@
         <relativePath>../</relativePath>
     </parent>
 
-    <artifactId>jlib-inspector-agent</artifactId>
-    <name>jlib-inspector-agent</name>
+    <artifactId>jlib-inspector-server</artifactId>
+    <name>jlib-inspector-server</name>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
@@ -29,11 +29,10 @@
             <version>20250517</version>
         </dependency>
 
-        <!-- JUnit 5 Dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.13.3</version>
+            <version>5.10.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -47,7 +46,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Premain-Class>io.github.brunoborges.jlib.agent.InspectorAgent</Premain-Class>
+                            <Main-Class>io.github.brunoborges.jlib.server.JLibServer</Main-Class>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -57,7 +56,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.3</version>
+                <version>3.1.2</version>
                 <configuration>
                     <includes>
                         <include>**/*Test.java</include>
@@ -70,7 +69,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.13</version>
+                <version>0.8.10</version>
                 <executions>
                     <execution>
                         <goals>

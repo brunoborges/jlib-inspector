@@ -13,7 +13,7 @@ import io.github.brunoborges.jlib.common.JarMetadata;
  * <p>This class is responsible for generating human-readable reports from JAR inventory data,
  * including summary statistics, detailed tables, and various formatting utilities.
  */
-public class JarInventoryReport {
+class JarInventoryReport {
 
     /**
      * Generates a comprehensive human-readable report of JAR inventory data.

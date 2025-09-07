@@ -59,13 +59,22 @@ public class JarService {
             String checksum = jarData.get("checksum");
             boolean loaded = Boolean.parseBoolean(jarData.getOrDefault("loaded", "false"));
 
+            // Get or create JAR metadata, then update it
             JarMetadata jarInfo = app.jars.computeIfAbsent(path,
                     p -> new JarMetadata(p, fileName, size, checksum, Instant.now(), Instant.now(), loaded));
-
-            if (loaded) {
+            
+            // Update existing JAR metadata if values have changed
+            if (jarInfo.size != size || !java.util.Objects.equals(jarInfo.sha256Hash, checksum)) {
+                // Update the existing JAR metadata
+                app.jars.put(path, new JarMetadata(path, fileName, size, checksum, 
+                    jarInfo.firstSeen, Instant.now(), loaded));
+            } else if (loaded) {
                 jarInfo.markLoaded();
             }
         }
         LOG.info("Processed " + app.jars.size() + " total JARs for application");
+        
+        // Update application's last updated timestamp
+        app.lastUpdated = Instant.now();
     }
 }

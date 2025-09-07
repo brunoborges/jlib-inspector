@@ -1,0 +1,35 @@
+{
+  "name": "jlib-inspector",
+  "image": "mcr.microsoft.com/devcontainers/base:jammy",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "jdkDistro": "temurin"
+    },
+    "ghcr.io/devcontainers/features/maven:1": {
+      "version": "3.9"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+  "forwardPorts": [8080, 3000, 3001],
+  "portsAttributes": {
+    "8080": { "label": "JLib Server" },
+    "3000": { "label": "Dashboard (HTTP)" },
+    "3001": { "label": "Dashboard (WS)" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-maven",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "mhutchie.git-graph"
+      ]
+    }
+  },
+  "remoteUser": "vscode"
+}

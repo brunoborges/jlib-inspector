@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build (Maven)",
+      "type": "shell",
+      "command": "${workspaceFolder}/mvnw",
+      "args": ["-q", "clean", "verify"],
+  "problemMatcher": []
+    },
+    {
+      "label": "Start Server",
+      "type": "shell",
+      "command": "java",
+      "args": ["-jar", "server/target/jlib-inspector-server-1.0-SNAPSHOT.jar", "8080"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Frontend",
+      "type": "shell",
+      "command": "bash",
+      "args": ["-lc", "cd frontend && npm start"],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Sample App (with agent)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

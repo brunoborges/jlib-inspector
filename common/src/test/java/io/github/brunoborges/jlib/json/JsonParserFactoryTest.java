@@ -1,15 +1,14 @@
 package io.github.brunoborges.jlib.json;
 
-import io.github.brunoborges.jlib.json.JsonParser;
-import io.github.brunoborges.jlib.json.JsonParserInterface;
-import io.github.brunoborges.jlib.json.JsonParserFactory;
-import io.github.brunoborges.jlib.json.OrgJsonParser;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for JsonParserFactory.

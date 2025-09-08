@@ -21,7 +21,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * HTTP handler for /report endpoint that aggregates unique JARs across applications.
+ * HTTP handler for /report endpoint that aggregates unique JARs across
+ * applications.
  */
 public class ReportHandler implements HttpHandler {
 
@@ -78,13 +79,18 @@ public class ReportHandler implements HttpHandler {
                 // Update aggregate
                 agg.paths.add(jar.fullPath);
                 agg.fileNames.add(jar.fileName);
-                if (agg.size < 0 && jar.size >= 0) agg.size = jar.size;
-                if (agg.sampleFileName == null) agg.sampleFileName = jar.fileName;
-                if (agg.firstSeen == null || jar.firstSeen.isBefore(agg.firstSeen)) agg.firstSeen = jar.firstSeen;
-                if (agg.lastAccessed == null || jar.getLastAccessed().isAfter(agg.lastAccessed)) agg.lastAccessed = jar.getLastAccessed();
+                if (agg.size < 0 && jar.size >= 0)
+                    agg.size = jar.size;
+                if (agg.sampleFileName == null)
+                    agg.sampleFileName = jar.fileName;
+                if (agg.firstSeen == null || jar.firstSeen.isBefore(agg.firstSeen))
+                    agg.firstSeen = jar.firstSeen;
+                if (agg.lastAccessed == null || jar.getLastAccessed().isAfter(agg.lastAccessed))
+                    agg.lastAccessed = jar.getLastAccessed();
                 agg.loadedCount++;
 
                 Map<String, Object> appInfo = new HashMap<>();
+                appInfo.put("key", agg.key);
                 appInfo.put("appId", app.appId);
                 appInfo.put("jdkVersion", app.jdkVersion);
                 appInfo.put("jdkVendor", app.jdkVendor);
@@ -103,22 +109,27 @@ public class ReportHandler implements HttpHandler {
         sb.append("{\"uniqueJars\":[");
         boolean first = true;
         for (Agg agg : aggByKey.values()) {
-            if (!first) sb.append(",");
+            if (!first)
+                sb.append(",");
             sb.append("{");
             if (agg.checksum != null) {
                 sb.append("\"checksum\":\"").append(jsonParser.escapeJson(agg.checksum)).append("\",");
             }
             sb.append("\"size\":").append(agg.size).append(",")
-              .append("\"fileName\":\"").append(jsonParser.escapeJson(agg.sampleFileName == null ? "" : agg.sampleFileName)).append("\",")
-              .append("\"firstSeen\":\"").append(agg.firstSeen == null ? "" : agg.firstSeen.toString()).append("\",")
-              .append("\"lastAccessed\":\"").append(agg.lastAccessed == null ? "" : agg.lastAccessed.toString()).append("\",")
-              .append("\"loadedCount\":").append(agg.loadedCount).append(",");
+                    .append("\"fileName\":\"")
+                    .append(jsonParser.escapeJson(agg.sampleFileName == null ? "" : agg.sampleFileName)).append("\",")
+                    .append("\"firstSeen\":\"").append(agg.firstSeen == null ? "" : agg.firstSeen.toString())
+                    .append("\",")
+                    .append("\"lastAccessed\":\"").append(agg.lastAccessed == null ? "" : agg.lastAccessed.toString())
+                    .append("\",")
+                    .append("\"loadedCount\":").append(agg.loadedCount).append(",");
 
             // paths
             sb.append("\"paths\":[");
             boolean firstPath = true;
             for (String p : agg.paths) {
-                if (!firstPath) sb.append(",");
+                if (!firstPath)
+                    sb.append(",");
                 sb.append("\"").append(jsonParser.escapeJson(p)).append("\"");
                 firstPath = false;
             }
@@ -128,7 +139,8 @@ public class ReportHandler implements HttpHandler {
             sb.append("\"fileNames\":[");
             boolean firstFn = true;
             for (String fn : agg.fileNames) {
-                if (!firstFn) sb.append(",");
+                if (!firstFn)
+                    sb.append(",");
                 sb.append("\"").append(jsonParser.escapeJson(fn)).append("\"");
                 firstFn = false;
             }
@@ -138,18 +150,21 @@ public class ReportHandler implements HttpHandler {
             sb.append("\"applications\":[");
             boolean firstApp = true;
             for (Map<String, Object> ai : agg.applications) {
-                if (!firstApp) sb.append(",");
+                if (!firstApp)
+                    sb.append(",");
                 sb.append("{")
-                  .append("\"appId\":\"").append(ai.get("appId")).append("\",")
-                  .append("\"jdkVersion\":\"").append(ai.get("jdkVersion")).append("\",")
-                  .append("\"jdkVendor\":\"").append(ai.get("jdkVendor")).append("\",")
-                  .append("\"jdkPath\":\"").append(jsonParser.escapeJson((String) ai.get("jdkPath"))).append("\",")
-                  .append("\"firstSeen\":\"").append(ai.get("firstSeen")).append("\",")
-                  .append("\"lastUpdated\":\"").append(ai.get("lastUpdated")).append("\",")
-                  .append("\"jarPath\":\"").append(jsonParser.escapeJson((String) ai.get("jarPath"))).append("\",")
-                  .append("\"loaded\":").append(ai.get("loaded")).append(",")
-                  .append("\"lastAccessed\":\"").append(ai.get("lastAccessed")).append("\"")
-                  .append("}");
+                        .append("\"appId\":\"").append(ai.get("appId")).append("\",")
+                        .append("\"jdkVersion\":\"").append(ai.get("jdkVersion")).append("\",")
+                        .append("\"jdkVendor\":\"").append(ai.get("jdkVendor")).append("\",")
+                        .append("\"jdkPath\":\"").append(jsonParser.escapeJson((String) ai.get("jdkPath")))
+                        .append("\",")
+                        .append("\"firstSeen\":\"").append(ai.get("firstSeen")).append("\",")
+                        .append("\"lastUpdated\":\"").append(ai.get("lastUpdated")).append("\",")
+                        .append("\"jarPath\":\"").append(jsonParser.escapeJson((String) ai.get("jarPath")))
+                        .append("\",")
+                        .append("\"loaded\":").append(ai.get("loaded")).append(",")
+                        .append("\"lastAccessed\":\"").append(ai.get("lastAccessed")).append("\"")
+                        .append("}");
                 firstApp = false;
             }
             sb.append("]}");
@@ -169,6 +184,8 @@ public class ReportHandler implements HttpHandler {
         byte[] b = msg.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
         ex.sendResponseHeaders(code, b.length);
-        try (OutputStream os = ex.getResponseBody()) { os.write(b); }
+        try (OutputStream os = ex.getResponseBody()) {
+            os.write(b);
+        }
     }
 }

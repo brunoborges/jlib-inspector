@@ -35,13 +35,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Premain-Class>io.github.brunoborges.jlib.agent.InspectorAgent</Premain-Class>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
             </plugin>
 
             <!-- Surefire plugin for JUnit 5 support -->

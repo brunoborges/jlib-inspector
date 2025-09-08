@@ -154,9 +154,15 @@ The Docker setup includes:
 
 Open your browser and navigate to: **http://localhost:3000**
 
-### Screenshot
+### Screenshots
 
-![alt text](screenshot.png)
+Main dashboard:
+
+![alt text](screenshot1.png)
+
+JAR list:
+
+![alt text](screenshot2.png)
 
 ### Dashboard Features
 

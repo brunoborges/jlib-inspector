@@ -25,9 +25,11 @@ import java.util.logging.Logger;
  * 
  * <h3>API Endpoints:</h3>
  * <ul>
- * <li>POST /api/apps - Register a Java application</li>
  * <li>GET /api/apps - List all tracked applications</li>
- * <li>POST /api/apps - Update JAR information for an application</li>
+ * <li>GET /api/apps/{appId} - Get a specific application's details</li>
+ * <li>GET /api/apps/{appId}/jars - List JARs for a specific application</li>
+ * <li>PUT /api/apps/{appId} - Register/update an application and its JARs</li>
+ * <li>GET /report - Aggregated unique JARs across applications</li>
  * <li>GET /health - Health check endpoint</li>
  * </ul>
  * 

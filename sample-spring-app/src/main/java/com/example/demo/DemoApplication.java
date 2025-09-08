@@ -6,6 +6,12 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+/**
+ * Sample Spring Boot application used to demonstrate and test the jlib-inspector
+ * agent attached to a running Java process. This app doesn't expose HTTP
+ * endpoints; it simply starts up and logs the command-line arguments so that
+ * the agent can observe class loading and JAR usage.
+ */
 @SpringBootApplication
 public class DemoApplication implements CommandLineRunner {
 

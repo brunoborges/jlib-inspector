@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatFileSize, getMvnRepositoryUrl, copyToClipboard, initLucideIcons } from '../utils/helpers';
 
-const JarItem = ({ jar, isCompact = false, isUniqueJar = false }) => {
+const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNameById }) => {
     const [copyStatus, setCopyStatus] = useState(null);
     
     useEffect(() => {
@@ -86,14 +86,18 @@ const JarItem = ({ jar, isCompact = false, isUniqueJar = false }) => {
                             )}
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            {jar.applications.map((app, appIndex) => (
-                                <span
+                {jar.applications.map((app, appIndex) => (
+                                <button
                                     key={appIndex}
-                                    className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded"
-                                    title={`App ID: ${app.appId}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onOpenApp) onOpenApp(app.appId);
+                                    }}
+                                    className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200 underline-offset-2 hover:underline"
+                    title={`Open application: ${(appNameById && appNameById.get(app.appId)) || app.name || app.appId} (ID: ${app.appId})`}
                                 >
-                                    {app.name}
-                                </span>
+                    {(appNameById && appNameById.get(app.appId)) || app.name || `${app.appId.substring(0, 8)}…`}
+                                </button>
                             ))}
                         </div>
                     </div>

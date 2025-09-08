@@ -159,6 +159,30 @@ app.get('/api/applications/:appId', (req, res) => {
   res.json(app);
 });
 
+// Update application metadata (name, description, tags)
+app.put('/api/applications/:appId/metadata', async (req, res) => {
+  const { appId } = req.params;
+  const { name, description, tags } = req.body || {};
+  try {
+    const payload = { name, description, tags };
+    const response = await axios.put(`${JLIB_SERVER_URL}/api/apps/${appId}/metadata`, payload, { timeout: 5000 });
+    // Update local cache if app exists
+    const idx = dashboardData.applications.findIndex(a => a.appId === appId);
+    if (idx !== -1) {
+      const app = dashboardData.applications[idx];
+      app.name = name !== undefined ? name : app.name;
+      app.description = description !== undefined ? description : app.description;
+      app.tags = Array.isArray(tags) ? tags : (app.tags || []);
+      dashboardData.lastUpdated = new Date().toISOString();
+      broadcastUpdate({ type: 'data-update', data: dashboardData });
+    }
+    res.json(response.data);
+  } catch (error) {
+    console.error('Failed updating metadata:', error.message);
+    res.status(500).json({ error: 'Failed to update metadata' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',

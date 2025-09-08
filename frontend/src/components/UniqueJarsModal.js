@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import JarItem from './JarItem';
 import { initLucideIcons } from '../utils/helpers';
 
-const UniqueJarsModal = ({ isOpen, onClose, applications, initialFilter = 'all' }) => {
+const UniqueJarsModal = ({ isOpen, onClose, applications, initialFilter = 'all', onOpenApp }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('filename');
     const [sortOrder, setSortOrder] = useState('asc');
@@ -234,6 +234,7 @@ const UniqueJarsModal = ({ isOpen, onClose, applications, initialFilter = 'all' 
                                             key={index}
                                             jar={jar}
                                             isUniqueJar={true}
+                                            onOpenApp={(appId) => onOpenApp && onOpenApp(appId)}
                                         />
                                     ))}
                                 </div>

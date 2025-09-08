@@ -81,6 +81,21 @@ export const useDashboardData = () => {
         await fetchInitialData();
     }, [fetchInitialData]);
 
+    // Optimistically update a single application locally (immediate UI feedback)
+    const updateApplication = useCallback((appId, patch) => {
+        setDashboardData(prev => {
+            if (!prev || !prev.applications) return prev;
+            const updatedApps = prev.applications.map(app => 
+                app.appId === appId ? { ...app, ...patch } : app
+            );
+            return {
+                ...prev,
+                applications: updatedApps,
+                lastUpdated: new Date().toISOString()
+            };
+        });
+    }, []);
+
     useEffect(() => {
         fetchInitialData();
         const websocket = setupWebSocket();
@@ -96,6 +111,7 @@ export const useDashboardData = () => {
         dashboardData,
         isLoading,
         error,
-        refreshData
+    refreshData,
+    updateApplication
     };
 };

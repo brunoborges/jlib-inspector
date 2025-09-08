@@ -8,18 +8,18 @@ import { useDashboardData } from './hooks/useDashboardData';
 import { initLucideIcons } from './utils/helpers';
 import './styles/globals.css';
 
-// Lazy load modal components to reduce initial bundle size
-const JarModal = lazy(() => import('./components/JarModal'));
-const UniqueJarsModal = lazy(() => import('./components/UniqueJarsModal'));
+// Lazy load pages to reduce initial bundle size
+const ApplicationDetails = lazy(() => import('./pages/ApplicationDetails'));
+const UniqueJarsPage = lazy(() => import('./pages/UniqueJarsPage'));
 const ServerConfig = lazy(() => import('./components/ServerConfig'));
 
 const App = () => {
-    const { dashboardData, isLoading, error, refreshData } = useDashboardData();
+    const { dashboardData, isLoading, error, refreshData, updateApplication } = useDashboardData();
     const [currentView, setCurrentView] = useState('grid');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all');
     const [selectedApplication, setSelectedApplication] = useState(null);
-    const [showUniqueJarsModal, setShowUniqueJarsModal] = useState(false);
+    const [route, setRoute] = useState({ name: 'dashboard' }); // 'dashboard' | 'app' | 'unique'
     const [uniqueJarsFilter, setUniqueJarsFilter] = useState('all');
     const [showServerConfig, setShowServerConfig] = useState(false);
     const [currentServerUrl, setCurrentServerUrl] = useState('http://localhost:8080');
@@ -70,21 +70,38 @@ const App = () => {
         setIsRefreshing(false);
     };
 
-    const handleOpenJarModal = (application) => {
+    const handleOpenAppPage = (application) => {
         setSelectedApplication(application);
+        setRoute({ name: 'app' });
+        window.history.pushState({ page: 'app', appId: application.appId }, '', `#/app/${application.appId}`);
     };
 
-    const handleCloseJarModal = () => {
+    const handleOpenAppPageById = (appId) => {
+        const app = dashboardData.applications.find(a => a.appId === appId);
+        if (app) {
+            setSelectedApplication(app);
+            setRoute({ name: 'app' });
+            window.history.pushState({ page: 'app', appId }, '', `#/app/${appId}`);
+        }
+    };
+
+    // Pass-through to update a single application's metadata in local state
+    const handleLocalUpdateApp = (appId, patch) => {
+        updateApplication(appId, patch);
+        // keep selectedApplication in sync if it's the same app
+        setSelectedApplication(prev => (prev && prev.appId === appId) ? { ...prev, ...patch } : prev);
+    };
+
+    const handleBackToDashboard = () => {
         setSelectedApplication(null);
+        setRoute({ name: 'dashboard' });
+        window.history.pushState({ page: 'dashboard' }, '', '#/');
     };
 
-    const handleOpenUniqueJarsModal = (filter = 'all') => {
+    const handleOpenUniqueJarsPage = (filter = 'all') => {
         setUniqueJarsFilter(filter);
-        setShowUniqueJarsModal(true);
-    };
-
-    const handleCloseUniqueJarsModal = () => {
-        setShowUniqueJarsModal(false);
+        setRoute({ name: 'unique' });
+        window.history.pushState({ page: 'unique', filter }, '', `#/jars/${filter}`);
     };
 
     const handleOpenServerConfig = () => {
@@ -117,10 +134,8 @@ const App = () => {
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') {
-                if (selectedApplication) {
-                    handleCloseJarModal();
-                } else if (showUniqueJarsModal) {
-                    handleCloseUniqueJarsModal();
+                if (route.name !== 'dashboard') {
+                    handleBackToDashboard();
                 } else if (showServerConfig) {
                     handleCloseServerConfig();
                 }
@@ -135,7 +150,27 @@ const App = () => {
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [selectedApplication, showUniqueJarsModal, showServerConfig]);
+    }, [route.name, showServerConfig]);
+
+    // Basic hash-based routing (supports refresh and back/forward buttons)
+    useEffect(() => {
+        const applyHashRoute = () => {
+            const hash = window.location.hash || '#/';
+            const parts = hash.slice(2).split('/');
+            if (parts[0] === 'app' && parts[1]) {
+                handleOpenAppPageById(parts[1]);
+            } else if (parts[0] === 'jars') {
+                const filter = parts[1] || 'all';
+                setUniqueJarsFilter(filter);
+                setRoute({ name: 'unique' });
+            } else {
+                setRoute({ name: 'dashboard' });
+            }
+        };
+        window.addEventListener('popstate', applyHashRoute);
+        applyHashRoute();
+        return () => window.removeEventListener('popstate', applyHashRoute);
+    }, [dashboardData.applications]);
 
     if (isLoading) {
         return (
@@ -200,35 +235,42 @@ const App = () => {
 
                 <StatisticsCards 
                     applications={dashboardData.applications} 
-                    onUniqueJarsClick={handleOpenUniqueJarsModal}
+                    onUniqueJarsClick={handleOpenUniqueJarsPage}
+                    onTotalAppsClick={handleBackToDashboard}
                 />
 
-                <ApplicationsList 
-                    applications={filteredApplications}
-                    currentView={currentView}
-                    filteredCount={filteredApplications.length}
-                    totalCount={dashboardData.applications.length}
-                    onOpenJarModal={handleOpenJarModal}
-                    onRefresh={handleRefresh}
-                />
+                {route.name === 'dashboard' && (
+                    <ApplicationsList 
+                        applications={filteredApplications}
+                        currentView={currentView}
+                        filteredCount={filteredApplications.length}
+                        totalCount={dashboardData.applications.length}
+                        onOpenJarModal={handleOpenAppPage}
+                        onRefresh={handleRefresh}
+                    />
+                )}
+
+                {route.name === 'app' && (
+                    <Suspense fallback={<div></div>}>
+                        <ApplicationDetails 
+                            application={selectedApplication}
+                            onBack={handleBackToDashboard}
+                            onLocalUpdateApp={handleLocalUpdateApp}
+                        />
+                    </Suspense>
+                )}
+
+                {route.name === 'unique' && (
+                    <Suspense fallback={<div></div>}>
+                        <UniqueJarsPage 
+                            applications={dashboardData.applications}
+                            initialFilter={uniqueJarsFilter}
+                            onBack={handleBackToDashboard}
+                            onOpenApp={handleOpenAppPageById}
+                        />
+                    </Suspense>
+                )}
             </main>
-
-            <Suspense fallback={<div></div>}>
-                <JarModal 
-                    isOpen={!!selectedApplication}
-                    onClose={handleCloseJarModal}
-                    application={selectedApplication}
-                />
-            </Suspense>
-
-            <Suspense fallback={<div></div>}>
-                <UniqueJarsModal 
-                    isOpen={showUniqueJarsModal}
-                    onClose={handleCloseUniqueJarsModal}
-                    applications={dashboardData.applications}
-                    initialFilter={uniqueJarsFilter}
-                />
-            </Suspense>
 
             <Suspense fallback={<div></div>}>
                 <ServerConfig 

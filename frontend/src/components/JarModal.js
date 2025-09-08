@@ -6,10 +6,23 @@ const JarModal = ({ isOpen, onClose, application }) => {
     const [activeTab, setActiveTab] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [appIdCopyStatus, setAppIdCopyStatus] = useState(null);
+    const [editName, setEditName] = useState('');
+    const [editDescription, setEditDescription] = useState('');
+    const [editTags, setEditTags] = useState('');
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         initLucideIcons();
     }, [isOpen, activeTab, appIdCopyStatus]);
+
+    // Initialize edit fields when application changes (must be before any early returns to obey Rules of Hooks)
+    useEffect(() => {
+        if (application) {
+            setEditName(application.name || '');
+            setEditDescription(application.description || '');
+            setEditTags((application.tags || []).join(', '));
+        }
+    }, [application]);
 
     const handleCopyAppId = async (e) => {
         e.stopPropagation();
@@ -19,6 +32,22 @@ const JarModal = ({ isOpen, onClose, application }) => {
     };
 
     if (!isOpen || !application) return null;
+
+    const handleSaveMetadata = async () => {
+        setSaving(true);
+        try {
+            const tags = editTags.split(',').map(t => t.trim()).filter(Boolean);
+            await fetch(`/api/applications/${application.appId}/metadata`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: editName, description: editDescription, tags })
+            });
+        } catch (e) {
+            console.error('Failed to save metadata', e);
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const loadedJars = application.jars ? application.jars.filter(jar => jar.loaded) : [];
     const notLoadedJars = application.jars ? application.jars.filter(jar => !jar.loaded) : [];
@@ -80,7 +109,7 @@ const JarModal = ({ isOpen, onClose, application }) => {
                 <div className="slide-in bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
                     <div className="flex items-center justify-between p-6 border-b border-gray-200">
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900">Java Application</h3>
+                            <h3 className="text-xl font-bold text-gray-900">Java Application{application.name ? `: ${application.name}` : ''}</h3>
                             <div className="flex items-center space-x-3 mt-1">
                                 <p className="text-sm text-gray-500">
                                     {application.jars ? application.jars.length : 0} dependencies for application
@@ -138,14 +167,54 @@ const JarModal = ({ isOpen, onClose, application }) => {
                                     </div>
                                 </div>
                                 <div>
+                                    <span className="text-gray-600">Name:</span>
+                                    <input
+                                        type="text"
+                                        value={editName}
+                                        onChange={(e) => setEditName(e.target.value)}
+                                        className="w-full px-2 py-1 border border-gray-300 rounded mt-1"
+                                        placeholder="Friendly application name"
+                                    />
+                                </div>
+                                <div>
                                     <span className="text-gray-600">JDK Version:</span>
                                     <span className="text-gray-900 ml-2">{application.jdkVersion} ({application.jdkVendor})</span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-600">Tags:</span>
+                                    <input
+                                        type="text"
+                                        value={editTags}
+                                        onChange={(e) => setEditTags(e.target.value)}
+                                        className="w-full px-2 py-1 border border-gray-300 rounded mt-1"
+                                        placeholder="tag1, tag2, tag3"
+                                    />
                                 </div>
                                 <div className="md:col-span-2">
                                     <span className="text-gray-600">Command:</span>
                                     <div className="bg-white p-2 rounded border mt-1">
                                         <code className="text-xs break-all">{application.commandLine}</code>
                                     </div>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <span className="text-gray-600">Description:</span>
+                                    <textarea
+                                        value={editDescription}
+                                        onChange={(e) => setEditDescription(e.target.value)}
+                                        className="w-full px-2 py-1 border border-gray-300 rounded mt-1"
+                                        placeholder="Short description of the app"
+                                        rows={3}
+                                    />
+                                </div>
+                                <div className="md:col-span-2 flex justify-end">
+                                    <button
+                                        onClick={handleSaveMetadata}
+                                        disabled={saving}
+                                        className={`inline-flex items-center px-3 py-2 rounded text-white ${saving ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                    >
+                                        <i data-lucide="save" className="w-4 h-4 mr-2"></i>
+                                        {saving ? 'Saving...' : 'Save'}
+                                    </button>
                                 </div>
                             </div>
                         </div>

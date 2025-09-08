@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { initLucideIcons } from '../utils/helpers';
 
-const StatisticsCards = ({ applications, onUniqueJarsClick }) => {
+const StatisticsCards = ({ applications, onUniqueJarsClick, onTotalAppsClick }) => {
     useEffect(() => {
         initLucideIcons();
     }, []);
@@ -27,13 +27,26 @@ const StatisticsCards = ({ applications, onUniqueJarsClick }) => {
 
     const cards = [
         {
-            title: 'Total Applications',
+            title: 'Applications',
             value: stats.totalApps,
             icon: 'server',
             gradient: 'from-blue-50 to-blue-100',
             iconBg: 'bg-blue-500',
             textColor: 'text-blue-700',
-            valueColor: 'text-blue-900'
+            valueColor: 'text-blue-900',
+            clickable: !!onTotalAppsClick,
+            filter: 'dashboard'
+        },
+        {
+            title: 'JARs',
+            value: stats.jars,
+            icon: 'layers',
+            gradient: 'from-purple-50 to-purple-100',
+            iconBg: 'bg-purple-500',
+            textColor: 'text-purple-700',
+            valueColor: 'text-purple-900',
+            clickable: true,
+            filter: 'all'
         },
         {
             title: 'Active JARs',
@@ -56,17 +69,6 @@ const StatisticsCards = ({ applications, onUniqueJarsClick }) => {
             valueColor: 'text-gray-900',
             clickable: true,
             filter: 'inactive'
-        },
-        {
-            title: 'JARs',
-            value: stats.jars,
-            icon: 'layers',
-            gradient: 'from-purple-50 to-purple-100',
-            iconBg: 'bg-purple-500',
-            textColor: 'text-purple-700',
-            valueColor: 'text-purple-900',
-            clickable: true,
-            filter: 'all'
         }
     ];
 
@@ -80,8 +82,8 @@ const StatisticsCards = ({ applications, onUniqueJarsClick }) => {
                             ? 'cursor-pointer hover:scale-105 hover:shadow-xl transition-all duration-200 border-2 border-transparent hover:border-purple-300' 
                             : ''
                     }`}
-                    onClick={card.clickable ? () => onUniqueJarsClick(card.filter) : undefined}
-                    title={card.clickable ? 'Click to view detailed list of JARs' : undefined}
+                    onClick={card.clickable ? () => (card.title === 'Applications' && onTotalAppsClick ? onTotalAppsClick() : onUniqueJarsClick(card.filter)) : undefined}
+                    title={card.clickable ? (card.title === 'Applications' ? 'Go to dashboard' : 'Click to view detailed list of JARs') : undefined}
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex-1">

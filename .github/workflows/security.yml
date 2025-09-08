@@ -19,22 +19,27 @@ jobs:
   dependency-check:
     name: Dependency Security Scan
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
+
       - uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+    
       - name: Run OWASP Dependency Check
         run: |
           ./mvnw org.owasp:dependency-check-maven:check \
             -Dformat=ALL -DfailBuildOnCVSS=7 \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} -B
+
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -45,9 +50,10 @@ jobs:
             server/target/dependency-check-report.*
             sample-spring-app/target/dependency-check-report.*
           retention-days: 30
+
       - name: Create issue on failure
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const title = `🚨 High Severity Vulnerabilities Detected - ${new Date().toISOString().split('T')[0]}`;
@@ -63,23 +69,29 @@ jobs:
   npm-audit:
     name: NPM Security Audit
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
       - name: Install deps
         run: cd frontend && npm ci
+
       - name: Audit (fail on high)
         run: cd frontend && npm audit --audit-level=high
+
       - name: Generate audit reports
         if: always()
         run: |
           cd frontend
           npm audit --json > npm-audit-report.json || true
           npm audit --audit-level=low > npm-audit-report.txt || true
+
       - name: Upload audit reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -91,25 +103,31 @@ jobs:
   license-check:
     name: License Compliance
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-      - uses: actions/setup-node@v4
+
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
       - name: Maven third-party report
         run: ./mvnw org.codehaus.mojo:license-maven-plugin:2.2.0:aggregate-third-party-report -B
+
       - name: NPM license checker
         run: |
           cd frontend
           npm ci
           npx license-checker --json > npm-licenses.json
           npx license-checker --csv > npm-licenses.csv
+
       - name: Upload license reports
         uses: actions/upload-artifact@v4
         with:
@@ -122,23 +140,29 @@ jobs:
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-java@v4
+
+      - uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
+
       - uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+
       - name: SpotBugs
         run: ./mvnw com.github.spotbugs:spotbugs-maven-plugin:4.7.3.6:check -B || true
+
       - name: PMD
         run: ./mvnw org.apache.maven.plugins:maven-pmd-plugin:3.21.0:check -B || true
+
       - name: Upload quality reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -157,33 +181,40 @@ jobs:
     name: Update Dependencies (PR)
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-java@v4
+
+      - uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
-      - uses: actions/setup-node@v4
+
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
       - name: Update Maven deps
         run: |
           ./mvnw versions:use-latest-releases -B
           ./mvnw versions:update-properties -B
+
       - name: Update NPM deps
         run: |
           cd frontend
           npm ci
           npm update
           npm audit fix || true
+
       - name: Detect changes
         id: changes
         run: |
           if git diff --quiet; then echo 'has_changes=false' >> $GITHUB_OUTPUT; else echo 'has_changes=true' >> $GITHUB_OUTPUT; fi
+          
       - name: Create PR
         if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v5

@@ -349,6 +349,10 @@ jlib-inspector/
 3. Start development environment following the Quick Start guide
 4. Make changes and test with sample applications
 
+## Articles
+
+- [Building a Runtime JAR inspector in 10 hours](https://devblogs.microsoft.com/java/building-a-runtime-jar-inspector-in-10-hours/)
+
 ## 📄 License
 
 MIT License - see LICENSE file for details.

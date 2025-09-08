@@ -33,15 +33,28 @@ Write-Host ""
 Write-Host "3. Testing server mode with non-existent server..." -ForegroundColor Green
 Write-Host "   Running: java -javaagent:agent.jar=server:8080 -jar spring-app.jar" -ForegroundColor Gray
 
-# Test 2: Server mode (should fail gracefully)
+# Test 2: Server mode (should fail gracefully because server is NOT running)
+$output2 = & java "-javaagent:$agentPath=server:8080" -jar $springJar 2>&1 | Out-String
+if ($output2 -match "Total JARs\s+:\s+(\d+)") {
+    Write-Host "   ✓ Server mode: Found $($matches[1]) JARs (local report still works)" -ForegroundColor Green
+} else {
+    Write-Host "   ✗ Server mode: No JAR summary found" -ForegroundColor Red
+}
+
+if ($output2 -match "Failed to send data to server") {
+    Write-Host "   ✓ Server mode: Gracefully handled unreachable server" -ForegroundColor Green
+} else {
+    Write-Host "   ! Server mode: Couldn't verify failure message (may vary)" -ForegroundColor Yellow
+}
+
 Write-Host ""
-Write-Host "Starting HTTP server for full integration test..." -ForegroundColor Green
+Write-Host "4. Starting HTTP server for integration tests..." -ForegroundColor Green
 
 # Start server with shaded server JAR
 $serverJob = Start-Job -ScriptBlock {
-    cd "D:\work\jlib-inspector"
-    java -jar "$serverPath" 8080
-}
+    param($serverPath)
+    java -jar $serverPath 8080
+} -ArgumentList $serverPath
 
 # Wait for server to be ready
 Write-Host "   Waiting for server to start..." -ForegroundColor Gray
@@ -70,21 +83,8 @@ if (-not $serverReady) {
     exit 1
 }
 
-$output2 = & java "-javaagent:$agentPath=server:8080" -jar $springJar 2>&1 | Out-String
-if ($output2 -match "Total JARs\s+:\s+(\d+)") {
-    Write-Host "   ✓ Server mode: Found $($matches[1]) JARs (local report still works)" -ForegroundColor Green
-} else {
-    Write-Host "   ✗ Server mode: No JAR summary found" -ForegroundColor Red
-}
-
-if ($output2 -match "Failed to send data to server") {
-    Write-Host "   ✓ Server mode: Gracefully handled server connection failure" -ForegroundColor Green
-} else {
-    Write-Host "   ✓ Server mode: No server connection attempted (expected)" -ForegroundColor Gray
-}
-
 Write-Host ""
-Write-Host "4. Testing server integration mode..." -ForegroundColor Green
+Write-Host "5. Testing server integration mode..." -ForegroundColor Green
 Write-Host "   Running: java -javaagent:agent.jar=server:8080 -jar spring-app.jar" -ForegroundColor Gray
 
 # Test 3: Full server integration (server is already running and verified)
@@ -107,12 +107,31 @@ if ($apps.applications.Count -gt 0) {
     $app = $apps.applications[0]
     Write-Host "     App ID: $($app.appId)" -ForegroundColor Gray
     Write-Host "     JDK: $($app.jdkVersion)" -ForegroundColor Gray
+
+    # Verify /report reflects this application
+    $report = Invoke-RestMethod -Uri "http://localhost:8080/report" -Method Get
+    if ($report.uniqueJars -and $report.uniqueJars.Count -ge 0) {
+        $containsApp = $false
+        foreach ($jar in $report.uniqueJars) {
+            foreach ($a in $jar.applications) {
+                if ($a.appId -eq $app.appId) { $containsApp = $true; break }
+            }
+            if ($containsApp) { break }
+        }
+        if ($containsApp) {
+            Write-Host "   ✓ /report: Includes application $($app.appId) in uniqueJars" -ForegroundColor Green
+        } else {
+            Write-Host "   ! /report: uniqueJars present but appId not found (timing?)" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "   ✗ /report: Missing uniqueJars array" -ForegroundColor Red
+    }
 } else {
     Write-Host "   ! Server integration: No applications found (timing issue?)" -ForegroundColor Yellow
 }
 
 Write-Host ""
-Write-Host "5. Testing custom host:port format..." -ForegroundColor Green
+Write-Host "6. Testing custom host:port format..." -ForegroundColor Green
 Write-Host "   Running: java -javaagent:agent.jar=server:localhost:8080 -jar spring-app.jar" -ForegroundColor Gray
 
 # Test 4: Custom host:port format
@@ -122,7 +141,7 @@ if ($output4 -match "will report to localhost:8080") {
 }
 
 Write-Host ""
-Write-Host "6. Cleanup..." -ForegroundColor Green
+Write-Host "7. Cleanup..." -ForegroundColor Green
 Stop-Job $serverJob 2>$null
 Remove-Job $serverJob 2>$null
 Write-Host "   Server stopped" -ForegroundColor Gray

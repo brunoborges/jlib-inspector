@@ -72,9 +72,23 @@ echo ""
 echo -e "${GREEN}3. Testing server mode with non-existent server...${NC}"
 echo -e "${GRAY}   Running: java -javaagent:agent.jar=server:8080 -jar spring-app.jar${NC}"
 
-# Test 2: Server mode (should fail gracefully)
+# Test 2: Server mode (should fail gracefully because server is NOT running)
+OUTPUT2=$(java -javaagent:"$AGENT_PATH=server:8080" -jar "$SPRING_JAR" 2>&1)
+if echo "$OUTPUT2" | grep -q "Total JARs.*:[[:space:]]*[0-9]\+"; then
+    JAR_COUNT=$(echo "$OUTPUT2" | grep -o "Total JARs.*:[[:space:]]*[0-9]\+" | grep -o "[0-9]\+")
+    echo -e "${GREEN}   ✓ Server mode: Found $JAR_COUNT JARs (local report still works)${NC}"
+else
+    echo -e "${RED}   ✗ Server mode: No JAR summary found${NC}"
+fi
+
+if echo "$OUTPUT2" | grep -q "Failed to send data to server"; then
+    echo -e "${GREEN}   ✓ Server mode: Gracefully handled unreachable server${NC}"
+else
+    echo -e "${YELLOW}   ! Server mode: Couldn't verify failure message (may vary)${NC}"
+fi
+
 echo ""
-echo -e "${GREEN}Starting HTTP server for full integration test...${NC}"
+echo -e "${GREEN}4. Starting HTTP server for integration tests...${NC}"
 
 # Start server in background (shaded server JAR)
 java -jar "$SERVER_PATH" 8080 > /dev/null 2>&1 &
@@ -108,22 +122,8 @@ if [ "$SERVER_READY" = false ]; then
     exit 1
 fi
 
-OUTPUT2=$(java -javaagent:"$AGENT_PATH=server:8080" -jar "$SPRING_JAR" 2>&1)
-if echo "$OUTPUT2" | grep -q "Total JARs.*:[[:space:]]*[0-9]\+"; then
-    JAR_COUNT=$(echo "$OUTPUT2" | grep -o "Total JARs.*:[[:space:]]*[0-9]\+" | grep -o "[0-9]\+")
-    echo -e "${GREEN}   ✓ Server mode: Found $JAR_COUNT JARs (local report still works)${NC}"
-else
-    echo -e "${RED}   ✗ Server mode: No JAR summary found${NC}"
-fi
-
-if echo "$OUTPUT2" | grep -q "Failed to send data to server"; then
-    echo -e "${GREEN}   ✓ Server mode: Gracefully handled server connection failure${NC}"
-else
-    echo -e "${GRAY}   ✓ Server mode: No server connection attempted (expected)${NC}"
-fi
-
 echo ""
-echo -e "${GREEN}4. Testing server integration mode...${NC}"
+echo -e "${GREEN}5. Testing server integration mode...${NC}"
 echo -e "${GRAY}   Running: java -javaagent:agent.jar=server:8080 -jar spring-app.jar${NC}"
 
 # Test 3: Full server integration (server is already running and verified)
@@ -155,13 +155,25 @@ if curl -s "http://localhost:8080/api/apps" > /dev/null 2>&1; then
             JDK_VERSION=$(echo "$APPS_RESPONSE" | grep -o '"jdkVersion":"[^"]*"' | head -1 | cut -d'"' -f4)
             echo -e "${GRAY}     JDK: $JDK_VERSION${NC}"
         fi
+
+        # Verify /report reflects this application
+        REPORT_RESPONSE=$(curl -s "http://localhost:8080/report")
+        if echo "$REPORT_RESPONSE" | grep -q '"uniqueJars":\['; then
+            if echo "$REPORT_RESPONSE" | grep -q "$APP_ID"; then
+                echo -e "${GREEN}   ✓ /report: Includes application $APP_ID in uniqueJars${NC}"
+            else
+                echo -e "${YELLOW}   ! /report: uniqueJars present but appId not found (timing?)${NC}"
+            fi
+        else
+            echo -e "${RED}   ✗ /report: Missing uniqueJars array${NC}"
+        fi
     else
         echo -e "${YELLOW}   ! Server integration: No applications found (timing issue?)${NC}"
     fi
 fi
 
 echo ""
-echo -e "${GREEN}5. Testing custom host:port format...${NC}"
+echo -e "${GREEN}6. Testing custom host:port format...${NC}"
 echo -e "${GRAY}   Running: java -javaagent:agent.jar=server:localhost:8080 -jar spring-app.jar${NC}"
 
 # Test 4: Custom host:port format
@@ -171,7 +183,7 @@ if echo "$OUTPUT4" | grep -q "will report to localhost:8080"; then
 fi
 
 echo ""
-echo -e "${GREEN}6. Cleanup...${NC}"
+echo -e "${GREEN}7. Cleanup...${NC}"
 kill $SERVER_PID 2>/dev/null
 echo -e "${GRAY}   Server stopped${NC}"
 

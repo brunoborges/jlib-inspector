@@ -35,18 +35,18 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
         
     - name: Build with Maven
-      run: mvn clean compile -B
+      run: ./mvnw clean compile -B
       
     - name: Run tests
-      run: mvn test -B
+      run: ./mvnw test -B
       
     - name: Package agent
-      run: mvn package -B
+      run: ./mvnw package -B
       
     - name: Verify agent JAR exists
       run: |
         ls -la agent/target/
-        test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar
+  test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar
         
     - name: Upload agent artifact
       uses: actions/upload-artifact@v4
@@ -81,12 +81,12 @@ jobs:
     - name: Build sample app
       run: |
         cd sample-spring-app
-        mvn clean package -B
+        ../mvnw clean package -B
         
     - name: Verify sample app JAR exists
       run: |
-        ls -la sample-spring-app/target/
-        test -f sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
+  ls -la sample-spring-app/target/
+  test -f sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
         
     - name: Upload sample app artifact
       uses: actions/upload-artifact@v4
@@ -162,27 +162,27 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
         
     - name: Build project
-      run: mvn clean package -B
+      run: ./mvnw clean package -B
         
     - name: Verify built artifacts
       run: |
         ls -la agent/target/
-        ls -la sample-spring-app/target/
-        test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar
+  ls -la sample-spring-app/target/
+  test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar
+  test -f server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
         test -f sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
         
     - name: Test local-only mode
       run: |
         echo "Testing local-only mode..."
-        timeout 30s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar \
+  timeout 30s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar \
           -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar || true
         echo "Local-only mode test completed"
         
     - name: Test server integration
       run: |
         echo "Starting JLib Server in background..."
-        java -cp "agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar" \
-          io.github.brunoborges.jlib.server.JLibServer 8080 &
+        java -jar server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar 8080 &
         SERVER_PID=$!
         
         # Wait for server to start
@@ -197,8 +197,8 @@ jobs:
         done
         
         # Test with server
-        echo "Testing with server integration..."
-        timeout 30s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar=server:8080 \
+  echo "Testing with server integration..."
+  timeout 30s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 \
           -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar || true
           
         # Check server received data
@@ -241,9 +241,9 @@ jobs:
         
     - name: Build Maven projects
       run: |
-        mvn clean package -B
+        ./mvnw clean package -B
         cd sample-spring-app
-        mvn clean package -B
+        ../mvnw clean package -B
         cd ..
         
     - name: Download frontend build artifacts
@@ -256,9 +256,10 @@ jobs:
       run: |
         ls -la agent/target/
         ls -la sample-spring-app/target/
-        ls -la frontend/dist/
-        test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar
+  ls -la frontend/dist/
+  test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar
         test -f sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
+  test -f server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
         test -f frontend/dist/index.html
         
     - name: Install frontend dependencies
@@ -269,8 +270,7 @@ jobs:
     - name: Start full stack
       run: |
         echo "Starting JLib Server..."
-        java -cp "agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar" \
-          io.github.brunoborges.jlib.server.JLibServer 8080 &
+        java -jar server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar 8080 &
         SERVER_PID=$!
         
         echo "Starting frontend server..."
@@ -290,13 +290,15 @@ jobs:
         curl -f http://localhost:3000 || echo "Frontend health check failed"
         
         # Run sample app with agent
-        echo "Running sample app with agent..."
-        timeout 20s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar=server:8080 \
+  echo "Running sample app with agent..."
+  timeout 20s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 \
           -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar || true
           
         # Check if data was collected
-        echo "Checking collected data..."
-        curl -s http://localhost:8080/api/apps | jq . || echo "No JSON data found"
+  echo "Checking collected data..."
+  curl -s http://localhost:8080/api/apps | jq . || echo "No JSON data found"
+  echo "Fetching aggregated report..."
+  curl -s http://localhost:8080/report | jq . || echo "No report endpoint data"
         
         # Cleanup
         kill $SERVER_PID $FRONTEND_PID || true
@@ -327,7 +329,7 @@ jobs:
         
     - name: Run OWASP Dependency Check
       run: |
-        mvn org.owasp:dependency-check-maven:check \
+  ./mvnw org.owasp:dependency-check-maven:check \
           -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
           -B || echo "Dependency check completed with warnings"
         

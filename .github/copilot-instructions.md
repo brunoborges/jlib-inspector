@@ -5,7 +5,7 @@ This repo has three main parts:
 - Node.js app: `frontend` (dashboard)
 
 Tooling and versions:
-- Java 21+, Maven 3.9.11+ (use `./mvnw`), Node 18+
+- Java 21+, Maven 4+ (use `./mvnw`), Node 18+
 - Default ports: server 8080, dashboard 3000 (HTTP), 3001 (WS)
 
 ## Build
@@ -22,7 +22,7 @@ Artifacts (shaded JARs):
 - Server: `server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar`
 
 Notes:
-- Maven Enforcer requires Maven 3.9.11; prefer the wrapper (`./mvnw`).
+- Maven Enforcer requires Maven 4+; always use the wrapper (`./mvnw`).
 - Java 21 is required (`maven.compiler.release=21`).
 - JaCoCo is enabled; reports: `target/site/jacoco/` per module.
 

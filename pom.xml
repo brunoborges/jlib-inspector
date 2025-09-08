@@ -1,7 +1,7 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
+<project xmlns="http://maven.apache.org/POM/4.1.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+    xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 http://maven.apache.org/xsd/maven-4.1.0.xsd">
+    <modelVersion>4.1.0</modelVersion>
 
     <groupId>io.github.brunoborges</groupId>
     <artifactId>jlib-inspector</artifactId>
@@ -19,11 +19,11 @@
         <maven.surefire.plugin.version>3.5.3</maven.surefire.plugin.version>
         <jacoco.plugin.version>0.8.13</jacoco.plugin.version>
         <spring.boot.version>3.5.5</spring.boot.version>
-    <!-- Site/reporting plugins -->
-    <maven.site.plugin.version>3.12.1</maven.site.plugin.version>
-    <maven.project.info.reports.version>3.6.0</maven.project.info.reports.version>
-    <maven.javadoc.plugin.version>3.6.3</maven.javadoc.plugin.version>
-    <maven.surefire.report.plugin.version>3.5.3</maven.surefire.report.plugin.version>
+        <!-- Site/reporting plugins -->
+        <maven.site.plugin.version>3.12.1</maven.site.plugin.version>
+        <maven.project.info.reports.version>3.6.0</maven.project.info.reports.version>
+        <maven.javadoc.plugin.version>3.6.3</maven.javadoc.plugin.version>
+        <maven.surefire.report.plugin.version>3.5.3</maven.surefire.report.plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -63,6 +63,21 @@
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.4.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>3.3.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.14.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>${maven.jar.plugin.version}</version>
                 </plugin>
@@ -75,6 +90,16 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven.surefire.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>3.1.3</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>3.1.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.jacoco</groupId>
@@ -123,8 +148,9 @@
                         <configuration>
                             <rules>
                                 <requireMavenVersion>
-                                    <version>3.9.11</version>
-                                    <message>You must use Maven 3.9.11 to build this project.</message>
+                                    <version>[4.0.0-rc-1,)</version>
+                                    <message>You must use Maven 4.0.0-rc-1 or newer (including 4.0.0
+                                        GA) to build this project.</message>
                                 </requireMavenVersion>
                             </rules>
                             <fail>true</fail>
@@ -132,35 +158,44 @@
                     </execution>
                 </executions>
             </plugin>
-    </plugins>
+            <!-- Explicitly configure compiler plugin (Maven 4 recommends pinning core plugins) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 
     <profiles>
         <profile>
             <id>server</id>
-            <modules>
-                <module>common</module>
-                <module>server</module>
-            </modules>
+            <subprojects>
+                <subproject>common</subproject>
+                <subproject>server</subproject>
+            </subprojects>
         </profile>
         <profile>
             <id>agent</id>
-            <modules>
-                <module>common</module>
-                <module>agent</module>
-            </modules>
+            <subprojects>
+                <subproject>common</subproject>
+                <subproject>agent</subproject>
+            </subprojects>
         </profile>
         <profile>
             <id>all</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
-            <modules>
-                <module>common</module>
-                <module>server</module>
-                <module>agent</module>
-                <module>sample-spring-app</module>
-            </modules>
+            <subprojects>
+                <subproject>common</subproject>
+                <subproject>server</subproject>
+                <subproject>agent</subproject>
+                <subproject>sample-spring-app</subproject>
+            </subprojects>
         </profile>
     </profiles>
 
@@ -202,7 +237,8 @@
                     <failOnError>false</failOnError>
                     <failOnWarnings>false</failOnWarnings>
                     <quiet>true</quiet>
-                    <!-- Suppress strict doclint checks to avoid failing on missing tags or HTML issues -->
+                    <!-- Suppress strict doclint checks to avoid failing on missing tags or HTML
+                    issues -->
                     <doclint>none</doclint>
                     <additionalOptions>
                         <additionalOption>-Xdoclint:none</additionalOption>

@@ -51,30 +51,30 @@ When the next security vulnerability emerges, you'll have immediate answers inst
 
 ## 📋 Prerequisites
 
-- **Java 21+** (JDK with module system support)
-- **Maven 3.9.11+** 
-- **Node.js 14+** and **npm**
+- **Java 21+** (JDK)
+- **Maven 4+** (use the included wrapper `./mvnw`)
+- **Node.js 18+** and **npm**
 - **PowerShell** (for Windows) or equivalent shell
 
 ## 🚀 Quick Start
 
 ### 1. Build the Project
 
-```powershell
+```bash
 # Clone and navigate to the project
 cd jlib-inspector
 
-# Build all components (agent + sample app)
-mvn clean package
+# Build all components (agent + server + sample app)
+./mvnw clean package
 ```
 
 ### 2. Start the JLib Server
 
 The JLib Server collects data from instrumented Java applications:
 
-```powershell
+```bash
 # Start the data collection server on port 8080 (shaded jar)
-java -jar server/target/jlib-inspector-server-1.0-SNAPSHOT.jar 8080
+java -jar server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar 8080
 ```
 
 **Expected Output:**
@@ -92,7 +92,7 @@ Available endpoints:
 
 The unified Express.js server serves the React frontend:
 
-```powershell
+```bash
 # Navigate to frontend directory
 cd frontend
 
@@ -120,14 +120,14 @@ Connecting to JLib Server at http://localhost:8080
 Instrument any Java application with the JLib Inspector agent:
 
 **For your own applications:**
-```powershell
+```bash
 java "-javaagent:path/to/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080" -jar your-application.jar
 ```
 
 You can test with the sample Spring application contained in this project:
 
 
-```powershell
+```bash
 # Run the sample Spring Boot application with monitoring
 java "-javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080" -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
 ```
@@ -177,6 +177,7 @@ Open your browser and navigate to: **http://localhost:3000**
 - `GET /api/apps/{appId}` - Get specific application details
 - `GET /api/apps/{appId}/jars` - Get JAR dependencies for an application
 - `PUT /api/apps/{appId}` - Register/update application data
+ - `GET /report` - Aggregated unique JARs across all apps with the list of apps that loaded each
 
 ### Dashboard API (Port 3000)
 - `GET /api/dashboard` - Combined dashboard data
@@ -187,7 +188,7 @@ Open your browser and navigate to: **http://localhost:3000**
 ### Agent Configuration
 The agent accepts the following parameters:
 
-```powershell
+```bash
 # Local mode only (no server reporting)
 -javaagent:jlib-inspector-agent.jar
 
@@ -199,7 +200,7 @@ The agent accepts the following parameters:
 ```
 
 ### Environment Variables
-```powershell
+```bash
 # JLib Server URL (default: http://localhost:8080)
 $env:JLIB_SERVER_URL = "http://localhost:8080"
 
@@ -213,7 +214,7 @@ $env:WS_PORT = "3001"
 ## 🛠️ Available Scripts
 
 ### Frontend Commands
-```powershell
+```bash
 cd frontend
 
 # Build React app only
@@ -224,9 +225,9 @@ npm start
 ```
 
 ### Backend Commands
-```powershell
+```bash
 # Build all Java components
-mvn clean verify
+./mvnw clean verify
 ```
 
 ## 🐛 Troubleshooting
@@ -240,7 +241,7 @@ mvn clean verify
 
 **Build failures:**
 - Ensure Java 21+ is installed and `JAVA_HOME` is set
-- Clear Maven cache: `mvn clean`
+- Clear Maven cache: `./mvnw clean`
 - Check for port conflicts (8080, 3000, 3001)
 
 **WebSocket connection issues:**
@@ -251,8 +252,8 @@ mvn clean verify
 ### Logs and Debugging
 
 **Enable verbose agent logging:**
-```powershell
-java -Djava.util.logging.config.file=logging.properties -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT.jar=server:8080 -jar your-app.jar
+```bash
+java -Djava.util.logging.config.file=logging.properties -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 -jar your-app.jar
 ```
 
 **Check server logs:**
@@ -287,16 +288,16 @@ These scripts will:
 
 **Prerequisites for bash script:**
 - `curl` (for server health checks)
-- `java` and `mvn` (automatically checked)
+- `java` and Maven wrapper `./mvnw` (automatically checked)
 
 For manual testing, use:
 
-```powershell
+```bash
 # Build the project
-mvn verify
+./mvnw verify
 
 # Terminal 1: Start JLib Server (shaded jar)
-java -jar server/target/jlib-inspector-server-1.0-SNAPSHOT.jar 8080
+java -jar server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar 8080
 
 # Terminal 2: Start Dashboard
 cd frontend && npm start
@@ -337,8 +338,8 @@ jlib-inspector/
 
 ## 🤝 Contributing
 
-1. Build the project: `mvn verify`
-2. Run tests: `mvn test`
+1. Build the project: `./mvnw verify`
+2. Run tests: `./mvnw test`
 3. Start development environment following the Quick Start guide
 4. Make changes and test with sample applications
 

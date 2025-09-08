@@ -12,7 +12,7 @@ on:
         type: string
 
 env:
-  JAVA_VERSION: '17'
+  JAVA_VERSION: '21'
   NODE_VERSION: '18'
 
 jobs:
@@ -55,11 +55,11 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
-    - name: Build Java components
+  - name: Build Java components
       run: |
-        mvn clean package -B
+    ./mvnw clean package -B
         cd sample-spring-app
-        mvn clean package -B
+    ../mvnw clean package -B
         cd ..
         
     - name: Build frontend
@@ -75,6 +75,7 @@ jobs:
         
         # Copy built artifacts
         cp agent/target/jlib-inspector-agent-*.jar release-package/
+  cp server/target/jlib-inspector-server-*.jar release-package/
         cp sample-spring-app/target/sample-spring-app-*.jar release-package/
         
         # Copy frontend build
@@ -106,8 +107,8 @@ jobs:
         fi
         
         JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F '.' '{print $1}')
-        if [ "$JAVA_VERSION" -lt 17 ]; then
-            echo "❌ Java 17 or later is required. Found Java $JAVA_VERSION"
+    if [ "$JAVA_VERSION" -lt 21 ]; then
+      echo "❌ Java 21 or later is required. Found Java $JAVA_VERSION"
             exit 1
         fi
         
@@ -161,7 +162,7 @@ jobs:
         java -version >nul 2>&1
         if errorlevel 1 (
             echo ❌ Java is required but not installed.
-            echo Please install Java 17 or later and try again.
+            echo Please install Java 21 or later and try again.
             pause
             exit /b 1
         )

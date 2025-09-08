@@ -55,11 +55,47 @@ jobs:
           path: agent/target/jlib-inspector-agent-*.jar
           retention-days: 30
 
+  # Build and test the Java server
+  build-server:
+    name: Build Java Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build server module
+        run: ./mvnw -q -pl server -am clean package -B
+
+      - name: Verify server JAR exists
+        run: |
+          ls -la server/target/
+          test -f server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
+
+      - name: Upload server artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jlib-inspector-server
+          path: server/target/jlib-inspector-server-*.jar
+          retention-days: 30
+
   # Build and test the sample Spring app
   build-sample-app:
     name: Build Sample Spring App
     runs-on: ubuntu-latest
-    needs: build-agent
 
     steps:
       - name: Checkout code
@@ -142,7 +178,7 @@ jobs:
   integration-test:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: [build-agent, build-sample-app]
+    needs: [build-agent, build-server, build-sample-app]
 
     steps:
       - name: Checkout code
@@ -213,7 +249,7 @@ jobs:
   e2e-test:
     name: End-to-End Tests
     runs-on: ubuntu-latest
-    needs: [build-agent, build-sample-app, build-frontend]
+    needs: [build-agent, build-server, build-sample-app, build-frontend]
 
     steps:
       - name: Checkout code
@@ -363,6 +399,7 @@ jobs:
         run: |
           mkdir -p release-package
           cp release-artifacts/jlib-inspector-agent/*.jar release-package/
+          cp release-artifacts/jlib-inspector-server/*.jar release-package/
           cp release-artifacts/sample-spring-app/*.jar release-package/
           cp -r release-artifacts/frontend-build release-package/frontend || true
           cp demo-jlib-inspector.ps1 release-package/

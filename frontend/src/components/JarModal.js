@@ -80,7 +80,7 @@ const JarModal = ({ isOpen, onClose, application }) => {
                 <div className="slide-in bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
                     <div className="flex items-center justify-between p-6 border-b border-gray-200">
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900">JAR Dependencies</h3>
+                            <h3 className="text-xl font-bold text-gray-900">Java Application</h3>
                             <div className="flex items-center space-x-3 mt-1">
                                 <p className="text-sm text-gray-500">
                                     {application.jars ? application.jars.length : 0} dependencies for application

@@ -42,7 +42,9 @@ const StatisticsCards = ({ applications, onUniqueJarsClick }) => {
             gradient: 'from-green-50 to-green-100',
             iconBg: 'bg-green-500',
             textColor: 'text-green-700',
-            valueColor: 'text-green-900'
+            valueColor: 'text-green-900',
+            clickable: true,
+            filter: 'active'
         },
         {
             title: 'Inactive JARs',
@@ -51,7 +53,9 @@ const StatisticsCards = ({ applications, onUniqueJarsClick }) => {
             gradient: 'from-gray-50 to-gray-100',
             iconBg: 'bg-gray-500',
             textColor: 'text-gray-700',
-            valueColor: 'text-gray-900'
+            valueColor: 'text-gray-900',
+            clickable: true,
+            filter: 'inactive'
         },
         {
             title: 'JARs',
@@ -60,7 +64,9 @@ const StatisticsCards = ({ applications, onUniqueJarsClick }) => {
             gradient: 'from-purple-50 to-purple-100',
             iconBg: 'bg-purple-500',
             textColor: 'text-purple-700',
-            valueColor: 'text-purple-900'
+            valueColor: 'text-purple-900',
+            clickable: true,
+            filter: 'all'
         }
     ];
 
@@ -70,23 +76,23 @@ const StatisticsCards = ({ applications, onUniqueJarsClick }) => {
                 <div 
                     key={index} 
                     className={`card p-6 bg-gradient-to-br ${card.gradient} ${
-                        card.title === 'JARs' 
+                        card.clickable 
                             ? 'cursor-pointer hover:scale-105 hover:shadow-xl transition-all duration-200 border-2 border-transparent hover:border-purple-300' 
                             : ''
                     }`}
-                    onClick={card.title === 'JARs' ? onUniqueJarsClick : undefined}
-                    title={card.title === 'JARs' ? 'Click to view detailed list of JARs' : undefined}
+                    onClick={card.clickable ? () => onUniqueJarsClick(card.filter) : undefined}
+                    title={card.clickable ? 'Click to view detailed list of JARs' : undefined}
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
                                 <p className={`text-sm font-medium ${card.textColor}`}>{card.title}</p>
-                                {card.title === 'JARs' && (
+                                {card.clickable && (
                                     <i data-lucide="external-link" className="w-3 h-3 text-purple-600 opacity-70"></i>
                                 )}
                             </div>
                             <p className={`text-3xl font-bold ${card.valueColor}`}>{card.value}</p>
-                            {card.title === 'JARs' && (
+                            {card.clickable && (
                                 <p className="text-xs text-purple-600 mt-1 opacity-80">Click to explore →</p>
                             )}
                         </div>

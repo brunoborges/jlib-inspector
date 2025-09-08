@@ -20,6 +20,7 @@ const App = () => {
     const [filterType, setFilterType] = useState('all');
     const [selectedApplication, setSelectedApplication] = useState(null);
     const [showUniqueJarsModal, setShowUniqueJarsModal] = useState(false);
+    const [uniqueJarsFilter, setUniqueJarsFilter] = useState('all');
     const [showServerConfig, setShowServerConfig] = useState(false);
     const [currentServerUrl, setCurrentServerUrl] = useState('http://localhost:8080');
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -77,7 +78,8 @@ const App = () => {
         setSelectedApplication(null);
     };
 
-    const handleOpenUniqueJarsModal = () => {
+    const handleOpenUniqueJarsModal = (filter = 'all') => {
+        setUniqueJarsFilter(filter);
         setShowUniqueJarsModal(true);
     };
 
@@ -224,6 +226,7 @@ const App = () => {
                     isOpen={showUniqueJarsModal}
                     onClose={handleCloseUniqueJarsModal}
                     applications={dashboardData.applications}
+                    initialFilter={uniqueJarsFilter}
                 />
             </Suspense>
 

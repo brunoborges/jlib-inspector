@@ -2,14 +2,22 @@ import React, { useState, useEffect } from 'react';
 import JarItem from './JarItem';
 import { initLucideIcons } from '../utils/helpers';
 
-const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
+const UniqueJarsModal = ({ isOpen, onClose, applications, initialFilter = 'all' }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('filename');
     const [sortOrder, setSortOrder] = useState('asc');
+    const [activeTab, setActiveTab] = useState('all'); // 'all' | 'active' | 'inactive'
 
     useEffect(() => {
         initLucideIcons();
-    }, [isOpen, sortBy, sortOrder]);
+    }, [isOpen, sortBy, sortOrder, activeTab]);
+
+    // When opening or when the initialFilter changes, set the active tab accordingly
+    useEffect(() => {
+        if (isOpen) {
+            setActiveTab(initialFilter || 'all');
+        }
+    }, [isOpen, initialFilter]);
 
     if (!isOpen) return null;
 
@@ -25,12 +33,16 @@ const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
                         jarMap.set(key, {
                             fileName: jar.fileName || jar.path.split('/').pop(),
                             path: jar.path,
-                            loaded: jar.loaded,
+                            // Consider a JAR as active if it's loaded in ANY application
+                            loaded: !!jar.loaded,
                             size: jar.size,
                             applications: []
                         });
                     }
-                    jarMap.get(key).applications.push({
+                    const entry = jarMap.get(key);
+                    // Aggregate "loaded" across apps (OR)
+                    entry.loaded = entry.loaded || !!jar.loaded;
+                    entry.applications.push({
                         appId: app.appId,
                         name: app.name || 'Unknown Application'
                     });
@@ -43,8 +55,15 @@ const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
 
     const uniqueJars = getUniqueJars();
 
+    // Apply active/inactive filter first
+    const byActivity = uniqueJars.filter(jar => {
+        if (activeTab === 'active') return !!jar.loaded;
+        if (activeTab === 'inactive') return !jar.loaded;
+        return true; // all
+    });
+
     // Filter JARs based on search term
-    const filteredJars = uniqueJars.filter(jar => {
+    const filteredJars = byActivity.filter(jar => {
         if (!searchTerm) return true;
         const term = searchTerm.toLowerCase();
         return (
@@ -115,6 +134,42 @@ const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
                     </div>
                     
                     <div className="p-6">
+                        {/* Activity Tabs */}
+                        <div className="mb-4">
+                            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-full sm:w-auto">
+                                <button 
+                                    onClick={() => setActiveTab('all')}
+                                    className={`tab-button px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                                        activeTab === 'all' ? 'active flex-1' : 'flex-1'
+                                    }`}
+                                >
+                                    All ({uniqueJars.length})
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('active')}
+                                    className={`tab-button px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                                        activeTab === 'active' ? 'active flex-1' : 'flex-1'
+                                    }`}
+                                >
+                                    <span className="inline-flex items-center">
+                                        <i data-lucide="check-circle" className="w-4 h-4 mr-2"></i>
+                                        Active ({uniqueJars.filter(j => j.loaded).length})
+                                    </span>
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('inactive')}
+                                    className={`tab-button px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                                        activeTab === 'inactive' ? 'active flex-1' : 'flex-1'
+                                    }`}
+                                >
+                                    <span className="inline-flex items-center">
+                                        <i data-lucide="circle" className="w-4 h-4 mr-2"></i>
+                                        Inactive ({uniqueJars.filter(j => !j.loaded).length})
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+
                         {/* Search and Sort Controls */}
                         <div className="flex flex-col sm:flex-row gap-4 mb-6">
                             <div className="flex-1">
@@ -165,7 +220,7 @@ const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
 
                         {/* Results */}
                         <div className="text-sm text-gray-600 mb-4">
-                            Showing {sortedJars.length} of {uniqueJars.length} JARs
+                            Showing {sortedJars.length} of {byActivity.length} JARs ({uniqueJars.length} total)
                         </div>
 
                         {/* JAR List */}

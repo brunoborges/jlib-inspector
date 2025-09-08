@@ -72,7 +72,7 @@ jobs:
         
         # Copy built artifacts
         cp agent/target/jlib-inspector-agent-*.jar release-package/
-  cp server/target/jlib-inspector-server-*.jar release-package/
+        cp server/target/jlib-inspector-server-*.jar release-package/
         cp sample-spring-app/target/sample-spring-app-*.jar release-package/
         
         # Copy frontend build
@@ -104,8 +104,8 @@ jobs:
         fi
         
         JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F '.' '{print $1}')
-    if [ "$JAVA_VERSION" -lt 21 ]; then
-      echo "❌ Java 21 or later is required. Found Java $JAVA_VERSION"
+        if [ "$JAVA_VERSION" -lt 21 ]; then
+        echo "❌ Java 21 or later is required. Found Java $JAVA_VERSION"
             exit 1
         fi
         

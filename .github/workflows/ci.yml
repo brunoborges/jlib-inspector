@@ -85,8 +85,8 @@ jobs:
         
     - name: Verify sample app JAR exists
       run: |
-  ls -la sample-spring-app/target/
-  test -f sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
+        ls -la sample-spring-app/target/
+        test -f sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
         
     - name: Upload sample app artifact
       uses: actions/upload-artifact@v4
@@ -256,10 +256,10 @@ jobs:
       run: |
         ls -la agent/target/
         ls -la sample-spring-app/target/
-  ls -la frontend/dist/
-  test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar
+        ls -la frontend/dist/
+        test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar
         test -f sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
-  test -f server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
+        test -f server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
         test -f frontend/dist/index.html
         
     - name: Install frontend dependencies
@@ -329,7 +329,7 @@ jobs:
         
     - name: Run OWASP Dependency Check
       run: |
-  ./mvnw org.owasp:dependency-check-maven:check \
+        ./mvnw org.owasp:dependency-check-maven:check \
           -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
           -B || echo "Dependency check completed with warnings"
         

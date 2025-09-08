@@ -22,6 +22,7 @@ public class JsonResponseBuilder {
                 json.append(",");
             json.append("{")
                     .append("\"appId\":\"").append(app.appId).append("\",")
+                    .append("\"name\":\"").append(app.name == null ? "" : jsonParser.escapeJson(app.name)).append("\",")
                     .append("\"commandLine\":\"").append(jsonParser.escapeJson(app.commandLine)).append("\",")
                     .append("\"jdkVersion\":\"").append(app.jdkVersion).append("\",")
                     .append("\"jdkVendor\":\"").append(app.jdkVendor).append("\",")
@@ -41,14 +42,28 @@ public class JsonResponseBuilder {
     public static String buildAppDetailsJson(JavaApplication app) {
         return "{" +
                 "\"appId\":\"" + app.appId + "\"," +
+                "\"name\":\"" + (app.name == null ? "" : jsonParser.escapeJson(app.name)) + "\"," +
+                "\"description\":\"" + (app.description == null ? "" : jsonParser.escapeJson(app.description)) + "\"," +
                 "\"commandLine\":\"" + jsonParser.escapeJson(app.commandLine) + "\"," +
                 "\"jdkVersion\":\"" + app.jdkVersion + "\"," +
                 "\"jdkVendor\":\"" + app.jdkVendor + "\"," +
                 "\"jdkPath\":\"" + jsonParser.escapeJson(app.jdkPath) + "\"," +
                 "\"firstSeen\":\"" + app.firstSeen + "\"," +
                 "\"lastUpdated\":\"" + app.lastUpdated + "\"," +
-                "\"jarCount\":" + app.jars.size() +
+                "\"jarCount\":" + app.jars.size() + "," +
+                "\"tags\":[" + buildTagsArray(app) + "]" +
                 "}";
+    }
+
+    private static String buildTagsArray(JavaApplication app) {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (String tag : app.tags) {
+            if (!first) sb.append(",");
+            sb.append("\"").append(jsonParser.escapeJson(tag)).append("\"");
+            first = false;
+        }
+        return sb.toString();
     }
 
     /**

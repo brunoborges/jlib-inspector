@@ -29,6 +29,7 @@ import java.util.logging.Logger;
  * <li>GET /api/apps/{appId} - Get a specific application's details</li>
  * <li>GET /api/apps/{appId}/jars - List JARs for a specific application</li>
  * <li>PUT /api/apps/{appId} - Register/update an application and its JARs</li>
+ * <li>PUT /api/apps/{appId}/metadata - Update application metadata (name, description, tags)</li>
  * <li>GET /report - Aggregated unique JARs across applications</li>
  * <li>GET /health - Health check endpoint</li>
  * </ul>

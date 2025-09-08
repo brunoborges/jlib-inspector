@@ -101,9 +101,84 @@ public class AppsHandler implements HttpHandler {
                 e.printStackTrace(); // Add stack trace for debugging
                 sendResponse(exchange, 400, "Invalid request data: " + e.getMessage());
             }
+        } else if (path.matches("/api/apps/[^/]+/metadata$")) {
+            // PUT /api/apps/{appId}/metadata - Update name, description, tags
+            String appId = extractAppId(path);
+            String requestBody = readRequestBody(exchange);
+
+            LOG.info("PUT metadata for app: " + appId);
+            LOG.info("Request body: " + requestBody);
+
+            JavaApplication app = applicationService.getApplication(appId);
+            if (app == null) {
+                sendResponse(exchange, 404, "Application not found");
+                return;
+            }
+            try {
+                Map<String, String> data = jsonParser.parseSimpleJson(requestBody);
+                if (data.containsKey("name")) {
+                    app.setName(stripQuotes(data.get("name")));
+                }
+                if (data.containsKey("description")) {
+                    app.setDescription(stripQuotes(data.get("description")));
+                }
+                if (data.containsKey("tags")) {
+                    String tagsJson = data.get("tags");
+                    java.util.List<String> tags = parseStringArray(tagsJson);
+                    app.setTags(tags);
+                }
+                app.updateLastSeen();
+                sendJsonResponse(exchange, 200, JsonResponseBuilder.buildAppDetailsJson(app));
+            } catch (Exception e) {
+                LOG.warning("Failed to process metadata update: " + e.getMessage());
+                e.printStackTrace();
+                sendResponse(exchange, 400, "Invalid request data: " + e.getMessage());
+            }
         } else {
             sendResponse(exchange, 404, "Not found");
         }
+    }
+
+    private String stripQuotes(String s) {
+        if (s == null) return null;
+        if (s.startsWith("\"") && s.endsWith("\"")) {
+            return s.substring(1, s.length() - 1);
+        }
+        return s;
+    }
+
+    private java.util.List<String> parseStringArray(String json) {
+        java.util.List<String> result = new java.util.ArrayList<>();
+        if (json == null) return result;
+        String trimmed = json.trim();
+        if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return result;
+        // very simple array of strings parser
+        String body = trimmed.substring(1, trimmed.length() - 1).trim();
+        if (body.isEmpty()) return result;
+        int i = 0; boolean inQuotes = false; StringBuilder cur = new StringBuilder();
+        while (i < body.length()) {
+            char c = body.charAt(i);
+            if (c == '"') { inQuotes = !inQuotes; cur.append(c); i++; continue; }
+            if (c == ',' && !inQuotes) {
+                String item = cur.toString().trim();
+                if (item.startsWith("\"") && item.endsWith("\"")) {
+                    item = item.substring(1, item.length() - 1);
+                }
+                if (!item.isEmpty()) result.add(item);
+                cur.setLength(0);
+            } else {
+                cur.append(c);
+            }
+            i++;
+        }
+        String last = cur.toString().trim();
+        if (!last.isEmpty()) {
+            if (last.startsWith("\"") && last.endsWith("\"")) {
+                last = last.substring(1, last.length() - 1);
+            }
+            if (!last.isEmpty()) result.add(last);
+        }
+        return result;
     }
 
     private String extractAppId(String path) {

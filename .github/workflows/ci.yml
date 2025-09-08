@@ -46,7 +46,7 @@ jobs:
     - name: Verify agent JAR exists
       run: |
         ls -la agent/target/
-  test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar
+        test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar
         
     - name: Upload agent artifact
       uses: actions/upload-artifact@v4
@@ -167,15 +167,15 @@ jobs:
     - name: Verify built artifacts
       run: |
         ls -la agent/target/
-  ls -la sample-spring-app/target/
-  test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar
-  test -f server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
+        ls -la sample-spring-app/target/
+        test -f agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar
+        test -f server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
         test -f sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
         
     - name: Test local-only mode
       run: |
         echo "Testing local-only mode..."
-  timeout 30s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar \
+        timeout 30s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar \
           -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar || true
         echo "Local-only mode test completed"
         
@@ -197,8 +197,8 @@ jobs:
         done
         
         # Test with server
-  echo "Testing with server integration..."
-  timeout 30s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 \
+        echo "Testing with server integration..."
+        timeout 30s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 \
           -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar || true
           
         # Check server received data
@@ -290,15 +290,15 @@ jobs:
         curl -f http://localhost:3000 || echo "Frontend health check failed"
         
         # Run sample app with agent
-  echo "Running sample app with agent..."
-  timeout 20s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 \
+        echo "Running sample app with agent..."
+        timeout 20s java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 \
           -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar || true
           
         # Check if data was collected
-  echo "Checking collected data..."
-  curl -s http://localhost:8080/api/apps | jq . || echo "No JSON data found"
-  echo "Fetching aggregated report..."
-  curl -s http://localhost:8080/report | jq . || echo "No report endpoint data"
+        echo "Checking collected data..."
+        curl -s http://localhost:8080/api/apps | jq . || echo "No JSON data found"
+        echo "Fetching aggregated report..."
+        curl -s http://localhost:8080/report | jq . || echo "No report endpoint data"
         
         # Cleanup
         kill $SERVER_PID $FRONTEND_PID || true

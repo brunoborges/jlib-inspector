@@ -38,9 +38,9 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
-  - name: Run OWASP Dependency Check
+    - name: Run OWASP Dependency Check
       run: |
-    ./mvnw org.owasp:dependency-check-maven:check \
+        ./mvnw org.owasp:dependency-check-maven:check \
           -Dformat=ALL \
           -DfailBuildOnCVSS=7 \
           -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
@@ -171,9 +171,9 @@ jobs:
         cache: 'npm'
         cache-dependency-path: frontend/package-lock.json
         
-  - name: Check Maven licenses
+    - name: Check Maven licenses
       run: |
-    ./mvnw org.codehaus.mojo:license-maven-plugin:2.2.0:aggregate-third-party-report -B
+        ./mvnw org.codehaus.mojo:license-maven-plugin:2.2.0:aggregate-third-party-report -B
         
     - name: Install license checker
       run: |
@@ -219,13 +219,13 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
-  - name: Run SpotBugs
+    - name: Run SpotBugs
       run: |
-    ./mvnw com.github.spotbugs:spotbugs-maven-plugin:4.7.3.6:check -B || true
+        ./mvnw com.github.spotbugs:spotbugs-maven-plugin:4.7.3.6:check -B || true
         
-  - name: Run PMD
+    - name: Run PMD
       run: |
-    ./mvnw org.apache.maven.plugins:maven-pmd-plugin:3.21.0:check -B || true
+        ./mvnw org.apache.maven.plugins:maven-pmd-plugin:3.21.0:check -B || true
         
     - name: Upload code quality reports
       uses: actions/upload-artifact@v4
@@ -263,10 +263,10 @@ jobs:
         cache: 'npm'
         cache-dependency-path: frontend/package-lock.json
         
-  - name: Update Maven dependencies
+    - name: Update Maven dependencies
       run: |
-    ./mvnw versions:use-latest-releases -B
-    ./mvnw versions:update-properties -B
+        ./mvnw versions:use-latest-releases -B
+        ./mvnw versions:update-properties -B
         
     - name: Update NPM dependencies
       run: |

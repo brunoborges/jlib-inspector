@@ -55,12 +55,9 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
-  - name: Build Java components
+    - name: Build Java components
       run: |
-    ./mvnw clean package -B
-        cd sample-spring-app
-    ../mvnw clean package -B
-        cd ..
+        ./mvnw clean verify -B
         
     - name: Build frontend
       run: |
@@ -209,7 +206,7 @@ jobs:
         # Create universal archive
         tar -czf jlib-inspector-${{ steps.version.outputs.VERSION }}.tar.gz -C release-package .
         
-    - name: Generate changelog
+  - name: Generate changelog
       id: changelog
       run: |
         if [ "${{ github.event_name }}" = "push" ]; then
@@ -247,7 +244,7 @@ jobs:
         echo "\`\`\`" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
         
-    - name: Create Release
+  - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.version.outputs.VERSION }}

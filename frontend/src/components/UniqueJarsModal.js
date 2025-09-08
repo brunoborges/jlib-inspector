@@ -13,7 +13,7 @@ const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
 
     if (!isOpen) return null;
 
-    // Get all unique JARs from all applications
+    // Get all JARs (unique set across applications)
     const getUniqueJars = () => {
         const jarMap = new Map();
         
@@ -87,7 +87,7 @@ const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
     const EmptyState = () => (
         <div className="text-center py-8">
             <i data-lucide="package" className="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Unique JARs Found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No JARs Found</h3>
             <p className="text-gray-500">
                 {searchTerm ? 'No JARs match your search criteria.' : 'No JAR dependencies found in any application.'}
             </p>
@@ -101,9 +101,9 @@ const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
                 <div className="slide-in bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
                     <div className="flex items-center justify-between p-6 border-b border-gray-200">
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900">Unique JAR Dependencies</h3>
+                            <h3 className="text-xl font-bold text-gray-900">JAR Dependencies</h3>
                             <p className="text-sm text-gray-500 mt-1">
-                                {uniqueJars.length} unique JARs found across {applications.length} applications
+                                {uniqueJars.length} JARs found across {applications.length} applications
                             </p>
                         </div>
                         <button 
@@ -165,7 +165,7 @@ const UniqueJarsModal = ({ isOpen, onClose, applications }) => {
 
                         {/* Results */}
                         <div className="text-sm text-gray-600 mb-4">
-                            Showing {sortedJars.length} of {uniqueJars.length} unique JARs
+                            Showing {sortedJars.length} of {uniqueJars.length} JARs
                         </div>
 
                         {/* JAR List */}

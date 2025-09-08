@@ -151,11 +151,7 @@ const JarModal = ({ isOpen, onClose, application }) => {
                         </div>
                         
                         {/* JAR Statistics */}
-                        <div className="grid grid-cols-3 gap-4 mb-6">
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-blue-600">{application.jars ? application.jars.length : 0}</div>
-                                <div className="text-sm text-gray-600">Total JARs</div>
-                            </div>
+                        <div className="grid grid-cols-2 gap-4 mb-6">
                             <div className="text-center">
                                 <div className="text-2xl font-bold text-green-600">{loadedJars.length}</div>
                                 <div className="text-sm text-gray-600">Loaded</div>
@@ -186,7 +182,7 @@ const JarModal = ({ isOpen, onClose, application }) => {
                                         activeTab === 'all' ? 'active' : ''
                                     }`}
                                 >
-                                    All JARs ({application.jars ? application.jars.length : 0})
+                                    All JARs
                                 </button>
                                 <button 
                                     onClick={() => setActiveTab('loaded')}

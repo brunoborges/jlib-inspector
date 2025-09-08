@@ -236,23 +236,23 @@
                 <div class="card p-6 bg-gradient-to-br from-green-50 to-green-100">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-green-700">Total JARs</p>
-                            <p id="total-jars" class="text-3xl font-bold text-green-900">0</p>
+                            <p class="text-sm font-medium text-green-700">Active JARs</p>
+                            <p id="active-unique-jars" class="text-3xl font-bold text-green-900">0</p>
                         </div>
                         <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                            <i data-lucide="package" class="w-6 h-6 text-white"></i>
+                            <i data-lucide="check-circle" class="w-6 h-6 text-white"></i>
                         </div>
                     </div>
                 </div>
                 
-                <div class="card p-6 bg-gradient-to-br from-yellow-50 to-yellow-100">
+                <div class="card p-6 bg-gradient-to-br from-gray-50 to-gray-100">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-yellow-700">Loaded JARs</p>
-                            <p id="loaded-jars" class="text-3xl font-bold text-yellow-900">0</p>
+                            <p class="text-sm font-medium text-gray-700">Inactive JARs</p>
+                            <p id="inactive-unique-jars" class="text-3xl font-bold text-gray-900">0</p>
                         </div>
-                        <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
-                            <i data-lucide="check-circle" class="w-6 h-6 text-white"></i>
+                        <div class="w-12 h-12 bg-gray-500 rounded-full flex items-center justify-center shadow-lg">
+                            <i data-lucide="slash" class="w-6 h-6 text-white"></i>
                         </div>
                     </div>
                 </div>
@@ -260,7 +260,7 @@
                 <div class="card p-6 bg-gradient-to-br from-purple-50 to-purple-100">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-purple-700">Unique JARs</p>
+                            <p class="text-sm font-medium text-purple-700">JARs</p>
                             <p id="unique-jars" class="text-3xl font-bold text-purple-900">0</p>
                         </div>
                         <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg">
@@ -342,8 +342,8 @@
         const statusText = document.getElementById('status-text');
         const lastUpdatedEl = document.getElementById('last-updated');
         const totalAppsEl = document.getElementById('total-apps');
-        const totalJarsEl = document.getElementById('total-jars');
-        const loadedJarsEl = document.getElementById('loaded-jars');
+    const activeUniqueJarsEl = document.getElementById('active-unique-jars');
+    const inactiveUniqueJarsEl = document.getElementById('inactive-unique-jars');
         const uniqueJarsEl = document.getElementById('unique-jars');
         const applicationsContainer = document.getElementById('applications-container');
         const noApplicationsEl = document.getElementById('no-applications');
@@ -442,23 +442,28 @@
 
         // Calculate and update statistics
         function updateStatistics() {
+            const uniqueMap = new Map();
+            dashboardData.applications.forEach(app => {
+                (app.jars || []).forEach(jar => {
+                    const key = jar.fileName || (jar.path ? jar.path.split('/').pop() : null);
+                    if (!key) return;
+                    const prev = uniqueMap.get(key) || { active: false };
+                    uniqueMap.set(key, { active: prev.active || !!jar.loaded });
+                });
+            });
+
             const stats = {
                 totalApps: dashboardData.applications.length,
-                totalJars: dashboardData.applications.reduce((sum, app) => sum + (app.jars ? app.jars.length : 0), 0),
-                loadedJars: dashboardData.applications.reduce((sum, app) => 
-                    sum + (app.jars ? app.jars.filter(jar => jar.loaded).length : 0), 0),
-                uniqueJars: new Set(
-                    dashboardData.applications.flatMap(app => 
-                        app.jars ? app.jars.map(jar => jar.fileName).filter(name => name) : []
-                    )
-                ).size
+                uniqueJars: uniqueMap.size,
+                activeUniqueJars: Array.from(uniqueMap.values()).filter(v => v.active).length,
+                inactiveUniqueJars: Array.from(uniqueMap.values()).filter(v => !v.active).length,
             };
-            
+
             totalAppsEl.textContent = stats.totalApps;
-            totalJarsEl.textContent = stats.totalJars;
-            loadedJarsEl.textContent = stats.loadedJars;
+            activeUniqueJarsEl.textContent = stats.activeUniqueJars;
+            inactiveUniqueJarsEl.textContent = stats.inactiveUniqueJars;
             uniqueJarsEl.textContent = stats.uniqueJars;
-            
+
             totalCountEl.textContent = stats.totalApps;
             filteredCountEl.textContent = filteredApplications.length;
         }
@@ -558,11 +563,7 @@
                     </div>
                     
                     <!-- JAR Statistics -->
-                    <div class="grid grid-cols-3 gap-4 mb-6">
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-blue-600">${app.jars.length}</div>
-                            <div class="text-sm text-gray-600">Total JARs</div>
-                        </div>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
                         <div class="text-center">
                             <div class="text-2xl font-bold text-green-600">${loadedJars.length}</div>
                             <div class="text-sm text-gray-600">Loaded</div>

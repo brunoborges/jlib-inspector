@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # JLib Server (Backend)
-  jlib-server:
+  server:
     build:
       context: ../
       dockerfile: docker/Dockerfile.backend
@@ -14,7 +14,7 @@ services:
       - jlib-network
 
   # Frontend (Dashboard)
-  jlib-frontend:
+  frontend:
     build:
       context: ../
       dockerfile: docker/Dockerfile.frontend
@@ -22,9 +22,9 @@ services:
       - "3000:3000"
     environment:
       - PORT=3000
-      - JLIB_SERVER_URL=http://jlib-server:8080
+      - JLIB_SERVER_URL=http://server:8080
     depends_on:
-      - jlib-server
+      - server
     networks:
       - jlib-network
     restart: on-failure

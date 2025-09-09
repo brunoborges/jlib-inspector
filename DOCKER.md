@@ -1,5 +1,8 @@
 # JLib Inspector - Docker Guide
 
+> **⚠️ EXPERIMENTAL - NOT PRODUCTION READY**  
+> This software is in development and should only be used for development, testing, and evaluation purposes.
+
 This guide explains how to build and run the JLib Inspector services using Docker and Docker Compose.
 
 ## Prerequisites

@@ -181,6 +181,21 @@ const App = () => {
                     currentView={currentView}
                     onViewToggle={handleViewToggle}
                 />
+                {/* Production Warning Banner */}
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <i data-lucide="alert-triangle" className="h-5 w-5 text-yellow-400"></i>
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm text-yellow-700">
+                                    <strong>Experimental Software:</strong> This project is not production-ready and should only be used for development, testing, and evaluation purposes.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <LoadingSpinner />
             </div>
         );
@@ -195,6 +210,21 @@ const App = () => {
                     currentView={currentView}
                     onViewToggle={handleViewToggle}
                 />
+                {/* Production Warning Banner */}
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <i data-lucide="alert-triangle" className="h-5 w-5 text-yellow-400"></i>
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm text-yellow-700">
+                                    <strong>Experimental Software:</strong> This project is not production-ready and should only be used for development, testing, and evaluation purposes.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="text-center py-12">
                         <i data-lucide="alert-circle" className="w-16 h-16 text-red-300 mx-auto mb-4"></i>
@@ -222,6 +252,22 @@ const App = () => {
                 onViewToggle={handleViewToggle}
                 onOpenServerConfig={handleOpenServerConfig}
             />
+
+            {/* Production Warning Banner */}
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <i data-lucide="alert-triangle" className="h-5 w-5 text-yellow-400"></i>
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-sm text-yellow-700">
+                                <strong>Experimental Software:</strong> This project is not production-ready and should only be used for development, testing, and evaluation purposes.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <SearchAndFilter 

@@ -1,5 +1,8 @@
 # JLib Inspector Dashboard
 
+> **⚠️ EXPERIMENTAL - NOT PRODUCTION READY**  
+> This software is in development and should only be used for development, testing, and evaluation purposes.
+
 A simplified single Node.js application for monitoring Java applications and their JAR dependencies.
 
 ## Features

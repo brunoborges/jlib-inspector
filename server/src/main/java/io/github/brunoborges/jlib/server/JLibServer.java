@@ -117,6 +117,15 @@ public class JLibServer {
      * Main entry point for running the server.
      */
     public static void main(String[] args) {
+        // Print production warning
+        System.out.println("════════════════════════════════════════════════════════════════════");
+        System.out.println("⚠️  WARNING: EXPERIMENTAL SOFTWARE - NOT PRODUCTION READY");
+        System.out.println("   This software is in development and should only be used for");
+        System.out.println("   development, testing, and evaluation purposes.");
+        System.out.println("   Do not use in production environments.");
+        System.out.println("════════════════════════════════════════════════════════════════════");
+        System.out.println();
+        
         int port = PORT;
         if (args.length > 0) {
             try {

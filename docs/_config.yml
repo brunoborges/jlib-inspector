@@ -8,6 +8,7 @@ markdown: kramdown
 plugins:
   - jekyll-seo-tag
   - jekyll-sitemap
+  - jekyll-feed
 
 exclude:
   - Gemfile*
@@ -24,7 +25,19 @@ defaults:
 nav:
   - text: Home
     url: /
+  - text: Why
+    url: /#why
+  - text: Architecture
+    url: /#architecture
+  - text: Quick Start
+    url: /#quick-start
   - text: GitHub
     url: https://github.com/brunoborges/jlib-inspector
   - text: Javadoc
     url: /javadoc/
+
+# Social / SEO extras (optional placeholders)
+twitter_username: brunoborges
+github_username:  brunoborges
+logo: /assets/img/logo.svg
+

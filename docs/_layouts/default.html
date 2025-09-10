@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% if page.title %}{{ page.title }} · {% endif %}{{ site.title }}</title>
+  {%- seo -%}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/style.css?v=1" />
+  <script defer src="{{ site.baseurl }}/assets/js/main.js"></script>
+</head>
+<body class="theme-dark">
+  <header class="site-header">
+    <div class="wrap nav-bar">
+      <div class="brand">
+        <a href="{{ site.baseurl }}/" class="logo">JLib Inspector</a>
+      </div>
+      <nav class="primary-nav">
+        {% for item in site.nav %}
+          {% if item.url contains 'http' %}
+            <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.text }}</a>
+          {% else %}
+            <a href="{{ site.baseurl }}{{ item.url }}">{{ item.text }}</a>
+          {% endif %}
+        {% endfor %}
+        <button id="themeToggle" aria-label="Toggle dark/light">🌓</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap content">{{ content }}</main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>&copy; {{ site.time | date: '%Y' }} <a href="https://github.com/{{ site.github_username | default: 'brunoborges' }}">{{ site.github_username | default: 'brunoborges' }}</a> · <a href="https://github.com/{{ site.repository }}">Source</a> · <a href="{{ site.baseurl }}/javadoc/">Javadoc</a></p>
+      <p class="small">Made for production JVM observability. Minimal overhead. Actionable insight.</p>
+    </div>
+  </footer>
+</body>
+</html>

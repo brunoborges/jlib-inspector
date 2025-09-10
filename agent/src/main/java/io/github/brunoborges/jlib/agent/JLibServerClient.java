@@ -58,14 +58,9 @@ public class JLibServerClient {
      * @param inventory The jar inventory to send
      * @throws Exception if sending fails
      */
-    public void sendApplicationData(String applicationId, JarInventory inventory) throws Exception {
-        long start = System.currentTimeMillis();
-        int jarCount;
-        try {
-            jarCount = inventory.snapshot().size();
-        } catch (Exception e) {
-            jarCount = -1; // fallback if snapshot throws
-        }
+    public void sendApplicationData(final String applicationId, JarInventory inventory) throws Exception {
+        final long start = System.currentTimeMillis();
+        final int jarCount = inventory.snapshot().size();
 
         LOG.info(() -> "Preparing to send application inventory: appId=" + applicationId + ", jars=" + jarCount + ", target=" + baseUrl);
 

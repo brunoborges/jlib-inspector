@@ -41,9 +41,6 @@ Key principles:
 |-----------|-------|
 | Artifact (GAV) | Derivation via MANIFEST / path heuristics |
 | JAR Hash | SHA-256 for integrity / SBOM correlation |
-| Classes Loaded | Set + (optional) load counts |
-| First / Last Seen | Wall clock timestamps |
-| Source Path | Original JAR / shaded container |
 
 ## Quick Start (Docker Desktop) {#quick-start}
 
@@ -104,12 +101,6 @@ docker compose up -d
 		<img src="{{ site.baseurl }}/screenshot2.png" alt="Class Lookup" data-full="{{ site.baseurl }}/screenshot2.png"/>
 		<figcaption>Class Resolution & Search</figcaption>
 	</figure>
-</div>
-
-<div id="lightbox" class="lightbox" hidden>
-	<button class="close" aria-label="Close">×</button>
-	<img alt="Screenshot preview" />
-	<p class="caption"></p>
 </div>
 
 ## Javadoc & Integration

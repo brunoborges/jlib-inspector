@@ -44,6 +44,16 @@ th,td { padding:.55rem .65rem; border-bottom:1px solid #1d2a36; font-size:.75rem
 th { text-align:left; text-transform:uppercase; letter-spacing:.5px; font-weight:600; color:var(--c-fg-dim); }
 
 .two-col { display:grid; gap:1.6rem; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); margin-top:1.6rem; }
+.gallery { display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); margin:2rem 0 1rem; }
+.gallery figure { margin:0; background:var(--c-panel); border:1px solid #1f2d3a; border-radius:12px; padding:.6rem .6rem .9rem; position:relative; overflow:hidden; }
+.gallery img { width:100%; height:160px; object-fit:cover; border-radius:8px; cursor:pointer; transition:.25s; filter:saturate(.9); }
+.gallery img:hover { transform:scale(1.03); filter:saturate(1.05); }
+.gallery figcaption { margin:.55rem 0 0; font-size:.7rem; letter-spacing:.5px; text-transform:uppercase; color:var(--c-fg-dim); }
+.lightbox { position:fixed; inset:0; background:rgba(0,0,0,.82); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2rem 1rem 2.5rem; backdrop-filter:blur(4px); z-index:120; }
+.lightbox img { max-width: min(94vw,1200px); max-height:70vh; border:1px solid #222e3a; border-radius:14px; box-shadow:0 10px 40px -8px rgba(0,0,0,.65); }
+.lightbox .close { position:absolute; top:1.2rem; right:1.4rem; background:#18222d; color:#fff; border:1px solid #2a3947; width:44px; height:44px; font-size:1.4rem; line-height:1; border-radius:50%; cursor:pointer; }
+.lightbox .close:hover { background:#223344; }
+.lightbox .caption { margin-top:1rem; font-size:.85rem; color:#b9c8d6; max-width: min(92vw,1100px); text-align:center; }
 
 .site-footer { margin-top:4rem; padding:2.2rem 0 3rem; background:#0a0f13; border-top:1px solid #19242e; }
 .site-footer p { margin:.35rem 0; }
@@ -57,5 +67,7 @@ body.theme-light pre { background:#f3f6f9; border-color:#e3e8ee; color:#222; }
 body.theme-light code { background:#ebf0f4; }
 body.theme-light .diagram { background:#f3f6f9; border-color:#d9e1e8; }
 body.theme-light .site-footer { background:#f5f7f9; border-color:#e1e6eb; }
+body.theme-light .gallery figure { border-color:#dfe6ec; background:#ffffff; }
+body.theme-light .gallery figcaption { color:#5b6774; }
 
 @media (max-width:780px){ .hero { padding:2.4rem 1.3rem 2.2rem; } }

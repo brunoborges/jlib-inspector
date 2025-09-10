@@ -16,12 +16,10 @@ title: JLib Inspector
 ## Why It Matters {#why}
 
 <div class="feature-grid">
-	<div class="feature"><h3>Trim Bloat</h3><p>Identify JARs never loaded under production traffic to reduce image size & attack surface.</p></div>
+	<div class="feature"><h3>Trim Bloat</h3><p>Identify JARs never loaded in production to reduce image size and attack surface, and speed up startup.</p></div>
 	<div class="feature"><h3>Prioritize CVEs</h3><p>Focus remediation on libraries actually resident in memory, not just declared.</p></div>
-	<div class="feature"><h3>Resolve Conflicts</h3><p>See which versions the class loader picks when multiple appear on the path.</p></div>
 	<div class="feature"><h3>SBOM Reality Check</h3><p>Compare runtime inventory with build‑time SBOM to catch drift & shading surprises.</p></div>
 	<div class="feature"><h3>Audit Evidence</h3><p>Produce timestamped runtime snapshots for compliance & forensic review.</p></div>
-	<div class="feature"><h3>Cost & Cold Starts</h3><p>Remove dead dependencies to speed startup & reduce memory usage.</p></div>
 </div>
 
 ## Architecture (High Level) {#architecture}
@@ -34,7 +32,7 @@ Hashing (optional) · Version heuristics · Timestamping
 
 Key principles:
 * Passive & low overhead: no bytecode weaving required.
-* Data minimization: snapshots & diffing to keep payloads small.
+* Leverages existing, official APIs in Java SE (Instrumentation).
 * Extensible: future exporters (CycloneDX, OpenTelemetry events, etc.).
 
 ## Data Captured
@@ -47,33 +45,71 @@ Key principles:
 | First / Last Seen | Wall clock timestamps |
 | Source Path | Original JAR / shaded container |
 
-## Quick Start {#quick-start}
+## Quick Start (Docker Desktop) {#quick-start}
+
+You can get everything (server, frontend, sample app with agent) running with a single command using the provided Compose setup.
 
 <div class="two-col">
 <div>
-<strong>1. Build & Start Server</strong>
+<strong>1. Clone & Launch</strong>
 <pre><code>git clone https://github.com/{{ site.repository }}.git
-cd jlib-inspector
-./mvnw -q -DskipTests install
-java -jar server/target/jlib-inspector-server-1.0-SNAPSHOT.jar 8080</code></pre>
+cd jlib-inspector/docker
+./start-docker.sh   # or: docker compose up --build</code></pre>
+This builds the Java modules, starts the Inspector server (port 8080), the frontend UI (port 3000), WebSocket (3001), and a sample Spring app instrumented with the agent.
 </div>
 <div>
-<strong>2. Launch Your App With Agent</strong>
-<pre><code>java -javaagent:agent/target/\
+<strong>2. Explore</strong>
+<pre><code># Open the UI
+http://localhost:3000
+
+# Check server health
+curl -s http://localhost:8080/health
+
+# List registered apps
+curl -s http://localhost:8080/api/apps | jq</code></pre>
+</div>
+<div>
+<strong>3. Add Your App</strong>
+Run your JVM process (outside Compose) pointing the agent at the running server:
+<pre><code>java -javaagent:/absolute/path/to/agent/\
 jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=localhost:8080 \
 -jar your-app.jar</code></pre>
+It will appear in the UI within seconds when classes start loading.
 </div>
 <div>
-<strong>3. (Optional) UI Frontend</strong>
-<pre><code>cd frontend
-npm install
-npm start   # http://localhost:3000</code></pre>
+<strong>4. Tear Down</strong>
+<pre><code># From docker directory
+docker compose down -v</code></pre>
+Volumes removed to leave a clean slate.
 </div>
-<div>
-<strong>4. Query REST API</strong>
-<pre><code>curl -s http://localhost:8080/api/apps | jq
-curl -s http://localhost:8080/api/apps/yourAppId | jq</code></pre>
 </div>
+
+### Optional: Rebuild After Code Changes
+
+Inside the repo root:
+```
+./mvnw -DskipTests package
+docker compose build backend agent sample frontend
+docker compose up -d
+```
+
+## UI Screenshots
+
+<div class="gallery" data-gallery>
+	<figure>
+		<img src="{{ site.baseurl }}/screenshot1.png" alt="Inventory View" data-full="{{ site.baseurl }}/screenshot1.png"/>
+		<figcaption>Inventory: Loaded Artifacts</figcaption>
+	</figure>
+	<figure>
+		<img src="{{ site.baseurl }}/screenshot2.png" alt="Class Lookup" data-full="{{ site.baseurl }}/screenshot2.png"/>
+		<figcaption>Class Resolution & Search</figcaption>
+	</figure>
+</div>
+
+<div id="lightbox" class="lightbox" hidden>
+	<button class="close" aria-label="Close">×</button>
+	<img alt="Screenshot preview" />
+	<p class="caption"></p>
 </div>
 
 ## Javadoc & Integration
@@ -93,4 +129,4 @@ Issues & PRs welcome. Try to reproduce with the sample app first; include JVM ve
 
 ---
 
-<p class="small">Toggle theme with the moon icon in the nav. All static assets are served via GitHub Pages.</p>
+<p class="small">Toggle theme with the moon icon in the nav. Screenshots open in a lightbox; press ESC or click × to dismiss.</p>

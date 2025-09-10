@@ -10,8 +10,6 @@ services:
       - "8080:8080"
     environment:
       - JAVA_OPTS=-Xms512m -Xmx1g
-    networks:
-      - jlib-network
 
   # Frontend (Dashboard)
   frontend:
@@ -25,10 +23,18 @@ services:
       - JLIB_SERVER_URL=http://server:8080
     depends_on:
       - server
-    networks:
-      - jlib-network
     restart: on-failure
 
+  sample-spring-app:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.samplespring
+    environment:
+      - JAVA_OPTS=-Xms512m -Xmx1g
+      - JLIB_SERVER_URL=http://server:8080
+    depends_on:
+      - server
+
 networks:
-  jlib-network:
+  default:
     driver: bridge

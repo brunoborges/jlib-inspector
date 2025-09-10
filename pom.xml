@@ -186,6 +186,14 @@
             </subprojects>
         </profile>
         <profile>
+            <id>sample-spring</id>
+            <subprojects>
+                <subproject>common</subproject>
+                <subproject>agent</subproject>
+                <subproject>sample-spring-app</subproject>
+            </subprojects>
+        </profile>
+        <profile>
             <id>all</id>
             <activation>
                 <activeByDefault>true</activeByDefault>

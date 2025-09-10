@@ -1,0 +1,29 @@
+# Use OpenJDK 21 as base image
+FROM openjdk:21-jdk-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy JAR
+# COPY ./server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
+
+COPY ./mvnw ./mvnw
+COPY ./.mvn ./.mvn
+
+COPY ./pom.xml ./pom.xml
+COPY ./common/pom.xml ./common/pom.xml
+COPY ./agent/pom.xml ./agent/pom.xml
+COPY ./sample-spring-app/pom.xml ./sample-spring-app/pom.xml
+
+COPY ./common/src ./common/src
+COPY ./agent/src ./agent/src
+COPY ./sample-spring-app/src ./sample-spring-app/src
+
+RUN chmod +x ./mvnw
+RUN ./mvnw -P sample-spring clean package
+
+# Expose port 8080
+EXPOSE 8080
+
+# Run the JLib server shaded jar
+CMD ["java", "-javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080", "-jar", "sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar"]

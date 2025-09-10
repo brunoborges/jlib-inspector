@@ -327,6 +327,7 @@ jlib-inspector/
 ├── sample-spring-app/    # Sample Spring Boot application
 ├── frontend/             # React dashboard (Express-based)
 ├── docker/               # Dockerfiles, compose, helper script
+├── site/                 # GitHub Pages documentation
 ├── README.md             # Project overview (this file)
 └── DOCKER.md             # Docker-specific docs
 ```
@@ -355,6 +356,16 @@ jlib-inspector/
 ## Articles
 
 - [Building a Runtime JAR inspector in 10 hours](https://devblogs.microsoft.com/java/building-a-runtime-jar-inspector-in-10-hours/)
+
+## 📖 Documentation
+
+Complete documentation is available on the [project website](https://brunoborges.github.io/jlib-inspector), including:
+
+- **Getting Started Guide** - Step-by-step setup instructions
+- **Agent Documentation** - Detailed agent usage and configuration
+- **Server Documentation** - Backend setup and API reference
+- **API Reference (Javadoc)** - Complete code documentation
+- **Screenshots** - Visual overview of the dashboard
 
 ## 📄 License
 

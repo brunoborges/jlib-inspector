@@ -1,0 +1,30 @@
+title: JLib Inspector
+description: Runtime inventory of the libraries actually loaded by your JVM.
+url: https://brunoborges.github.io
+baseurl: /jlib-inspector
+repository: brunoborges/jlib-inspector
+theme: minima
+markdown: kramdown
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+exclude:
+  - Gemfile*
+  - vendor
+
+defaults:
+  - scope:
+      path: "javadoc"
+    values:
+      layout: null
+      sitemap: false
+      render_with_liquid: false
+
+nav:
+  - text: Home
+    url: /
+  - text: GitHub
+    url: https://github.com/brunoborges/jlib-inspector
+  - text: Javadoc
+    url: /javadoc/

@@ -121,33 +121,40 @@ public class InspectorAgent {
      *             "server:host:port"
      */
     private static void parseArguments(String args) {
-        if (args == null || args.trim().isEmpty()) {
-            return; // Local reporting only
+        // 1) Highest precedence: environment variable JLIB_SERVER_URL
+        if (serverClient == null) {
+            serverClient = JLibServerClient.fromEnv();
+            if (serverClient != null) {
+                LOG.info("Configured to report to server via environment variable JLIB_SERVER_URL");
+                return; // env var wins; ignore args
+            }
         }
 
-        // Format: server:port or server:host:port
+        if (args == null || args.trim().isEmpty()) {
+            return; // Local reporting only (no env var either)
+        }
+
         if (args.startsWith("server:")) {
             String serverSpec = args.substring(7);
             String[] parts = serverSpec.split(":");
-
-            String serverHost;
-            int serverPort;
-            
-            if (parts.length == 1) {
-                // server:port
-                serverHost = "localhost";
-                serverPort = Integer.parseInt(parts[0]);
-            } else if (parts.length == 2) {
-                // server:host:port
-                serverHost = parts[0];
-                serverPort = Integer.parseInt(parts[1]);
-            } else {
-                LOG.warning("Invalid server specification: " + args);
-                return;
+            try {
+                String serverHost;
+                int serverPort;
+                if (parts.length == 1) {
+                    serverHost = "localhost";
+                    serverPort = Integer.parseInt(parts[0]);
+                } else if (parts.length == 2) {
+                    serverHost = parts[0];
+                    serverPort = Integer.parseInt(parts[1]);
+                } else {
+                    LOG.warning("Invalid server specification: " + args);
+                    return;
+                }
+                serverClient = new JLibServerClient(serverHost, serverPort);
+                LOG.info("Configured to report to server at " + serverHost + ":" + serverPort);
+            } catch (NumberFormatException e) {
+                LOG.warning("Invalid port in server specification: " + args);
             }
-
-            serverClient = new JLibServerClient(serverHost, serverPort);
-            LOG.info("Configured to report to server at " + serverHost + ":" + serverPort);
         }
     }
 

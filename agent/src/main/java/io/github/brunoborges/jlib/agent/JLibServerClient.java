@@ -18,11 +18,13 @@ import io.github.brunoborges.jlib.common.JarMetadata;
  * HTTP request handling.
  */
 public class JLibServerClient {
-    
+
     private static final Logger LOG = Logger.getLogger(JLibServerClient.class.getName());
-    
-    private final String serverHost;
-    private final int serverPort;
+    private static final String ENV_VAR = "JLIB_SERVER_URL";
+    private static final int DEFAULT_PORT = 8080;
+
+    // Normalized base URL (scheme://host[:port][/optionalPath]) with no trailing '/'
+    private final String baseUrl;
     
     /**
      * Creates a new server client for the specified host and port.
@@ -31,8 +33,22 @@ public class JLibServerClient {
      * @param serverPort The server port number
      */
     public JLibServerClient(String serverHost, int serverPort) {
-        this.serverHost = serverHost;
-        this.serverPort = serverPort;
+        String override = System.getenv(ENV_VAR);
+        if (override != null && !override.isBlank()) {
+            this.baseUrl = normalizeBaseUrl(override);
+            LOG.info("Using server URL from env var " + ENV_VAR + " = " + this.baseUrl);
+        } else {
+            this.baseUrl = normalizeBaseUrl("http://" + serverHost + ":" + serverPort);
+        }
+    }
+
+    /**
+     * Factory that returns a client if the environment variable is present, otherwise null.
+     */
+    public static JLibServerClient fromEnv() {
+        String override = System.getenv(ENV_VAR);
+        if (override == null || override.isBlank()) return null;
+        return new JLibServerClient("localhost", DEFAULT_PORT); // constructor will override with env
     }
     
     /**
@@ -43,15 +59,15 @@ public class JLibServerClient {
      * @throws Exception if sending fails
      */
     public void sendApplicationData(String applicationId, JarInventory inventory) throws Exception {
-        LOG.info("Sending data to server at " + serverHost + ":" + serverPort);
+    LOG.info("Sending data to server at " + baseUrl);
 
         // Build JSON payload
         String json = buildApplicationJson(inventory);
 
         // Send PUT request using modern HTTP client
         HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://" + serverHost + ":" + serverPort + "/api/apps/" + applicationId))
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create(baseUrl + "/api/apps/" + applicationId))
                 .PUT(HttpRequest.BodyPublishers.ofString(json))
                 .header("Content-Type", "application/json")
                 .build();
@@ -196,5 +212,36 @@ public class JLibServerClient {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
+    }
+
+    private static String normalizeBaseUrl(String raw) {
+        try {
+            String v = raw.trim();
+            if (!v.matches("^[a-zA-Z][a-zA-Z0-9+.-]*://.*")) {
+                v = "http://" + v; // default scheme
+            }
+            URI uri = URI.create(v);
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+            // If URI couldn't parse host (e.g., raw host w/out scheme already handled; else fallback)
+            if (host == null) {
+                // Could be something like http://localhost:8080 without parsing? host null rarely.
+                return v.replaceAll("/$", "");
+            }
+            int port = uri.getPort();
+            StringBuilder b = new StringBuilder();
+            b.append(scheme).append("://").append(host);
+            if (port != -1) b.append(":").append(port);
+            String path = uri.getPath();
+            if (path != null && !path.isBlank() && !"/".equals(path)) {
+                if (!path.startsWith("/")) b.append('/');
+                if (path.endsWith("/")) path = path.substring(0, path.length()-1);
+                b.append(path);
+            }
+            return b.toString();
+        } catch (Exception e) {
+            LOG.warning("Failed to normalize server URL '" + raw + "': " + e.getMessage());
+            return raw.replaceAll("/$", "");
+        }
     }
 }

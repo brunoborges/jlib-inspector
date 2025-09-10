@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>JLib Inspector - Javadoc</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #007acc;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 10px;
+        }
+        .notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007acc;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background-color: #005a9e;
+        }
+        .code {
+            background-color: #f1f3f4;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JLib Inspector - API Documentation</h1>
+        
+        <div class="notice">
+            <strong>Note:</strong> Javadoc will be automatically generated when you build the project.
+            The API documentation will be available here after running the Maven site goal.
+        </div>
+        
+        <h2>Generate Documentation</h2>
+        <p>To generate the complete API documentation, run:</p>
+        
+        <div class="code">
+            # Generate aggregated Javadoc<br>
+            ./mvnw javadoc:aggregate<br><br>
+            
+            # Generate complete site with Javadoc<br>
+            ./mvnw site
+        </div>
+        
+        <p>The generated documentation will replace this placeholder page.</p>
+        
+        <h2>Documentation Modules</h2>
+        <ul>
+            <li><strong>Agent Module</strong> - Java instrumentation agent APIs</li>
+            <li><strong>Server Module</strong> - HTTP server and REST APIs</li>
+            <li><strong>Common Module</strong> - Shared data structures and utilities</li>
+        </ul>
+        
+        <h2>Quick Links</h2>
+        <a href="../index.html" class="btn">← Back to Documentation</a>
+        <a href="https://github.com/brunoborges/jlib-inspector" class="btn">Source Code</a>
+        
+        <hr style="margin: 30px 0;">
+        <p><small>This is a placeholder page. Run <code>./mvnw site</code> to generate the actual Javadoc documentation.</small></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+# Jekyll configuration for JLib Inspector GitHub Pages site
+title: JLib Inspector
+description: Runtime JAR inspection tool for Java applications
+url: "https://brunoborges.github.io"
+baseurl: "/jlib-inspector"
+
+# GitHub repository information
+github:
+  repository_url: "https://github.com/brunoborges/jlib-inspector"
+  repository_name: "brunoborges/jlib-inspector"
+
+# Site settings
+markdown: kramdown
+highlighter: rouge
+theme: minima
+
+# Navigation
+nav_pages:
+  - title: Home
+    url: /
+  - title: Getting Started
+    url: /getting-started
+  - title: Agent Documentation
+    url: /agent
+  - title: Server Documentation  
+    url: /server
+  - title: Screenshots
+    url: /screenshots
+  - title: Javadoc
+    url: /javadoc
+  - title: Source Code
+    url: https://github.com/brunoborges/jlib-inspector
+
+# Build settings
+plugins:
+  - jekyll-github-metadata
+  - jekyll-sitemap
+  - jekyll-feed
+
+# Exclude files from processing
+exclude:
+  - README.md
+  - LICENSE
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor

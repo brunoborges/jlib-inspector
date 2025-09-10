@@ -59,15 +59,25 @@ public class JLibServerClient {
      * @throws Exception if sending fails
      */
     public void sendApplicationData(String applicationId, JarInventory inventory) throws Exception {
-    LOG.info("Sending data to server at " + baseUrl);
+        long start = System.currentTimeMillis();
+        int jarCount;
+        try {
+            jarCount = inventory.snapshot().size();
+        } catch (Exception e) {
+            jarCount = -1; // fallback if snapshot throws
+        }
+
+        LOG.info(() -> "Preparing to send application inventory: appId=" + applicationId + ", jars=" + jarCount + ", target=" + baseUrl);
 
         // Build JSON payload
         String json = buildApplicationJson(inventory);
+        int payloadBytes = json.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        LOG.info(() -> String.format("Sending %d bytes of inventory data for appId=%s to %s/api/apps/%s", payloadBytes, applicationId, baseUrl, applicationId));
 
         // Send PUT request using modern HTTP client
         HttpClient client = HttpClient.newHttpClient();
-    HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create(baseUrl + "/api/apps/" + applicationId))
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/api/apps/" + applicationId))
                 .PUT(HttpRequest.BodyPublishers.ofString(json))
                 .header("Content-Type", "application/json")
                 .build();
@@ -75,9 +85,14 @@ public class JLibServerClient {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() == 200) {
-            LOG.info("Successfully sent data to server");
+            long took = System.currentTimeMillis() - start;
+            LOG.info(() -> String.format("Successfully sent inventory for appId=%s (status=%d, jars=%d, bytes=%d, took=%dms)",
+            applicationId, response.statusCode(), jarCount, payloadBytes, took));
         } else {
-            LOG.warning("Server returned error code: " + response.statusCode() + " - " + response.body());
+            long took = System.currentTimeMillis() - start;
+            LOG.warning("Failed to send inventory for appId=" + applicationId +
+                " status=" + response.statusCode() +
+                " took=" + took + "ms body=" + response.body());
         }
     }
 

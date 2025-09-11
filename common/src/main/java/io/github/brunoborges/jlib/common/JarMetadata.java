@@ -31,6 +31,9 @@ public final class JarMetadata {
     
     /** SHA-256 hash in URL-safe base64 format, or "?" if unavailable */
     public final String sha256Hash;
+
+    /** Cached computed JAR identifier (derived hash) */
+    private volatile String jarId;
     
     /** Thread-safe loaded state */
     private final AtomicBoolean loaded = new AtomicBoolean(false);
@@ -163,6 +166,49 @@ public final class JarMetadata {
     public String getInnerPath() {
         int bangIndex = fullPath.indexOf("!/");
         return bangIndex >= 0 ? fullPath.substring(bangIndex + 2) : fullPath;
+    }
+
+    /**
+     * Returns a stable jarId derived from the JAR's checksum and filename.
+     * <p>Definition:
+     * <ul>
+     *   <li>If {@code sha256Hash} is known (not null/"?"), jarId = SHA-256 hex of (sha256Hash + ":" + fileName)</li>
+     *   <li>Otherwise jarId = SHA-256 hex of (fileName + ":" + size + ":" + fullPath)</li>
+     * </ul>
+     * The fallback ensures a deterministic id within a single server runtime even when the real checksum
+     * has not yet been computed. Once a checksum becomes available the id may change (callers should be
+     * resilient if they query again after hash computation).
+     */
+    public String getJarId() {
+        String local = jarId;
+        if (local != null) return local;
+        synchronized (this) {
+            if (jarId == null) {
+                String basis;
+                if (sha256Hash != null && !sha256Hash.isEmpty() && !"?".equals(sha256Hash)) {
+                    basis = sha256Hash + ":" + fileName;
+                } else {
+                    basis = fileName + ":" + size + ":" + fullPath;
+                }
+                jarId = sha256Hex(basis);
+            }
+            return jarId;
+        }
+    }
+
+    private static String sha256Hex(String input) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] dig = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(dig.length * 2);
+            for (byte b : dig) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            // Very unlikely; fallback to hex of hashCode
+            return Integer.toHexString(input.hashCode());
+        }
     }
 
     @Override

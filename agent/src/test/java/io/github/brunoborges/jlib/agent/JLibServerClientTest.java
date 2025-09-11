@@ -91,30 +91,7 @@ class JLibServerClientTest {
         assertFalse(json.contains("\"App\"")); // Original quotes should be escaped
     }
 
-    @Test
-    @DisplayName("Should escape JSON strings correctly")
-    void shouldEscapeJsonStringsCorrectly() throws Exception {
-        // Use reflection to access the private method
-        Method escapeJsonMethod = JLibServerClient.class.getDeclaredMethod("escapeJson", String.class);
-        escapeJsonMethod.setAccessible(true);
-        
-        // Test various special characters
-        String result1 = (String) escapeJsonMethod.invoke(null, "Path with \"quotes\"");
-        assertEquals("Path with \\\"quotes\\\"", result1);
-        
-        String result2 = (String) escapeJsonMethod.invoke(null, "Path\\with\\backslashes");
-        assertEquals("Path\\\\with\\\\backslashes", result2);
-        
-        String result3 = (String) escapeJsonMethod.invoke(null, "Line\nwith\nnewlines");
-        assertEquals("Line\\nwith\\nnewlines", result3);
-        
-        String result4 = (String) escapeJsonMethod.invoke(null, "Tab\tseparated\tvalues");
-        assertEquals("Tab\\tseparated\\tvalues", result4);
-        
-        // Test null input
-        String result5 = (String) escapeJsonMethod.invoke(null, (String) null);
-        assertEquals("", result5);
-    }
+    // Removed obsolete escaping test relying on reflection to private methods replaced by org.json.
 
     @Test
     @DisplayName("Should get command line information")

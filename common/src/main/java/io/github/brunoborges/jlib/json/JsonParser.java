@@ -13,6 +13,7 @@ import java.util.logging.Logger;
  * dependencies. It provides basic JSON parsing functionality for scenarios 
  * where minimal dependencies are preferred.
  */
+@Deprecated(forRemoval = true)
 public class JsonParser implements JsonParserInterface {
 
     private static final Logger LOG = Logger.getLogger(JsonParser.class.getName());

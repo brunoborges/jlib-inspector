@@ -9,6 +9,7 @@ import java.util.logging.Logger;
  * allowing the system to choose between different parsers based on availability
  * and configuration preferences.
  */
+@Deprecated(forRemoval = true)
 public class JsonParserFactory {
 
     private static final Logger LOG = Logger.getLogger(JsonParserFactory.class.getName());

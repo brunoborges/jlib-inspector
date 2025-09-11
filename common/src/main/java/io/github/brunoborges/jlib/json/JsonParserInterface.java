@@ -10,6 +10,7 @@ import java.util.Map;
  * allowing the system to use different JSON libraries while maintaining
  * consistent behavior.
  */
+@Deprecated(forRemoval = true)
 public interface JsonParserInterface {
 
     /**

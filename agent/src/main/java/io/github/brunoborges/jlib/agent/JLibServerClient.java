@@ -7,6 +7,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.logging.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import io.github.brunoborges.jlib.common.JarMetadata;
 
@@ -98,54 +100,31 @@ public class JLibServerClient {
      * @return JSON string representing the application data
      */
     private String buildApplicationJson(JarInventory inventory) {
-        StringBuilder json = new StringBuilder();
+        JSONObject root = new JSONObject();
+        root.put("commandLine", getFullCommandLine());
+        root.put("jdkVersion", System.getProperty("java.version"));
+        root.put("jdkVendor", System.getProperty("java.vendor"));
+        root.put("jdkPath", System.getProperty("java.home"));
 
-        // Get JDK information
-        String jdkVersion = System.getProperty("java.version");
-        String jdkVendor = System.getProperty("java.vendor");
-        String jdkPath = System.getProperty("java.home");
-
-        // Get the complete command line including main class and arguments
-        String commandLine = getFullCommandLine();
-
-        json.append("{");
-        json.append("\"commandLine\":\"").append(escapeJson(commandLine)).append("\",");
-        json.append("\"jdkVersion\":\"").append(jdkVersion).append("\",");
-        json.append("\"jdkVendor\":\"").append(escapeJson(jdkVendor)).append("\",");
-        json.append("\"jdkPath\":\"").append(escapeJson(jdkPath)).append("\",");
-
-        // Include JAR inventory data as a proper JSON array (not escaped string)
-        json.append("\"jars\":[");
-        boolean first = true;
+        JSONArray jars = new JSONArray();
         for (JarMetadata jar : inventory.snapshot()) {
-            if (!first) {
-                json.append(",");
-            }
-            json.append("{");
-            json.append("\"path\":\"").append(escapeJson(jar.fullPath)).append("\",");
-            json.append("\"fileName\":\"").append(escapeJson(jar.fileName)).append("\",");
-            json.append("\"size\":").append(jar.size).append(",");
-            json.append("\"checksum\":\"").append(escapeJson(jar.sha256Hash)).append("\",");
-            json.append("\"loaded\":").append(jar.isLoaded());
-            // Manifest attributes (main section) if present
+            JSONObject jo = new JSONObject();
+            jo.put("path", jar.fullPath);
+            jo.put("fileName", jar.fileName);
+            jo.put("size", jar.size);
+            jo.put("checksum", jar.sha256Hash);
+            jo.put("loaded", jar.isLoaded());
             if (jar.getManifestAttributes() != null && !jar.getManifestAttributes().isEmpty()) {
-                json.append(",\"manifest\":{");
-                boolean firstAttr = true;
+                JSONObject man = new JSONObject();
                 for (var e : jar.getManifestAttributes().entrySet()) {
-                    if (!firstAttr) json.append(',');
-                    json.append("\"").append(escapeJson(e.getKey())).append("\":\"")
-                        .append(escapeJson(e.getValue())).append("\"");
-                    firstAttr = false;
+                    man.put(e.getKey(), e.getValue());
                 }
-                json.append("}");
+                jo.put("manifest", man);
             }
-            json.append("}");
-            first = false;
+            jars.put(jo);
         }
-        json.append("]");
-        json.append("}");
-
-        return json.toString();
+        root.put("jars", jars);
+        return root.toString();
     }
 
     /**
@@ -226,14 +205,21 @@ public class JLibServerClient {
      * @param str The string to escape
      * @return JSON-safe escaped string
      */
+    // Manual escapeJson no longer needed (org.json handles escaping when serializing values).
+    // Temporary compatibility shim: some tests (or stale compiled artifacts) still attempt to
+    // reflect a private escapeJson(String) method. Re-introduce a minimal implementation that
+    // delegates escaping to org.json. Safe to remove once tests are fully updated and stale
+    // class files eliminated.
+    @SuppressWarnings("unused")
     private static String escapeJson(String str) {
-        if (str == null)
-            return "";
-        return str.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+        if (str == null) return "";
+        // JSONObject.quote returns a JSON string literal including surrounding quotes.
+        String quoted = JSONObject.quote(str);
+        // Strip leading and trailing quotes to mimic previous behavior that returned the inner escaped value.
+        if (quoted.length() >= 2 && quoted.startsWith("\"") && quoted.endsWith("\"")) {
+            return quoted.substring(1, quoted.length() - 1);
+        }
+        return quoted; // Fallback (should not normally happen)
     }
 
     private static String normalizeBaseUrl(String raw) {

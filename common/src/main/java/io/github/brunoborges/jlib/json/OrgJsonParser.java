@@ -16,6 +16,7 @@ import java.util.logging.Logger;
  * well-established org.json library. It offers better error handling and
  * performance compared to the built-in parser for complex JSON structures.
  */
+@Deprecated(forRemoval = true)
 public class OrgJsonParser implements JsonParserInterface {
 
     private static final Logger LOG = Logger.getLogger(OrgJsonParser.class.getName());

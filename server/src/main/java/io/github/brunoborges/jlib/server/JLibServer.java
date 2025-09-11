@@ -9,6 +9,7 @@ import io.github.brunoborges.jlib.server.handler.DashboardHandler;
 import io.github.brunoborges.jlib.server.service.ApplicationService;
 import io.github.brunoborges.jlib.server.service.JarService;
 import io.github.brunoborges.jlib.server.handler.ReportHandler;
+import io.github.brunoborges.jlib.server.handler.JarsHandler;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -29,6 +30,8 @@ import java.util.logging.Logger;
  * <li>GET /api/apps - List all tracked applications</li>
  * <li>GET /api/apps/{appId} - Get a specific application's details</li>
  * <li>GET /api/apps/{appId}/jars - List JARs for a specific application</li>
+ * <li>GET /api/jars - List all known JARs (deduplicated by jarId)</li>
+ * <li>GET /api/jars/{jarId} - Get details for a specific JAR across applications</li>
  * <li>PUT /api/apps/{appId} - Register/update an application and its JARs</li>
  * <li>PUT /api/apps/{appId}/metadata - Update application metadata (name, description, tags)</li>
  * <li>GET /report - Aggregated unique JARs across applications</li>
@@ -67,6 +70,7 @@ public class JLibServer {
 
         // Configure handlers with dependency injection
     server.createContext("/api/apps", new AppsHandler(applicationService, jarService));
+    server.createContext("/api/jars", new JarsHandler(applicationService));
     server.createContext("/api/dashboard", new DashboardHandler(applicationService));
     server.createContext("/health", new HealthHandler(applicationService));
     server.createContext("/report", new ReportHandler(applicationService));

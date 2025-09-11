@@ -44,6 +44,8 @@ Response 200:
 }
 ```
 
+Each application detail/listed jar now includes a `jarId` (see below) in detailed endpoints.
+
 ### 3. GET /api/apps/{appId}
 Full application detail including all tracked JARs and manifest snippets.
 
@@ -67,13 +69,10 @@ Response 200:
       "fileName": "app.jar",
       "size": 1234567,
       "checksum": "2f54..." ,      // "?" if unknown
+  "jarId": "<derived-id>",
       "loaded": true,
       "lastAccessed": "2025-09-11T12:33:41.500Z",
-      "manifest": {                  // Present only if attributes captured
-        "Implementation-Title": "demo-app",
-        "Implementation-Version": "1.0.0",
-        "Main-Class": "com.example.Main"
-      }
+  "_manifest": "(omitted – fetch via /api/jars/{jarId})"
     }
   ]
 }
@@ -84,6 +83,8 @@ Response 200:
 ### 4. GET /api/apps/{appId}/jars
 Just the JAR list (subset of the full app detail) for targeted polling.
 
+Manifest attributes are intentionally omitted here. Use `GET /api/jars/{jarId}` for manifest details.
+
 Response 200:
 ```json
 {
@@ -93,11 +94,9 @@ Response 200:
       "fileName": "dependency.jar",
       "size": 20480,
       "checksum": "?",        // Not yet computed
+  "jarId": "<derived-id>",
       "loaded": false,
       "lastAccessed": "2025-09-11T12:31:00.000Z",
-      "manifest": {             // Optional
-        "Implementation-Title": "lib-core"
-      }
     }
   ]
 }
@@ -200,6 +199,58 @@ Response 200:
   ]
 }
 ```
+
+### 9. GET /api/jars
+Global deduplicated list of all known JARs aggregated across applications. Deduplication uses `jarId`.
+
+Response 200:
+```json
+{
+  "jars": [
+    {
+      "jarId": "a1b2c3...",
+      "fileName": "spring-core-6.1.0.jar",
+      "checksum": "2f54...",        // "?" if not yet known
+      "size": 543210,
+      "appCount": 3,                 // number of applications reporting this jar
+      "loadedAppCount": 3            // apps where jar is marked loaded
+    }
+  ]
+}
+```
+
+### 10. GET /api/jars/{jarId}
+Detailed information for a specific JAR across all applications.
+
+Response 200:
+```json
+{
+  "jarId": "a1b2c3...",
+  "fileName": "spring-core-6.1.0.jar",
+  "checksum": "2f54...",
+  "size": 543210,
+  "firstSeen": "2025-09-11T12:30:10.000Z",
+  "lastAccessed": "2025-09-11T12:33:41.000Z",
+  "manifest": {                     // optional
+    "Implementation-Title": "spring-core",
+    "Implementation-Version": "6.1.0"
+  },
+  "applications": [
+    {
+      "appId": "c0ffee...",
+      "loaded": true,
+      "lastAccessed": "2025-09-11T12:33:41.500Z",
+      "path": "file:/app/lib/spring-core-6.1.0.jar"
+    }
+  ]
+}
+```
+
+404 if jar not found.
+
+#### jarId Generation
+`jarId = SHA256( checksum + ":" + fileName )` when a real checksum is available. If checksum is unknown (`?`), fallback:
+`jarId = SHA256( fileName + ":" + size + ":" + fullPath )`. This may change after checksum computation; clients should refresh.
 
 ## Error Formats
 Currently plain-text bodies with HTTP status codes (e.g., 404 Not found, 400 Invalid request data: <reason>). Future enhancement may formalize a JSON error envelope.

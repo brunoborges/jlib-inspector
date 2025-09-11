@@ -63,6 +63,13 @@ GET {{base}}/api/dashboard
 ### 8. Unique loaded JARs report (aggregation across apps)
 GET {{base}}/report
 
+### 9. Global JAR list (deduplicated)
+GET {{base}}/api/jars
+
+### 10. JAR detail by jarId
+@jarId = fe7643855295fc616eea1667aea80fd7e5670c0ebba57a88081d8ffb5ba7900b
+GET {{base}}/api/jars/{{jarId}}
+
 ### ---------------------------------------------------------------------------
 ### Tips:
 ### - Run the sample app with the agent to populate data.

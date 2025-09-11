@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { initLucideIcons, copyToClipboard, formatFileSize, getMvnRepositoryUrl } from '../utils/helpers';
 
 // Props:
@@ -8,7 +8,29 @@ import { initLucideIcons, copyToClipboard, formatFileSize, getMvnRepositoryUrl }
 // - applications: full list of applications (to compute all associations)
 // - onOpenApp: callback(appId) to open an application's details
 const JarDetails = ({ jar, onBack, application, applications = [], onOpenApp }) => {
+  const [manifest, setManifest] = useState(jar?.manifest || {});
+  const [loadingManifest, setLoadingManifest] = useState(false);
+  const [manifestError, setManifestError] = useState(null);
+
   useEffect(() => { initLucideIcons(); }, [jar]);
+  useEffect(() => {
+    // Reset when jar changes
+    setManifest(jar?.manifest || {});
+    setManifestError(null);
+    if (jar && (!jar.manifest || Object.keys(jar.manifest).length === 0) && jar.jarId) {
+      setLoadingManifest(true);
+      fetch(`/api/jars/${jar.jarId}`)
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then(data => {
+          if (data.manifest) setManifest(data.manifest); else setManifest({});
+        })
+        .catch(err => setManifestError(err.message))
+        .finally(() => setLoadingManifest(false));
+    }
+  }, [jar]);
   if (!jar) return (
     <div className="max-w-4xl mx-auto py-6">
       <button onClick={onBack} className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
@@ -20,7 +42,7 @@ const JarDetails = ({ jar, onBack, application, applications = [], onOpenApp }) 
   );
 
   const mvnUrl = getMvnRepositoryUrl(jar.fileName);
-  const manifest = jar.manifest || {};
+  // manifest state managed above
 
   // Determine all applications referencing this jar (match on fileName fallback to path)
   const associatedApps = useMemo(() => {
@@ -71,9 +93,16 @@ const JarDetails = ({ jar, onBack, application, applications = [], onOpenApp }) 
         <div className="grid md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center"><i data-lucide="file-text" className="w-4 h-4 mr-1"/> Manifest</h3>
-            {Object.keys(manifest).length === 0 ? (
+            {loadingManifest && (
+              <p className="text-xs text-gray-500">Loading manifest...</p>
+            )}
+            {manifestError && (
+              <p className="text-xs text-red-600">Failed to load manifest: {manifestError}</p>
+            )}
+            {!loadingManifest && !manifestError && Object.keys(manifest).length === 0 && (
               <p className="text-xs text-gray-500">No manifest attributes captured.</p>
-            ) : (
+            )}
+            {!loadingManifest && !manifestError && Object.keys(manifest).length > 0 && (
               <div className="border rounded-lg divide-y">
                 {Object.entries(manifest).map(([k,v]) => (
                   <div key={k} className="px-3 py-2 flex items-start justify-between hover:bg-gray-50">

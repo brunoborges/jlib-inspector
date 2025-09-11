@@ -59,15 +59,9 @@ public class JsonResponseBuilder {
             jo.put("fileName", jar.fileName);
             jo.put("size", jar.size);
             jo.put("checksum", jar.sha256Hash);
+            jo.put("jarId", jar.getJarId());
             jo.put("loaded", jar.isLoaded());
             jo.put("lastAccessed", jar.getLastAccessed().toString());
-            if (jar.getManifestAttributes() != null && !jar.getManifestAttributes().isEmpty()) {
-                JSONObject mf = new JSONObject();
-                for (var e : jar.getManifestAttributes().entrySet()) {
-                    mf.put(e.getKey(), e.getValue());
-                }
-                jo.put("manifest", mf);
-            }
             jars.put(jo);
         }
         root.put("jars", jars);
@@ -87,15 +81,9 @@ public class JsonResponseBuilder {
             jo.put("fileName", jar.fileName);
             jo.put("size", jar.size);
             jo.put("checksum", jar.sha256Hash);
+            jo.put("jarId", jar.getJarId());
             jo.put("loaded", jar.isLoaded());
             jo.put("lastAccessed", jar.getLastAccessed().toString());
-            if (jar.getManifestAttributes() != null && !jar.getManifestAttributes().isEmpty()) {
-                JSONObject mf = new JSONObject();
-                for (var e : jar.getManifestAttributes().entrySet()) {
-                    mf.put(e.getKey(), e.getValue());
-                }
-                jo.put("manifest", mf);
-            }
             jars.put(jo);
         }
         return new JSONObject().put("jars", jars).toString();

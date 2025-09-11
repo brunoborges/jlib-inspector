@@ -162,29 +162,7 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
         <div className="bg-white rounded-xl shadow p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-        <h3 className="text-2xl font-bold text-gray-900">Java Application{application.name ? `: ${application.name}` : ''}</h3>
-              <div className="flex items-center space-x-3 mt-1">
-                <p className="text-sm text-gray-500">
-          {jars.length} dependencies for application
-                </p>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500 font-mono">{application.appId.substring(0, 12)}...</span>
-                  <button 
-                    onClick={handleCopyAppId}
-                    className={`text-xs transition-colors ${
-                      appIdCopyStatus === 'success' ? 'text-green-600' :
-                      appIdCopyStatus === 'error' ? 'text-red-600' :
-                      'text-gray-400 hover:text-blue-600'
-                    }`}
-                    title="Copy full Application ID"
-                  >
-                    <i data-lucide={
-                      appIdCopyStatus === 'success' ? 'check' :
-                      appIdCopyStatus === 'error' ? 'x' : 'copy'
-                    } className="w-3 h-3"></i>
-                  </button>
-                </div>
-              </div>
+              <h3 className="text-2xl font-bold text-gray-900">Application Details{application.name ? `: ${application.name}` : ''}</h3>
             </div>
           </div>
 
@@ -195,7 +173,7 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
               <div>
                 <span className="text-gray-600">App ID:</span>
                 <div className="flex items-center space-x-2 mt-1">
-                  <span className="font-mono text-gray-900 text-xs break-all">{application.appId}</span>
+                  <span className="font-mono text-gray-900 text-xs break-all">{application.appId.substring(0, 12)}...</span>
                   <button 
                     onClick={handleCopyAppId}
                     className={`flex-shrink-0 transition-colors ${
@@ -357,7 +335,7 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
             {!jarsLoading && !jarsError && (
               filteredJars.length > 0 ? (
                 filteredJars.map((jar, index) => (
-                  <JarItem key={index} jar={jar} onOpenJar={(path) => onOpenJar && onOpenJar(application.appId, path)} />
+                  <JarItem key={index} jar={jar} onOpenJar={() => onOpenJar && jar.jarId && onOpenJar(jar.jarId)} />
                 ))
               ) : getTabData().length === 0 ? (
                 <EmptyState type={activeTab} />

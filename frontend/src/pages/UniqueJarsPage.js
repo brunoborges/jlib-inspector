@@ -46,15 +46,15 @@ const UniqueJarsPage = ({ applications = [], initialFilter = 'all', onBack, onOp
   }, [applications]);
 
   // Transform global jars list into objects compatible with <JarItem /> & filters.
-  // /api/jars element shape: { jarId, fileName, checksum, size, appCount, loadedAppCount }
+  // /api/jars element shape: { jarId, fileName, checksum, size, appCount, loadedAppCount, applicationIds[] }
   const uniqueJars = useMemo(() => globalJars.map(j => ({
     jarId: j.jarId,
     fileName: j.fileName || '(unknown)',
-    path: j.fileName || j.jarId,            // Fallback path (server doesn't provide full path here)
+    path: j.fileName || j.jarId,
     checksum: j.checksum,
     size: j.size,
     loaded: (j.loadedAppCount || 0) > 0,
-    applications: Array.from({ length: j.appCount || 0 }, (_, idx) => ({ appId: `app-${idx}` }))
+    applications: (j.applicationIds || []).map(id => ({ appId: id }))
   })), [globalJars]);
 
   const filteredByActivity = useMemo(() => {
@@ -80,9 +80,7 @@ const UniqueJarsPage = ({ applications = [], initialFilter = 'all', onBack, onOp
   }), [uniqueJars]);
 
   const handleOpenJar = (jar) => {
-    // We no longer know which concrete application(s) own this jar from this endpoint alone.
-    // Pass null for appId so the route can still open a generic jar detail (if supported).
-    if (onOpenJar) onOpenJar(null, jar.path, 'unique');
+    if (onOpenJar && jar.jarId) onOpenJar(jar.jarId);
   };
 
   return (

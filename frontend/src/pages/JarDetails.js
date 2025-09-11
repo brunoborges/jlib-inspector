@@ -41,11 +41,49 @@ const JarDetails = ({ jar, onBack, application, applications = [], onOpenApp, or
     </div>
   );
 
+  if (jar.loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-6">
+        <button onClick={onBack} className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
+          <i data-lucide="arrow-left" className="w-4 h-4 mr-2"></i>
+          Back
+        </button>
+        <div className="bg-white rounded-lg shadow p-6 text-center py-10">
+          <i data-lucide="loader" className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-600">Loading JAR details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (jar.error) {
+    return (
+      <div className="max-w-4xl mx-auto py-6">
+        <button onClick={onBack} className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
+          <i data-lucide="arrow-left" className="w-4 h-4 mr-2"></i>
+          Back
+        </button>
+        <div className="bg-white rounded-lg shadow p-6 text-center py-10">
+          <i data-lucide="alert-triangle" className="w-8 h-8 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load JAR</h3>
+          <p className="text-sm text-gray-600 mb-4">{jar.error}</p>
+          <button
+            onClick={() => window.location.hash = `#/jar/${jar.jarId}`}
+            className="px-3 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+          >Retry</button>
+        </div>
+      </div>
+    );
+  }
+
   const mvnUrl = getMvnRepositoryUrl(jar.fileName);
   // manifest state managed above
 
   // Determine all applications referencing this jar (match on fileName fallback to path)
   const associatedApps = useMemo(() => {
+    if (jar && Array.isArray(jar.applications) && jar.applications.length > 0) {
+      return jar.applications.map(a => ({ appId: a.appId, name: a.name }));
+    }
     if (!jar || !applications || applications.length === 0) return [];
     const key = jar.fileName || jar.path;
     return applications.filter(app => (app.jars || []).some(j => (j.fileName || j.path) === key))
@@ -63,11 +101,11 @@ const JarDetails = ({ jar, onBack, application, applications = [], onOpenApp, or
       <div className="bg-white rounded-xl shadow p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 break-all">{jar.fileName || 'Unknown JAR'}</h2>
-            <p className="text-xs text-gray-500 break-all mt-1 font-mono">{jar.path}</p>
+            <h2 className="text-2xl font-bold text-gray-900 break-all">{jar.fileName || jar.jarId || 'Unknown JAR'}</h2>
+            {jar.path && <p className="text-xs text-gray-500 break-all mt-1 font-mono">{jar.path}</p>}
           </div>
           <div className="text-right text-sm">
-            <div className="font-mono text-gray-600">{formatFileSize(jar.size)}</div>
+            {jar.size && <div className="font-mono text-gray-600">{formatFileSize(jar.size)}</div>}
             <div className={`text-xs mt-1 ${jar.loaded ? 'text-green-600' : 'text-gray-400'}`}>{jar.loaded ? 'Loaded' : 'Not Loaded'}</div>
           </div>
         </div>

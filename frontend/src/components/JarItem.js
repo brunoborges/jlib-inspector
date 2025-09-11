@@ -47,7 +47,8 @@ const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNa
 
     if (isUniqueJar) {
         return (
-            <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+            <div className={`bg-gray-50 rounded-lg p-4 transition-colors ${onOpenJar ? 'hover:bg-gray-100 cursor-pointer' : ''}`}
+                 onClick={() => { if (onOpenJar && jar.jarId) onOpenJar(jar.jarId); }}>
                 <div className="flex items-start justify-between">
                     <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
@@ -100,6 +101,16 @@ const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNa
                                 </button>
                             ))}
                         </div>
+                        {onOpenJar && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); if (onOpenJar && jar.jarId) onOpenJar(jar.jarId); }}
+                                className="mt-3 inline-flex items-center text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
+                                title="View JAR Details"
+                            >
+                                <i data-lucide="file-search" className="w-3 h-3 mr-1"></i>
+                                Details
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -107,7 +118,7 @@ const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNa
     }
 
     return (
-        <div className="jar-modal-item p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { if (onOpenJar && jar.path) onOpenJar(jar.path); }}>
+        <div className="jar-modal-item p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { if (onOpenJar && jar.jarId) onOpenJar(jar.jarId); }}>
             <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3 flex-1">
                     <i data-lucide={iconName} className={`${iconClass} mt-1 flex-shrink-0`}></i>
@@ -150,7 +161,7 @@ const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNa
                             </a>
                         )}
                         <button
-                            onClick={(e) => { e.stopPropagation(); if (onOpenJar && jar.path) onOpenJar(jar.path); }}
+                            onClick={(e) => { e.stopPropagation(); if (onOpenJar && jar.jarId) onOpenJar(jar.jarId); }}
                             className="inline-flex items-center text-xs text-indigo-600 hover:text-indigo-800 hover:underline mt-2"
                             title="View JAR Details"
                         >

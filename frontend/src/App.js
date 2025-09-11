@@ -101,16 +101,24 @@ const App = () => {
         window.history.pushState({ page: 'dashboard' }, '', '#/');
     };
 
-    const handleOpenJarDetails = (appId, jarPath, origin = 'app') => {
-        const app = dashboardData.applications.find(a => a.appId === appId);
-        if (!app) return;
-        const jar = (app.jars || []).find(j => j.path === jarPath);
-        if (!jar) return;
-        setSelectedApplication(app);
-        setSelectedJar(jar);
+    const handleOpenJarDetails = async (jarId, origin = 'app', appContextAppId = null) => {
+        if (!jarId) return;
+        if (appContextAppId) {
+            const app = dashboardData.applications.find(a => a.appId === appContextAppId);
+            if (app) setSelectedApplication(app);
+        }
+        setSelectedJar({ jarId, loading: true });
         setJarOrigin(origin);
         setRoute({ name: 'jar' });
-        window.history.pushState({ page: 'jar', appId, jarPath }, '', `#/app/${appId}/jar/${encodeURIComponent(jarPath)}`);
+        window.history.pushState({ page: 'jar', jarId, origin }, '', `#/jar/${jarId}`);
+        try {
+            const res = await fetch(`/api/jars/${jarId}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setSelectedJar(data);
+        } catch (e) {
+            setSelectedJar(prev => ({ ...(prev || {}), jarId, error: e.message, loading: false }));
+        }
     };
 
     const handleOpenUniqueJarsPage = (filter = 'all') => {
@@ -171,12 +179,22 @@ const App = () => {
     useEffect(() => {
         const applyHashRoute = () => {
             const hash = window.location.hash || '#/';
-            const parts = hash.slice(2).split('/');
-            if (parts[0] === 'app' && parts[1]) {
+            const parts = hash.slice(2).split('/').filter(Boolean);
+            if (parts[0] === 'jar' && parts[1]) {
+                // New style route: #/jar/{jarId}
+                handleOpenJarDetails(parts[1], 'unique');
+            } else if (parts[0] === 'app' && parts[1]) {
+                // Backward compatibility: #/app/{appId}/jar/{...oldPath}
                 if (parts[2] === 'jar' && parts[3]) {
                     const appId = parts[1];
                     const jarPath = decodeURIComponent(parts.slice(3).join('/'));
-                    handleOpenJarDetails(appId, jarPath, 'app');
+                    const app = dashboardData.applications.find(a => a.appId === appId);
+                    if (app) {
+                        const jar = (app.jars || []).find(j => j.path === jarPath);
+                        if (jar && jar.jarId) {
+                            handleOpenJarDetails(jar.jarId, 'app', appId);
+                        }
+                    }
                 } else {
                     handleOpenAppPageById(parts[1]);
                 }
@@ -326,7 +344,7 @@ const App = () => {
                             application={selectedApplication}
                             onBack={handleBackToDashboard}
                             onLocalUpdateApp={handleLocalUpdateApp}
-                            onOpenJar={handleOpenJarDetails}
+                            onOpenJar={(jarId) => handleOpenJarDetails(jarId, 'app', selectedApplication && selectedApplication.appId)}
                         />
                     </Suspense>
                 )}
@@ -361,7 +379,7 @@ const App = () => {
                             initialFilter={uniqueJarsFilter}
                             onBack={handleBackToDashboard}
                             onOpenApp={handleOpenAppPageById}
-                            onOpenJar={handleOpenJarDetails}
+                            onOpenJar={(jarId) => handleOpenJarDetails(jarId, 'unique')}
                         />
                     </Suspense>
                 )}

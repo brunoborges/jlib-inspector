@@ -24,14 +24,9 @@ const ApplicationCard = ({ application, isGridView, onOpenJarModal }) => {
         setTimeout(() => setAppIdCopyStatus(null), 2000);
     };
 
-    const loadedJars = application.jars ? application.jars.filter(jar => jar.loaded).length : 0;
-    const totalJars = application.jars ? application.jars.length : 0;
-
-    // Removed compact jar list rendering; dashboard no longer displays recent jars
-
     const displayName = (application.name && application.name.trim().length > 0)
         ? application.name.trim()
-        : 'Java Application';
+        : 'Application';
 
     return (
         <div 
@@ -66,9 +61,9 @@ const ApplicationCard = ({ application, isGridView, onOpenJarModal }) => {
                 </div>
                 <div className="text-right">
                     <div className="flex items-center space-x-1 text-sm">
-                        <span className="text-gray-600">{loadedJars}</span>
+                        <span className="text-gray-600">{application.activeJarCount}</span>
                         <span className="text-gray-400">/</span>
-                        <span className="font-medium text-gray-900">{totalJars}</span>
+                        <span className="font-medium text-gray-900">{application.totalJarCount}</span>
                         <span className="text-gray-500">JARs</span>
                     </div>
                     <p className="text-xs text-gray-500">JDK {application.jdkVersion}</p>

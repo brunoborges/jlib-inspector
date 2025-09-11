@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import JarItem from './JarItem';
+// Removed JarItem import because Recent JARs list is no longer shown on dashboard
 import { formatRelativeTime, copyToClipboard, initLucideIcons } from '../utils/helpers';
 
 const ApplicationCard = ({ application, isGridView, onOpenJarModal }) => {
@@ -27,27 +27,11 @@ const ApplicationCard = ({ application, isGridView, onOpenJarModal }) => {
     const loadedJars = application.jars ? application.jars.filter(jar => jar.loaded).length : 0;
     const totalJars = application.jars ? application.jars.length : 0;
 
-    const renderCompactJarList = (jars, maxItems = 5) => {
-        if (!jars || jars.length === 0) {
-            return <p className="text-sm text-gray-500">No JARs found</p>;
-        }
-        
-        const displayJars = jars.slice(0, maxItems);
-        const remainingCount = jars.length - maxItems;
-        
-        return (
-            <div className="space-y-1">
-                {displayJars.map((jar, index) => (
-                    <JarItem key={index} jar={jar} isCompact={true} />
-                ))}
-                {remainingCount > 0 && (
-                    <p className="text-xs text-gray-500 pl-2">
-                        +{remainingCount} more JARs...
-                    </p>
-                )}
-            </div>
-        );
-    };
+    // Removed compact jar list rendering; dashboard no longer displays recent jars
+
+    const displayName = (application.name && application.name.trim().length > 0)
+        ? application.name.trim()
+        : 'Java Application';
 
     return (
         <div 
@@ -60,7 +44,7 @@ const ApplicationCard = ({ application, isGridView, onOpenJarModal }) => {
                         <i data-lucide="coffee" className="w-6 h-6 text-white"></i>
                     </div>
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-900">Java Application</h3>
+                        <h3 className="text-lg font-semibold text-gray-900" title={displayName}>{displayName}</h3>
                         <div className="flex items-center space-x-2">
                             <p className="text-sm text-gray-500 font-mono">{application.appId.substring(0, 12)}...</p>
                             <button 
@@ -117,15 +101,7 @@ const ApplicationCard = ({ application, isGridView, onOpenJarModal }) => {
                 </div>
             </div>
             
-            {isGridView && (
-                <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-sm font-medium text-gray-900">Recent JARs</h4>
-                        <span className="text-xs text-gray-500">{loadedJars} loaded</span>
-                    </div>
-                    {renderCompactJarList(application.jars)}
-                </div>
-            )}
+            {/* Recent JARs section removed per data minimization & lazy loading strategy */}
             
             <div className="flex items-center justify-between text-xs text-gray-500">
                 <span>Updated {formatRelativeTime(application.lastUpdated)}</span>

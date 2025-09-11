@@ -47,48 +47,27 @@ function broadcastUpdate(data) {
   });
 }
 
-// Fetch data from JLib Server
+// Fetch minimal dashboard data from JLib Server (no per-app jar lists)
 async function fetchApplicationData() {
   try {
-    console.log('Fetching data from JLib Server...');
-    
-    // Check server health first
-    const healthResponse = await axios.get(`${JLIB_SERVER_URL}/health`, { timeout: 5000 });
+    console.log('Fetching minimal dashboard data from JLib Server...');
+    await axios.get(`${JLIB_SERVER_URL}/health`, { timeout: 5000 });
     dashboardData.serverStatus = 'connected';
-    
-    // Fetch applications
-    const appsResponse = await axios.get(`${JLIB_SERVER_URL}/api/apps`, { timeout: 5000 });
-    dashboardData.applications = appsResponse.data.applications || [];
-    
-    // Fetch detailed JAR info for each application
-    for (let app of dashboardData.applications) {
-      try {
-        const jarsResponse = await axios.get(`${JLIB_SERVER_URL}/api/apps/${app.appId}/jars`, { timeout: 5000 });
-        app.jars = jarsResponse.data.jars || [];
-      } catch (error) {
-        console.error(`Failed to fetch JARs for app ${app.appId}:`, error.message);
-        app.jars = [];
-      }
-    }
-    
-    dashboardData.lastUpdated = new Date().toISOString();
-    console.log(`Updated data for ${dashboardData.applications.length} applications`);
-    
-    // Broadcast update to connected clients
-    broadcastUpdate({
-      type: 'data-update',
-      data: dashboardData
-    });
-    
+    const dashResponse = await axios.get(`${JLIB_SERVER_URL}/api/dashboard`, { timeout: 5000 });
+    const d = dashResponse.data || {};
+    // Copy only expected fields
+    dashboardData.applications = (d.applications || []).map(a => ({ ...a })); // jars intentionally omitted
+    dashboardData.lastUpdated = d.lastUpdated || new Date().toISOString();
+    // Derived / aggregated counts reused by frontend
+    dashboardData.applicationCount = d.applicationCount ?? dashboardData.applications.length;
+    dashboardData.jarCount = d.jarCount ?? 0;
+    dashboardData.activeJarCount = d.activeJarCount ?? 0;
+    dashboardData.inactiveJarCount = d.inactiveJarCount ?? 0;
+    broadcastUpdate({ type: 'data-update', data: dashboardData });
   } catch (error) {
-    console.error('Failed to fetch data from JLib Server:', error.message);
+    console.error('Failed to fetch dashboard data from JLib Server:', error.message);
     dashboardData.serverStatus = 'disconnected';
-    
-    // Still broadcast the update to inform clients of the disconnection
-    broadcastUpdate({
-      type: 'data-update',
-      data: dashboardData
-    });
+    broadcastUpdate({ type: 'data-update', data: dashboardData });
   }
 }
 
@@ -157,6 +136,21 @@ app.get('/api/applications/:appId', (req, res) => {
     return res.status(404).json({ error: 'Application not found' });
   }
   res.json(app);
+});
+
+// Lazy load per-application jars when specifically requested
+app.get('/api/applications/:appId/jars', async (req, res) => {
+  const { appId } = req.params;
+  try {
+    const jarsResp = await axios.get(`${JLIB_SERVER_URL}/api/apps/${appId}/jars`, { timeout: 5000 });
+    res.json(jarsResp.data);
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    console.error(`Failed to fetch jars for app ${appId}:`, error.message);
+    res.status(502).json({ error: 'Failed to retrieve jars for application' });
+  }
 });
 
 // Proxy: global JAR list (deduplicated) from JLib Server

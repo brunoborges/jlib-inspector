@@ -3,7 +3,6 @@ package io.github.brunoborges.jlib.server.handler;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import io.github.brunoborges.jlib.common.JavaApplication;
-import io.github.brunoborges.jlib.json.JsonResponseBuilder;
 import io.github.brunoborges.jlib.server.service.ApplicationService;
 
 import java.io.IOException;
@@ -14,13 +13,25 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Dashboard handler consolidating applications with their JAR inventories (including manifest attributes).
- * Provides a single payload optimized for the frontend dashboard polling/websocket updates.
+ * Dashboard handler returning a minimal summary optimized for the UI.
  *
- * Response shape:
+ * New response shape (no per-jar arrays, no manifest data):
  * {
- *   "applications": [ { appDetails + jars[] }, ... ],
- *   "lastUpdated":"2025-...",
+ *   "applicationCount": <int>,
+ *   "jarCount": <int>,                // total jars across all apps
+ *   "activeJarCount": <int>,          // loaded=true
+ *   "inactiveJarCount": <int>,        // loaded=false
+ *   "applications": [
+ *      {
+ *        "appId": "...",
+ *        "name": "...",
+ *        "commandLine": "...",
+ *        "lastUpdated": "ISO-8601",
+ *        "activeJarCount": <int>,
+ *        "totalJarCount": <int>
+ *      }
+ *   ],
+ *   "lastUpdated":"ISO-8601",
  *   "serverStatus":"connected"
  * }
  */
@@ -39,11 +50,32 @@ public class DashboardHandler implements HttpHandler {
             return;
         }
 
+        int totalJars = 0;
+        int activeJars = 0;
         JSONArray apps = new JSONArray();
         for (JavaApplication app : applicationService.getAllApplications()) {
-            apps.put(new JSONObject(JsonResponseBuilder.buildAppDetailsJson(app)));
+            int appTotal = app.jars.size();
+            int appActive = 0;
+            for (var jar : app.jars.values()) {
+                totalJars++;
+                if (jar.isLoaded()) {
+                    activeJars++; appActive++; }
+            }
+            JSONObject a = new JSONObject();
+            a.put("appId", app.appId);
+            a.put("name", app.name == null ? "" : app.name);
+            a.put("commandLine", app.commandLine);
+            a.put("lastUpdated", app.lastUpdated.toString());
+            a.put("activeJarCount", appActive);
+            a.put("totalJarCount", appTotal);
+            apps.put(a);
         }
+        int inactiveJars = totalJars - activeJars;
         JSONObject root = new JSONObject();
+        root.put("applicationCount", apps.length());
+        root.put("jarCount", totalJars);
+        root.put("activeJarCount", activeJars);
+        root.put("inactiveJarCount", inactiveJars);
         root.put("applications", apps);
         root.put("lastUpdated", Instant.now().toString());
         root.put("serverStatus", "connected");

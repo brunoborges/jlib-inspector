@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 
 export const useDashboardData = () => {
     const [dashboardData, setDashboardData] = useState({
+        applicationCount: 0,
+        jarCount: 0,
+        activeJarCount: 0,
+        inactiveJarCount: 0,
         applications: [],
         lastUpdated: null,
         serverStatus: 'unknown'
@@ -85,14 +89,8 @@ export const useDashboardData = () => {
     const updateApplication = useCallback((appId, patch) => {
         setDashboardData(prev => {
             if (!prev || !prev.applications) return prev;
-            const updatedApps = prev.applications.map(app => 
-                app.appId === appId ? { ...app, ...patch } : app
-            );
-            return {
-                ...prev,
-                applications: updatedApps,
-                lastUpdated: new Date().toISOString()
-            };
+            const updatedApps = prev.applications.map(app => app.appId === appId ? { ...app, ...patch } : app);
+            return { ...prev, applications: updatedApps, lastUpdated: new Date().toISOString() };
         });
     }, []);
 

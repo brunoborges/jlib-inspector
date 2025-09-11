@@ -1,29 +1,38 @@
 import React, { useEffect } from 'react';
 import { initLucideIcons } from '../utils/helpers';
 
-const StatisticsCards = ({ applications, onUniqueJarsClick, onTotalAppsClick }) => {
+const StatisticsCards = ({ applications, onUniqueJarsClick, onTotalAppsClick, counts }) => {
     useEffect(() => {
         initLucideIcons();
     }, []);
 
-    // Build a map of unique jars and whether they are active (loaded in any app)
-    const uniqueJarMap = new Map();
-    applications.forEach(app => {
-        (app.jars || []).forEach(jar => {
-            const key = jar.fileName || jar.path?.split('/').pop();
-            if (!key) return;
-            const prev = uniqueJarMap.get(key) || { active: false };
-            uniqueJarMap.set(key, { active: prev.active || !!jar.loaded });
+    // Prefer server-provided aggregated counts, fallback to client computation (legacy)
+    let stats;
+    if (counts) {
+        stats = {
+            totalApps: counts.applicationCount ?? applications.length,
+            jars: counts.jarCount ?? 0,
+            activeJars: counts.activeJarCount ?? 0,
+            inactiveJars: counts.inactiveJarCount ?? 0
+        };
+    } else {
+        const uniqueJarMap = new Map();
+        applications.forEach(app => {
+            (app.jars || []).forEach(jar => {
+                const key = jar.fileName || jar.path?.split('/').pop();
+                if (!key) return;
+                const prev = uniqueJarMap.get(key) || { active: false };
+                uniqueJarMap.set(key, { active: prev.active || !!jar.loaded });
+            });
         });
-    });
-
-    const activeCount = Array.from(uniqueJarMap.values()).filter(v => v.active).length;
-    const stats = {
-        totalApps: applications.length,
-        jars: uniqueJarMap.size,
-        activeJars: activeCount,
-        inactiveJars: uniqueJarMap.size - activeCount,
-    };
+        const activeCount = Array.from(uniqueJarMap.values()).filter(v => v.active).length;
+        stats = {
+            totalApps: applications.length,
+            jars: uniqueJarMap.size,
+            activeJars: activeCount,
+            inactiveJars: uniqueJarMap.size - activeCount,
+        };
+    }
 
     const cards = [
         {

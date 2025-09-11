@@ -301,6 +301,12 @@ const App = () => {
 
                 <StatisticsCards 
                     applications={dashboardData.applications} 
+                    counts={{
+                        applicationCount: dashboardData.applicationCount,
+                        jarCount: dashboardData.jarCount,
+                        activeJarCount: dashboardData.activeJarCount,
+                        inactiveJarCount: dashboardData.inactiveJarCount
+                    }}
                     onUniqueJarsClick={handleOpenUniqueJarsPage}
                     onTotalAppsClick={handleBackToDashboard}
                 />

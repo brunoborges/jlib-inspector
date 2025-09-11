@@ -68,6 +68,10 @@ public class DashboardHandler implements HttpHandler {
             a.put("lastUpdated", app.lastUpdated.toString());
             a.put("activeJarCount", appActive);
             a.put("totalJarCount", appTotal);
+            // Include JDK metadata for dashboard quick display
+            a.put("jdkVersion", app.jdkVersion);
+            a.put("jdkVendor", app.jdkVendor);
+            a.put("jdkPath", app.jdkPath);
             apps.put(a);
         }
         int inactiveJars = totalJars - activeJars;

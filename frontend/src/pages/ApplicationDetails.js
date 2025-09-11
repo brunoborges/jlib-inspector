@@ -10,12 +10,16 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
   const [editDescription, setEditDescription] = useState('');
   const [editTags, setEditTags] = useState('');
   const [saving, setSaving] = useState(false);
+  // Lazy-loaded jars fetched from server (dashboard no longer supplies them inline)
+  const [jars, setJars] = useState([]);
+  const [jarsLoading, setJarsLoading] = useState(false);
+  const [jarsError, setJarsError] = useState(null);
 
   useEffect(() => {
     initLucideIcons();
-  }, [activeTab, appIdCopyStatus]);
+  }, [activeTab, appIdCopyStatus, jarsLoading, jarsError, jars.length]);
 
-  // Initialize edit fields when application changes
+  // Initialize edit fields & fetch jars when application changes
   useEffect(() => {
     if (application) {
       setEditName(application.name || '');
@@ -23,6 +27,35 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
       setEditTags((application.tags || []).join(', '));
     }
   }, [application]);
+
+  useEffect(() => {
+    if (!application || !application.appId) {
+      setJars([]);
+      return;
+    }
+    let aborted = false;
+    const controller = new AbortController();
+  const fetchJars = async () => {
+      try {
+        setJarsLoading(true);
+        setJarsError(null);
+    // Frontend proxy exposes /api/applications/:appId/jars (not /api/apps/...)
+    const res = await fetch(`/api/applications/${application.appId}/jars`, { signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!aborted) {
+            const list = Array.isArray(data.jars) ? data.jars : Array.isArray(data) ? data : [];
+            setJars(list);
+        }
+      } catch (e) {
+        if (!aborted && e.name !== 'AbortError') setJarsError(e.message);
+      } finally {
+        if (!aborted) setJarsLoading(false);
+      }
+    };
+    fetchJars();
+    return () => { aborted = true; controller.abort(); };
+  }, [application && application.appId]);
 
   if (!application) {
     return (
@@ -65,8 +98,8 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
     }
   };
 
-  const loadedJars = application.jars ? application.jars.filter(jar => jar.loaded) : [];
-  const notLoadedJars = application.jars ? application.jars.filter(jar => !jar.loaded) : [];
+  const loadedJars = jars.filter(jar => jar.loaded);
+  const notLoadedJars = jars.filter(jar => !jar.loaded);
 
   const getTabData = () => {
     switch (activeTab) {
@@ -75,7 +108,7 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
       case 'not-loaded':
         return notLoadedJars;
       default:
-        return application.jars || [];
+    return jars;
     }
   };
 
@@ -129,10 +162,10 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
         <div className="bg-white rounded-xl shadow p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-2xl font-bold text-gray-900">Java Application{application.name ? `: ${application.name}` : ''}</h3>
+        <h3 className="text-2xl font-bold text-gray-900">Java Application{application.name ? `: ${application.name}` : ''}</h3>
               <div className="flex items-center space-x-3 mt-1">
                 <p className="text-sm text-gray-500">
-                  {application.jars ? application.jars.length : 0} dependencies for application
+          {jars.length} dependencies for application
                 </p>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-500 font-mono">{application.appId.substring(0, 12)}...</span>
@@ -293,21 +326,51 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
 
           {/* JAR Content */}
           <div className="space-y-2">
-            {filteredJars.length > 0 ? (
-              filteredJars.map((jar, index) => (
-                <JarItem key={index} jar={jar} onOpenJar={(path) => onOpenJar && onOpenJar(application.appId, path)} />
-              ))
-            ) : getTabData().length === 0 ? (
-              <EmptyState type={activeTab} />
-            ) : (
+            {jarsLoading && (
               <div className="text-center py-8">
-                <i data-lucide="search" className="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No JARs Found</h3>
-                <p className="text-gray-500">No JARs match your search criteria.</p>
+                <i data-lucide="loader" className="w-8 h-8 text-gray-300 animate-spin mx-auto mb-4"></i>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Loading JARs...</h3>
+                <p className="text-gray-500">Fetching dependencies for this application.</p>
               </div>
             )}
+            {!jarsLoading && jarsError && (
+              <div className="text-center py-8">
+                <i data-lucide="alert-triangle" className="w-8 h-8 text-red-400 mx-auto mb-4"></i>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load JARs</h3>
+                <p className="text-gray-500 mb-4 text-sm">{jarsError}</p>
+                <button
+                  onClick={() => {
+                    // retrigger fetch by resetting dependency (appId stays same, so call directly)
+                    if (application && application.appId) {
+                      setJarsLoading(true);
+                      fetch(`/api/applications/${application.appId}/jars`)
+                        .then(r => { if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+                        .then(d => { const list = Array.isArray(d.jars) ? d.jars : Array.isArray(d) ? d : []; setJars(list); setJarsError(null); })
+                        .catch(e => setJarsError(e.message))
+                        .finally(() => setJarsLoading(false));
+                    }
+                  }}
+                  className="px-3 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700"
+                >Retry</button>
+              </div>
+            )}
+            {!jarsLoading && !jarsError && (
+              filteredJars.length > 0 ? (
+                filteredJars.map((jar, index) => (
+                  <JarItem key={index} jar={jar} onOpenJar={(path) => onOpenJar && onOpenJar(application.appId, path)} />
+                ))
+              ) : getTabData().length === 0 ? (
+                <EmptyState type={activeTab} />
+              ) : (
+                <div className="text-center py-8">
+                  <i data-lucide="search" className="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No JARs Found</h3>
+                  <p className="text-gray-500">No JARs match your search criteria.</p>
+                </div>
+              )
+            )}
           </div>
-          {filteredJars.length > 0 && (
+          {!jarsLoading && !jarsError && filteredJars.length > 0 && (
             <p className="text-[11px] text-gray-400 mt-4">Tip: Click a JAR or the Details link to open its manifest and metadata.</p>
           )}
         </div>

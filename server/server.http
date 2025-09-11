@@ -13,7 +13,7 @@ GET {{base}}/health
 ### 2. List all applications (summary)
 GET {{base}}/api/apps
 
-### 3. Get full application detail (includes jars & manifest attributes)
+### 3. Get full application detail (includes jars without manifest)
 GET {{base}}/api/apps/{{appId}}
 
 ### 4. List only jars of a given application ID (lighter than full detail)

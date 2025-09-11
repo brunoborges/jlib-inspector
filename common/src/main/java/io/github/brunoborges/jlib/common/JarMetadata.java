@@ -41,7 +41,7 @@ public final class JarMetadata {
     /** Last time this JAR was accessed/loaded */
     private volatile Instant lastAccessed;
 
-    /** Immutable manifest main-section attributes (captured once) */
+    /** Immutable manifest attributes (captured once) */
     private volatile Map<String,String> manifestAttributes; // may remain null
 
     /**

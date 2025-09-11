@@ -364,6 +364,7 @@ public final class ClassLoaderTrackerTransformer implements ClassFileTransformer
                 }
             }
 
+            // MANIFEST_PARSER
             stage = "open-stream";
             LOG.fine("Resolved MANIFEST URL (stage=" + stage + "): " + manifestUrl);
             InputStream is = manifestUrl.openStream();
@@ -373,7 +374,14 @@ public final class ClassLoaderTrackerTransformer implements ClassFileTransformer
                 String line;
                 String previousKey = null;
                 while ((line = br.readLine()) != null) {
-                    if (line.isEmpty()) { break; }
+                    // Previously we stopped parsing on the first empty line (end of main section).
+                    // We now continue so that additional sections (per-entry attributes following
+                    // blank separators) are also captured. Reset previousKey so continuation lines
+                    // do not attach across section boundaries.
+                    if (line.isEmpty()) {
+                        previousKey = null;
+                        continue;
+                    }
                     if (line.startsWith(" ") && previousKey != null) {
                         attrs.put(previousKey, attrs.get(previousKey) + line.substring(1));
                         continue;
@@ -387,15 +395,7 @@ public final class ClassLoaderTrackerTransformer implements ClassFileTransformer
                     }
                 }
                 stage = "log";
-                String implTitle = attrs.getOrDefault("Implementation-Title", "?");
-                String implVersion = attrs.getOrDefault("Implementation-Version", "?");
-                String implVendor = attrs.getOrDefault("Implementation-Vendor", "?");
-                String mainClass = attrs.getOrDefault("Main-Class", "?");
-                String autoModule = attrs.getOrDefault("Automatic-Module-Name", "?");
                 LOG.fine("Parsed " + attrs.size() + " manifest attributes for " + locStr + " (stage=" + stage + ")");
-                LOG.info(String.format(
-                    "Manifest for %s => Implementation-Title=%s, Version=%s, Vendor=%s, Main-Class=%s, Automatic-Module-Name=%s",
-                    locStr, implTitle, implVersion, implVendor, mainClass, autoModule));
                 manifestRead = true;
             }
         } catch (Exception e) {

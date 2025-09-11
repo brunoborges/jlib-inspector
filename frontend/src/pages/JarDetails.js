@@ -1,7 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { initLucideIcons, copyToClipboard, formatFileSize, getMvnRepositoryUrl } from '../utils/helpers';
 
-const JarDetails = ({ jar, onBack, application }) => {
+// Props:
+// - jar: selected jar object (with path, fileName, loaded, manifest, etc.)
+// - onBack: callback to navigate back
+// - application: current application context (may be one of many using the jar)
+// - applications: full list of applications (to compute all associations)
+// - onOpenApp: callback(appId) to open an application's details
+const JarDetails = ({ jar, onBack, application, applications = [], onOpenApp }) => {
   useEffect(() => { initLucideIcons(); }, [jar]);
   if (!jar) return (
     <div className="max-w-4xl mx-auto py-6">
@@ -15,6 +21,14 @@ const JarDetails = ({ jar, onBack, application }) => {
 
   const mvnUrl = getMvnRepositoryUrl(jar.fileName);
   const manifest = jar.manifest || {};
+
+  // Determine all applications referencing this jar (match on fileName fallback to path)
+  const associatedApps = useMemo(() => {
+    if (!jar || !applications || applications.length === 0) return [];
+    const key = jar.fileName || jar.path;
+    return applications.filter(app => (app.jars || []).some(j => (j.fileName || j.path) === key))
+      .map(app => ({ appId: app.appId, name: app.name }));
+  }, [jar, applications]);
 
   return (
     <div className="max-w-5xl mx-auto py-6">
@@ -56,7 +70,7 @@ const JarDetails = ({ jar, onBack, application }) => {
 
         <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center"><i data-lucide="file-text" className="w-4 h-4 mr-1"/> Manifest (Main Section)</h3>
+            <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center"><i data-lucide="file-text" className="w-4 h-4 mr-1"/> Manifest</h3>
             {Object.keys(manifest).length === 0 ? (
               <p className="text-xs text-gray-500">No manifest attributes captured.</p>
             ) : (
@@ -82,7 +96,26 @@ const JarDetails = ({ jar, onBack, application }) => {
                 <div><span className="font-semibold text-gray-600">Container:</span> <span className="ml-1 font-mono">{jar.path.split('!/')[0]}</span></div>
               )}
               <div><span className="font-semibold text-gray-600">File Name:</span> <span className="ml-1">{jar.fileName}</span></div>
-              <div><span className="font-semibold text-gray-600">Application:</span> <span className="ml-1">{application?.name || application?.appId}</span></div>
+              <div>
+                <span className="font-semibold text-gray-600">Applications:</span>
+                {associatedApps.length === 0 && (<span className="ml-1">(none)</span>)}
+                {associatedApps.length > 0 && (
+                  <ul className="ml-1 mt-1 space-y-1">
+                    {associatedApps.map(a => (
+                      <li key={a.appId} className="text-xs">
+                        <a
+                          href={`#/app/${a.appId}`}
+                          onClick={e => { e.preventDefault(); onOpenApp && onOpenApp(a.appId); }}
+                          className={`inline-flex items-center px-2 py-0.5 rounded bg-blue-50 text-blue-700 hover:underline hover:bg-blue-100 ${application && application.appId === a.appId ? 'ring-1 ring-blue-300' : ''}`}
+                        >
+                          <i data-lucide="app-window" className="w-3 h-3 mr-1" />
+                          {a.name || a.appId}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         </div>

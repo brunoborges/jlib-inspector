@@ -332,8 +332,9 @@ const App = () => {
                         <JarDetails 
                             jar={selectedJar}
                             application={selectedApplication}
+                            applications={dashboardData.applications}
+                            onOpenApp={handleOpenAppPageById}
                             onBack={() => {
-                                // Return to application view
                                 if (selectedApplication) {
                                     setRoute({ name: 'app' });
                                     window.history.pushState({ page: 'app', appId: selectedApplication.appId }, '', `#/app/${selectedApplication.appId}`);

@@ -54,7 +54,7 @@ public final class JarInventory {
         return new ArrayList<>(jars.values());
     }
 
-    /** Attach manifest attributes (main section) to an existing jar if absent. */
+    /** Attach manifest attributes to an existing jar if absent. */
     public void attachManifest(String id, Map<String,String> manifestAttrs) {
         if (id == null || manifestAttrs == null || manifestAttrs.isEmpty()) return;
         JarMetadata meta = jars.get(id);

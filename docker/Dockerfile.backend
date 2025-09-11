@@ -20,7 +20,7 @@ RUN ./mvnw -P server dependency:go-offline
 COPY ./common/src ./common/src
 COPY ./server/src ./server/src
 
-RUN ./mvnw -P server clean package
+RUN ./mvnw -P server verify
 RUN cp ./server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar ./jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
 
 # Expose port 8080

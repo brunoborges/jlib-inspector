@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatFileSize, getMvnRepositoryUrl, copyToClipboard, initLucideIcons } from '../utils/helpers';
 
-const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNameById }) => {
+const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNameById, onOpenJar }) => {
     const [copyStatus, setCopyStatus] = useState(null);
     
     useEffect(() => {
@@ -107,7 +107,7 @@ const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNa
     }
 
     return (
-        <div className="jar-modal-item p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+        <div className="jar-modal-item p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { if (onOpenJar && jar.path) onOpenJar(jar.path); }}>
             <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3 flex-1">
                     <i data-lucide={iconName} className={`${iconClass} mt-1 flex-shrink-0`}></i>
@@ -149,6 +149,14 @@ const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNa
                                 Search on mvnrepository.com
                             </a>
                         )}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); if (onOpenJar && jar.path) onOpenJar(jar.path); }}
+                            className="inline-flex items-center text-xs text-indigo-600 hover:text-indigo-800 hover:underline mt-2"
+                            title="View JAR Details"
+                        >
+                            <i data-lucide="file-search" className="w-3 h-3 mr-1"></i>
+                            Details
+                        </button>
                     </div>
                 </div>
                 <div className="text-right flex-shrink-0 ml-3">

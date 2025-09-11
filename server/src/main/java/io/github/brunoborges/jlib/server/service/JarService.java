@@ -62,6 +62,23 @@ public class JarService {
             // Get or create JAR metadata, then update it
             JarMetadata jarInfo = app.jars.computeIfAbsent(path,
                     p -> new JarMetadata(p, fileName, size, checksum, Instant.now(), Instant.now(), loaded));
+
+            // Extract manifest sub-object if present (manifest keys are flattened with prefix manifest.)
+            // Our simple parser returns a flat map, so we look for keys starting with "manifest."
+            // Example field: manifest.Implementation-Title
+            java.util.Map<String,String> manifestMap = new java.util.LinkedHashMap<>();
+            final String manifestPrefix = "manifest.";
+            for (var e : jarData.entrySet()) {
+                if (e.getKey().startsWith(manifestPrefix)) {
+                    String realKey = e.getKey().substring(manifestPrefix.length());
+                    if (!realKey.isBlank()) {
+                        manifestMap.put(realKey, e.getValue());
+                    }
+                }
+            }
+            if (!manifestMap.isEmpty()) {
+                jarInfo.setManifestAttributesIfAbsent(manifestMap);
+            }
             
             // Update existing JAR metadata if values have changed
             if (jarInfo.size != size || !java.util.Objects.equals(jarInfo.sha256Hash, checksum)) {

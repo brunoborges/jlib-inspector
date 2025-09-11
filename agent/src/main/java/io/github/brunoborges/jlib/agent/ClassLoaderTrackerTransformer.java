@@ -1,15 +1,21 @@
 package io.github.brunoborges.jlib.agent;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
-import java.security.ProtectionDomain;
 import java.lang.ref.WeakReference;
-import java.util.Iterator;
-import java.security.CodeSource;
+import java.net.URI;
 import java.net.URL;
-import java.util.logging.Logger;
+import java.security.CodeSource;
+import java.security.ProtectionDomain;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 /**
  * A ClassFileTransformer that tracks class loading activity and identifies
@@ -105,16 +111,16 @@ public final class ClassLoaderTrackerTransformer implements ClassFileTransformer
             loaders.add(new WeakReference<>(loader));
         }
 
-        final String logClassName = className;
         final String source = sourceIdentifier(protectionDomain);
-
-        // Log every class loading event
-        LOG.info(() -> "Loaded class " + logClassName + (source == null ? "" : " from " + source));
 
         // Mark source JAR as loaded and log first occurrence
         if (source != null && SEEN_SOURCES.add(source)) {
             inventory.markLoaded(source);
             LOG.info(() -> "Class Source " + source + " loaded");
+            Map<String,String> manifest = readManifestAttributes(protectionDomain);
+            if (manifest != null && !manifest.isEmpty()) {
+                inventory.attachManifest(source, manifest);
+            }
         } else if (source != null) {
             // Still mark as loaded in case JAR was registered after first class loading
             inventory.markLoaded(source);
@@ -273,5 +279,133 @@ public final class ClassLoaderTrackerTransformer implements ClassFileTransformer
         String result = url.substring(0, url.length() - 2); // Remove trailing !/
         result = result.replace("/!", "!/"); // Change /! to !/
         return result;
+    }
+
+
+    /**
+     * Reads MANIFEST.MF using the original ProtectionDomain's CodeSource location
+     * rather than the normalized source identifier.
+     *
+     * <p>Supports:
+     * <ul>
+     *   <li>Regular JARs (file:...jar)</li>
+     *   <li>Nested JAR style locations (file:outer.jar!/BOOT-INF/lib/inner.jar)</li>
+     *   <li>Exploded directories (file:/path/to/classes/)</li>
+     * </ul>
+     * Falls back silently (FINE log) if the manifest cannot be read.
+     */
+    private Map<String,String> readManifestAttributes(ProtectionDomain pd) {
+        String stage = "start";
+        boolean manifestRead = false;
+        String locStr = null;
+        Map<String,String> attrs = new HashMap<>();
+        try {
+            if (pd == null) { LOG.fine("Manifest scan aborted (stage=" + stage + "): pd null"); return attrs; }
+            stage = "codesource";
+            CodeSource cs = pd.getCodeSource();
+            if (cs == null) { LOG.fine("Manifest scan aborted (stage=" + stage + "): CodeSource null"); return attrs; }
+            stage = "location";
+            URL loc = cs.getLocation();
+            if (loc == null) { LOG.fine("Manifest scan aborted (stage=" + stage + "): location null"); return attrs; }
+            locStr = loc.toString();
+            stage = "scheme-eval";
+            LOG.fine("Attempting MANIFEST read; stage=" + stage + ", location=" + locStr);
+
+            URL manifestUrl = null;
+
+            // NEW: Handle nested jars with jar:nested: scheme
+            if (locStr.startsWith("jar:nested:")) {
+                stage = "jar-nested-primary";
+                // Primary attempt: leverage the custom protocol handler directly
+                String base = locStr;
+                if (!base.endsWith("!/")) {
+                    if (base.endsWith("!")) {
+                        base = base + "/";
+                    } else if (!base.endsWith("/")) {
+                        // location should end with "!/" already, but be defensive
+                        base = base + (base.contains("!") ? "/" : "!/");
+                    }
+                }
+                try {
+                    manifestUrl = URI.create(base + "META-INF/MANIFEST.MF").toURL();
+                    LOG.fine("jar:nested primary manifest URL: " + manifestUrl);
+                } catch (Exception e) {
+                    LOG.fine("Primary jar:nested manifest URL build failed: " + e.getMessage());
+                }
+                // Fallback: normalize to file:/outer.jar!/inner.jar then build a standard jar: URL
+                if (manifestUrl == null) {
+                    stage = "jar-nested-fallback-normalize";
+                    String normalized = normalizeJarNestedUrl(locStr); // e.g. file:/outer.jar!/BOOT-INF/lib/inner.jar
+                    // Build standard jar: URL
+                    try {
+                        manifestUrl = URI.create("jar:" + normalized + "!/META-INF/MANIFEST.MF").toURL();
+                        LOG.fine("jar:nested fallback manifest URL: " + manifestUrl);
+                    } catch (Exception e2) {
+                        LOG.fine("Fallback jar:nested manifest URL build failed: " + e2.getMessage());
+                    }
+                }
+            }
+
+            if (manifestUrl == null) {
+                if (locStr.startsWith("file:") && (locStr.endsWith(".jar") || locStr.contains("!/"))) {
+                    stage = "jar-url-build";
+                    String base = locStr;
+                    if (base.endsWith("!/")) {
+                        base = base.substring(0, base.length() - 2);
+                    }
+                    manifestUrl = URI.create("jar:" + base + "!/META-INF/MANIFEST.MF").toURL();
+                } else if (locStr.startsWith("file:") && locStr.endsWith("/")) {
+                    stage = "dir-url-build";
+                    manifestUrl = loc.toURI().resolve("META-INF/MANIFEST.MF").toURL();
+                } else {
+                    stage = "unsupported-scheme";
+                    LOG.fine("Skipping MANIFEST read (stage=" + stage + ") for location=" + locStr);
+                    return attrs;
+                }
+            }
+
+            stage = "open-stream";
+            LOG.fine("Resolved MANIFEST URL (stage=" + stage + "): " + manifestUrl);
+            InputStream is = manifestUrl.openStream();
+            LOG.fine("Opened MANIFEST stream (stage=" + stage + "): " + manifestUrl);
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+                stage = "parse";
+                String line;
+                String previousKey = null;
+                while ((line = br.readLine()) != null) {
+                    if (line.isEmpty()) { break; }
+                    if (line.startsWith(" ") && previousKey != null) {
+                        attrs.put(previousKey, attrs.get(previousKey) + line.substring(1));
+                        continue;
+                    }
+                    int colon = line.indexOf(':');
+                    if (colon > 0 && colon + 1 < line.length()) {
+                        String key = line.substring(0, colon).trim();
+                        String value = line.substring(colon + 1).trim();
+                        attrs.put(key, value);
+                        previousKey = key;
+                    }
+                }
+                stage = "log";
+                String implTitle = attrs.getOrDefault("Implementation-Title", "?");
+                String implVersion = attrs.getOrDefault("Implementation-Version", "?");
+                String implVendor = attrs.getOrDefault("Implementation-Vendor", "?");
+                String mainClass = attrs.getOrDefault("Main-Class", "?");
+                String autoModule = attrs.getOrDefault("Automatic-Module-Name", "?");
+                LOG.fine("Parsed " + attrs.size() + " manifest attributes for " + locStr + " (stage=" + stage + ")");
+                LOG.info(String.format(
+                    "Manifest for %s => Implementation-Title=%s, Version=%s, Vendor=%s, Main-Class=%s, Automatic-Module-Name=%s",
+                    locStr, implTitle, implVersion, implVendor, mainClass, autoModule));
+                manifestRead = true;
+            }
+        } catch (Exception e) {
+            LOG.fine("Exception during manifest read (stage=" + stage + ", location=" + locStr + "): " + e.getMessage());
+        } finally {
+            if (!manifestRead) {
+                String finalLoc = (locStr == null ? "<unknown>" : locStr);
+                LOG.fine("Manifest not read; stopped at stage=" + stage + ", location=" + finalLoc);
+            }
+        }
+        return attrs;
     }
 }

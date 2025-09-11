@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import JarItem from '../components/JarItem';
 import { initLucideIcons } from '../utils/helpers';
 
-const UniqueJarsPage = ({ applications, initialFilter = 'all', onBack, onOpenApp }) => {
+// Reuses the same JarItem layout as ApplicationDetails (no custom unique card)
+const UniqueJarsPage = ({ applications, initialFilter = 'all', onBack, onOpenApp, onOpenJar }) => {
   const [activeTab, setActiveTab] = useState(initialFilter);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -121,7 +122,15 @@ const UniqueJarsPage = ({ applications, initialFilter = 'all', onBack, onOpenApp
           <div className="space-y-2">
             {filtered.length > 0 ? (
               filtered.map((jar, index) => (
-                <JarItem key={index} jar={jar} isUniqueJar={true} onOpenApp={onOpenApp} appNameById={appNameById} />
+                <JarItem 
+                  key={index} 
+                  jar={jar} 
+                  // Open details using first associated application (prioritize consistent layout/behavior)
+                  onOpenJar={(path) => {
+                    const firstAppId = jar.applications && jar.applications.length > 0 ? jar.applications[0].appId : null;
+                    if (firstAppId && onOpenJar) onOpenJar(firstAppId, path);
+                  }}
+                />
               ))
             ) : (
               <div className="text-center py-8">
@@ -131,6 +140,9 @@ const UniqueJarsPage = ({ applications, initialFilter = 'all', onBack, onOpenApp
               </div>
             )}
           </div>
+          {filtered.length > 0 && (
+            <p className="text-[11px] text-gray-400 mt-4">Tip: Click a JAR to view its manifest and metadata. (Using first associated application context)</p>
+          )}
         </div>
       </main>
     </div>

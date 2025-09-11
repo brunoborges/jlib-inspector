@@ -39,7 +39,10 @@ Key principles:
 
 | Dimension | Notes |
 |-----------|-------|
-| Artifact (GAV) | Derivation via MANIFEST / path heuristics |
+| JARs in Classpath | Shows JARs that may not be loaded ever |
+| JAR Path | Full path on disk (if available) |
+| Nested JARs | Supports Spring Boot, One-JAR, etc. |
+| Artifact (GAV) | Derivation via MANIFEST / path heuristics (if available) |
 | JAR Hash | SHA-256 for integrity / SBOM correlation |
 
 ## Quick Start (Docker Desktop) {#quick-start}

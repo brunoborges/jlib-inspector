@@ -11,6 +11,7 @@ import './styles/globals.css';
 // Lazy load pages to reduce initial bundle size
 const ApplicationDetails = lazy(() => import('./pages/ApplicationDetails'));
 const UniqueJarsPage = lazy(() => import('./pages/UniqueJarsPage'));
+const JarDetails = lazy(() => import('./pages/JarDetails'));
 const ServerConfig = lazy(() => import('./components/ServerConfig'));
 
 const App = () => {
@@ -19,7 +20,8 @@ const App = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all');
     const [selectedApplication, setSelectedApplication] = useState(null);
-    const [route, setRoute] = useState({ name: 'dashboard' }); // 'dashboard' | 'app' | 'unique'
+    const [route, setRoute] = useState({ name: 'dashboard' }); // 'dashboard' | 'app' | 'unique' | 'jar'
+    const [selectedJar, setSelectedJar] = useState(null);
     const [uniqueJarsFilter, setUniqueJarsFilter] = useState('all');
     const [showServerConfig, setShowServerConfig] = useState(false);
     const [currentServerUrl, setCurrentServerUrl] = useState('http://localhost:8080');
@@ -94,8 +96,20 @@ const App = () => {
 
     const handleBackToDashboard = () => {
         setSelectedApplication(null);
+        setSelectedJar(null);
         setRoute({ name: 'dashboard' });
         window.history.pushState({ page: 'dashboard' }, '', '#/');
+    };
+
+    const handleOpenJarDetails = (appId, jarPath) => {
+        const app = dashboardData.applications.find(a => a.appId === appId);
+        if (!app) return;
+        const jar = (app.jars || []).find(j => j.path === jarPath);
+        if (!jar) return;
+        setSelectedApplication(app);
+        setSelectedJar(jar);
+        setRoute({ name: 'jar' });
+        window.history.pushState({ page: 'jar', appId, jarPath }, '', `#/app/${appId}/jar/${encodeURIComponent(jarPath)}`);
     };
 
     const handleOpenUniqueJarsPage = (filter = 'all') => {
@@ -158,7 +172,13 @@ const App = () => {
             const hash = window.location.hash || '#/';
             const parts = hash.slice(2).split('/');
             if (parts[0] === 'app' && parts[1]) {
-                handleOpenAppPageById(parts[1]);
+                if (parts[2] === 'jar' && parts[3]) {
+                    const appId = parts[1];
+                    const jarPath = decodeURIComponent(parts.slice(3).join('/'));
+                    handleOpenJarDetails(appId, jarPath);
+                } else {
+                    handleOpenAppPageById(parts[1]);
+                }
             } else if (parts[0] === 'jars') {
                 const filter = parts[1] || 'all';
                 setUniqueJarsFilter(filter);
@@ -302,6 +322,25 @@ const App = () => {
                             application={selectedApplication}
                             onBack={handleBackToDashboard}
                             onLocalUpdateApp={handleLocalUpdateApp}
+                            onOpenJar={handleOpenJarDetails}
+                        />
+                    </Suspense>
+                )}
+
+                {route.name === 'jar' && (
+                    <Suspense fallback={<div></div>}>
+                        <JarDetails 
+                            jar={selectedJar}
+                            application={selectedApplication}
+                            onBack={() => {
+                                // Return to application view
+                                if (selectedApplication) {
+                                    setRoute({ name: 'app' });
+                                    window.history.pushState({ page: 'app', appId: selectedApplication.appId }, '', `#/app/${selectedApplication.appId}`);
+                                } else {
+                                    handleBackToDashboard();
+                                }
+                            }}
                         />
                     </Suspense>
                 )}
@@ -313,6 +352,7 @@ const App = () => {
                             initialFilter={uniqueJarsFilter}
                             onBack={handleBackToDashboard}
                             onOpenApp={handleOpenAppPageById}
+                            onOpenJar={handleOpenJarDetails}
                         />
                     </Suspense>
                 )}

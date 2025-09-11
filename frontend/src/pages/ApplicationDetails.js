@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import JarItem from '../components/JarItem';
 import { initLucideIcons, copyToClipboard } from '../utils/helpers';
 
-const ApplicationDetails = ({ application, onBack, onLocalUpdateApp }) => {
+const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [appIdCopyStatus, setAppIdCopyStatus] = useState(null);
@@ -295,7 +295,7 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp }) => {
           <div className="space-y-2">
             {filteredJars.length > 0 ? (
               filteredJars.map((jar, index) => (
-                <JarItem key={index} jar={jar} />
+                <JarItem key={index} jar={jar} onOpenJar={(path) => onOpenJar && onOpenJar(application.appId, path)} />
               ))
             ) : getTabData().length === 0 ? (
               <EmptyState type={activeTab} />
@@ -307,6 +307,9 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp }) => {
               </div>
             )}
           </div>
+          {filteredJars.length > 0 && (
+            <p className="text-[11px] text-gray-400 mt-4">Tip: Click a JAR or the Details link to open its manifest and metadata.</p>
+          )}
         </div>
       </main>
     </div>

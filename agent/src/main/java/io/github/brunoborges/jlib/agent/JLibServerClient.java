@@ -127,6 +127,18 @@ public class JLibServerClient {
             json.append("\"size\":").append(jar.size).append(",");
             json.append("\"checksum\":\"").append(escapeJson(jar.sha256Hash)).append("\",");
             json.append("\"loaded\":").append(jar.isLoaded());
+            // Manifest attributes (main section) if present
+            if (jar.getManifestAttributes() != null && !jar.getManifestAttributes().isEmpty()) {
+                json.append(",\"manifest\":{");
+                boolean firstAttr = true;
+                for (var e : jar.getManifestAttributes().entrySet()) {
+                    if (!firstAttr) json.append(',');
+                    json.append("\"").append(escapeJson(e.getKey())).append("\":\"")
+                        .append(escapeJson(e.getValue())).append("\"");
+                    firstAttr = false;
+                }
+                json.append("}");
+            }
             json.append("}");
             first = false;
         }

@@ -1,6 +1,9 @@
 package io.github.brunoborges.jlib.common;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -37,6 +40,9 @@ public final class JarMetadata {
     
     /** Last time this JAR was accessed/loaded */
     private volatile Instant lastAccessed;
+
+    /** Immutable manifest main-section attributes (captured once) */
+    private volatile Map<String,String> manifestAttributes; // may remain null
 
     /**
      * Creates a new JAR metadata record.
@@ -118,6 +124,25 @@ public final class JarMetadata {
      */
     public boolean isNested() {
         return fullPath.contains("!/");
+    }
+
+    /**
+     * Sets manifest main-section attributes if not already set. Ignores null or empty maps.
+     */
+    public void setManifestAttributesIfAbsent(Map<String,String> attrs) {
+        if (manifestAttributes != null) return;
+        if (attrs == null || attrs.isEmpty()) return;
+        synchronized (this) {
+            if (manifestAttributes == null && attrs != null && !attrs.isEmpty()) {
+                // preserve insertion order
+                manifestAttributes = Collections.unmodifiableMap(new LinkedHashMap<>(attrs));
+            }
+        }
+    }
+
+    /** Returns manifest main-section attributes or null if not captured. */
+    public Map<String,String> getManifestAttributes() {
+        return manifestAttributes;
     }
 
     /**

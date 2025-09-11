@@ -64,6 +64,8 @@ java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server
 
 ## Run – frontend (dashboard)
 
+npm and node commands must always run in the frontend folder.
+
 From `frontend/`:
 
 ```bash

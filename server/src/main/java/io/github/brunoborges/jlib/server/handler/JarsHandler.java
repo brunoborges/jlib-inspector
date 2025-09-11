@@ -103,6 +103,12 @@ public class JarsHandler implements HttpHandler {
                         representative = jar;
                     JSONObject a = new JSONObject();
                     a.put("appId", app.appId);
+                    // Include application display name as appName; explicit null if unset to satisfy contract
+                    if (app.name == null) {
+                        a.put("appName", JSONObject.NULL);
+                    } else {
+                        a.put("appName", app.name);
+                    }
                     a.put("loaded", jar.isLoaded());
                     a.put("lastAccessed", jar.getLastAccessed().toString());
                     a.put("path", jar.fullPath);

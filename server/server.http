@@ -67,8 +67,11 @@ GET {{base}}/report
 GET {{base}}/api/jars
 
 ### 10. JAR detail by jarId
-@jarId = fe7643855295fc616eea1667aea80fd7e5670c0ebba57a88081d8ffb5ba7900b
+@jarId = ed3ef4e4641e91ab8d880dccc670d7111759e33aac8c8482722f2f62b45a84fc
 GET {{base}}/api/jars/{{jarId}}
+
+### localhost:3000
+GET http://localhost:3000/api/jars/{{jarId}}
 
 ### ---------------------------------------------------------------------------
 ### Tips:

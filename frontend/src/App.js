@@ -12,6 +12,7 @@ const ApplicationDetails = lazy(() => import('./pages/ApplicationDetails'));
 const UniqueJarsPage = lazy(() => import('./pages/UniqueJarsPage'));
 const JarDetails = lazy(() => import('./pages/JarDetails'));
 const ServerConfig = lazy(() => import('./components/ServerConfig'));
+import ErrorBoundary from './components/ErrorBoundary';
 
 const App = () => {
     const { dashboardData, isLoading, error, refreshData, updateApplication } = useDashboardData();
@@ -20,7 +21,8 @@ const App = () => {
     const [filterType, setFilterType] = useState('all');
     const [selectedApplication, setSelectedApplication] = useState(null);
     const [route, setRoute] = useState({ name: 'dashboard' }); // 'dashboard' | 'app' | 'unique' | 'jar'
-    const [selectedJar, setSelectedJar] = useState(null);
+    const [selectedJar, setSelectedJar] = useState(null); // legacy object (kept for potential fallback)
+    const [selectedJarId, setSelectedJarId] = useState(null);
     const [jarOrigin, setJarOrigin] = useState('app'); // 'app' | 'unique'
     const [uniqueJarsFilter, setUniqueJarsFilter] = useState('all');
     const [showServerConfig, setShowServerConfig] = useState(false);
@@ -97,28 +99,21 @@ const App = () => {
     const handleBackToDashboard = () => {
         setSelectedApplication(null);
         setSelectedJar(null);
+        setSelectedJarId(null);
         setRoute({ name: 'dashboard' });
         window.history.pushState({ page: 'dashboard' }, '', '#/');
     };
 
-    const handleOpenJarDetails = async (jarId, origin = 'app', appContextAppId = null) => {
+    const handleOpenJarDetails = (jarId, origin = 'app', appContextAppId = null) => {
         if (!jarId) return;
         if (appContextAppId) {
             const app = dashboardData.applications.find(a => a.appId === appContextAppId);
             if (app) setSelectedApplication(app);
         }
-        setSelectedJar({ jarId, loading: true });
+        setSelectedJarId(jarId);
         setJarOrigin(origin);
         setRoute({ name: 'jar' });
         window.history.pushState({ page: 'jar', jarId, origin }, '', `#/jar/${jarId}`);
-        try {
-            const res = await fetch(`/api/jars/${jarId}`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            setSelectedJar(data);
-        } catch (e) {
-            setSelectedJar(prev => ({ ...(prev || {}), jarId, error: e.message, loading: false }));
-        }
     };
 
     const handleOpenUniqueJarsPage = (filter = 'all') => {
@@ -350,26 +345,26 @@ const App = () => {
                 )}
 
                 {route.name === 'jar' && (
-                    <Suspense fallback={<div></div>}>
-                        <JarDetails 
-                            jar={selectedJar}
-                            application={selectedApplication}
-                            applications={dashboardData.applications}
-                            origin={jarOrigin}
-                            onOpenApp={handleOpenAppPageById}
-                            onBack={() => {
-                                if (jarOrigin === 'unique') {
-                                    setRoute({ name: 'unique' });
-                                    window.history.pushState({ page: 'unique', filter: uniqueJarsFilter }, '', `#/jars/${uniqueJarsFilter}`);
-                                } else if (selectedApplication) {
-                                    setRoute({ name: 'app' });
-                                    window.history.pushState({ page: 'app', appId: selectedApplication.appId }, '', `#/app/${selectedApplication.appId}`);
-                                } else {
-                                    handleBackToDashboard();
-                                }
-                            }}
-                        />
-                    </Suspense>
+                    <ErrorBoundary jar={{ jarId: selectedJarId }}>
+                        <Suspense fallback={<div></div>}>
+                            <JarDetails 
+                                jarId={selectedJarId}
+                                origin={jarOrigin}
+                                onOpenApp={handleOpenAppPageById}
+                                onBack={() => {
+                                    if (jarOrigin === 'unique') {
+                                        setRoute({ name: 'unique' });
+                                        window.history.pushState({ page: 'unique', filter: uniqueJarsFilter }, '', `#/jars/${uniqueJarsFilter}`);
+                                    } else if (selectedApplication) {
+                                        setRoute({ name: 'app' });
+                                        window.history.pushState({ page: 'app', appId: selectedApplication.appId }, '', `#/app/${selectedApplication.appId}`);
+                                    } else {
+                                        handleBackToDashboard();
+                                    }
+                                }}
+                            />
+                        </Suspense>
+                    </ErrorBoundary>
                 )}
 
                 {route.name === 'unique' && (

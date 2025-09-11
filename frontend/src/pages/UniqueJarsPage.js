@@ -120,21 +120,22 @@ const UniqueJarsPage = ({ applications = [], initialFilter = 'all', onBack, onOp
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  className="flex-1 px-3 h-10 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Search by name, path, or jarId..."
                 />
-                <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-full md:w-auto">
+                {/* Button group: remove extra padding and fix uniform height to match input */}
+                <div className="flex space-x-1 bg-gray-100 rounded-lg w-full md:w-auto">
                   <button
                     onClick={() => setActiveTab('all')}
-                    className={`tab-button flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'all' ? 'active' : ''}`}
+                    className={`tab-button px-5 h-10 text-sm font-medium rounded-md transition-colors flex items-center justify-center whitespace-nowrap ${activeTab === 'all' ? 'active' : ''}`}
                   >All ({counts.all})</button>
                   <button
                     onClick={() => setActiveTab('active')}
-                    className={`tab-button flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'active' ? 'active' : ''}`}
+                    className={`tab-button px-5 h-10 text-sm font-medium rounded-md transition-colors flex items-center justify-center whitespace-nowrap ${activeTab === 'active' ? 'active' : ''}`}
                   ><span className="flex items-center justify-center"><i data-lucide="check-circle" className="w-4 h-4 mr-1"/>Active ({counts.active})</span></button>
                   <button
                     onClick={() => setActiveTab('inactive')}
-                    className={`tab-button flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'inactive' ? 'active' : ''}`}
+                    className={`tab-button px-5 h-10 text-sm font-medium rounded-md transition-colors flex items-center justify-center whitespace-nowrap ${activeTab === 'inactive' ? 'active' : ''}`}
                   ><span className="flex items-center justify-center"><i data-lucide="circle" className="w-4 h-4 mr-1"/>Inactive ({counts.inactive})</span></button>
                 </div>
               </div>
@@ -156,9 +157,6 @@ const UniqueJarsPage = ({ applications = [], initialFilter = 'all', onBack, onOp
                   />
                 ))}
               </div>
-              {filtered.length > 0 && (
-                <p className="text-[11px] text-gray-400 mt-4">Data sourced from /api/jars (deduplicated). Application association list is not provided in this view.</p>
-              )}
             </>
           )}
         </div>

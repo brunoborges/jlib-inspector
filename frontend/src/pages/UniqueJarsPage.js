@@ -80,7 +80,7 @@ const UniqueJarsPage = ({ applications, initialFilter = 'all', onBack, onOpenApp
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" 
-              placeholder="Search unique JARs..."
+              placeholder="Search JARs..."
             />
           </div>
 
@@ -128,7 +128,7 @@ const UniqueJarsPage = ({ applications, initialFilter = 'all', onBack, onOpenApp
                   // Open details using first associated application (prioritize consistent layout/behavior)
                   onOpenJar={(path) => {
                     const firstAppId = jar.applications && jar.applications.length > 0 ? jar.applications[0].appId : null;
-                    if (firstAppId && onOpenJar) onOpenJar(firstAppId, path);
+                    if (firstAppId && onOpenJar) onOpenJar(firstAppId, path, 'unique');
                   }}
                 />
               ))

@@ -22,6 +22,7 @@ const App = () => {
     const [selectedApplication, setSelectedApplication] = useState(null);
     const [route, setRoute] = useState({ name: 'dashboard' }); // 'dashboard' | 'app' | 'unique' | 'jar'
     const [selectedJar, setSelectedJar] = useState(null);
+    const [jarOrigin, setJarOrigin] = useState('app'); // 'app' | 'unique'
     const [uniqueJarsFilter, setUniqueJarsFilter] = useState('all');
     const [showServerConfig, setShowServerConfig] = useState(false);
     const [currentServerUrl, setCurrentServerUrl] = useState('http://localhost:8080');
@@ -101,13 +102,14 @@ const App = () => {
         window.history.pushState({ page: 'dashboard' }, '', '#/');
     };
 
-    const handleOpenJarDetails = (appId, jarPath) => {
+    const handleOpenJarDetails = (appId, jarPath, origin = 'app') => {
         const app = dashboardData.applications.find(a => a.appId === appId);
         if (!app) return;
         const jar = (app.jars || []).find(j => j.path === jarPath);
         if (!jar) return;
         setSelectedApplication(app);
         setSelectedJar(jar);
+        setJarOrigin(origin);
         setRoute({ name: 'jar' });
         window.history.pushState({ page: 'jar', appId, jarPath }, '', `#/app/${appId}/jar/${encodeURIComponent(jarPath)}`);
     };
@@ -175,7 +177,7 @@ const App = () => {
                 if (parts[2] === 'jar' && parts[3]) {
                     const appId = parts[1];
                     const jarPath = decodeURIComponent(parts.slice(3).join('/'));
-                    handleOpenJarDetails(appId, jarPath);
+                    handleOpenJarDetails(appId, jarPath, 'app');
                 } else {
                     handleOpenAppPageById(parts[1]);
                 }
@@ -339,9 +341,13 @@ const App = () => {
                             jar={selectedJar}
                             application={selectedApplication}
                             applications={dashboardData.applications}
+                            origin={jarOrigin}
                             onOpenApp={handleOpenAppPageById}
                             onBack={() => {
-                                if (selectedApplication) {
+                                if (jarOrigin === 'unique') {
+                                    setRoute({ name: 'unique' });
+                                    window.history.pushState({ page: 'unique', filter: uniqueJarsFilter }, '', `#/jars/${uniqueJarsFilter}`);
+                                } else if (selectedApplication) {
                                     setRoute({ name: 'app' });
                                     window.history.pushState({ page: 'app', appId: selectedApplication.appId }, '', `#/app/${selectedApplication.appId}`);
                                 } else {

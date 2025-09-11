@@ -7,7 +7,7 @@ import { initLucideIcons, copyToClipboard, formatFileSize, getMvnRepositoryUrl }
 // - application: current application context (may be one of many using the jar)
 // - applications: full list of applications (to compute all associations)
 // - onOpenApp: callback(appId) to open an application's details
-const JarDetails = ({ jar, onBack, application, applications = [], onOpenApp }) => {
+const JarDetails = ({ jar, onBack, application, applications = [], onOpenApp, origin = 'app' }) => {
   const [manifest, setManifest] = useState(jar?.manifest || {});
   const [loadingManifest, setLoadingManifest] = useState(false);
   const [manifestError, setManifestError] = useState(null);
@@ -52,11 +52,13 @@ const JarDetails = ({ jar, onBack, application, applications = [], onOpenApp }) 
       .map(app => ({ appId: app.appId, name: app.name }));
   }, [jar, applications]);
 
+  const backLabel = origin === 'unique' ? 'Back to JARs' : 'Back to Application';
+
   return (
     <div className="max-w-5xl mx-auto py-6">
       <button onClick={onBack} className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
         <i data-lucide="arrow-left" className="w-4 h-4 mr-2"></i>
-        Back to Application
+        {backLabel}
       </button>
       <div className="bg-white rounded-xl shadow p-6">
         <div className="flex items-start justify-between mb-4">

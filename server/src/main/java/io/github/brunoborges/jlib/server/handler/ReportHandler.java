@@ -5,7 +5,6 @@ import com.sun.net.httpserver.HttpHandler;
 
 import io.github.brunoborges.jlib.common.JarMetadata;
 import io.github.brunoborges.jlib.common.JavaApplication;
-// Custom JsonParser no longer needed directly; using org.json for building output.
 import io.github.brunoborges.jlib.server.service.ApplicationService;
 
 import java.io.IOException;
@@ -108,7 +107,8 @@ public class ReportHandler implements HttpHandler {
         JSONArray uniqueJars = new JSONArray();
         for (Agg agg : aggByKey.values()) {
             JSONObject obj = new JSONObject();
-            if (agg.checksum != null) obj.put("checksum", agg.checksum);
+            if (agg.checksum != null)
+                obj.put("checksum", agg.checksum);
             obj.put("size", agg.size);
             obj.put("fileName", agg.sampleFileName == null ? "" : agg.sampleFileName);
             obj.put("firstSeen", agg.firstSeen == null ? "" : agg.firstSeen.toString());
@@ -116,11 +116,13 @@ public class ReportHandler implements HttpHandler {
             obj.put("loadedCount", agg.loadedCount);
 
             JSONArray pathsArr = new JSONArray();
-            for (String p : agg.paths) pathsArr.put(p);
+            for (String p : agg.paths)
+                pathsArr.put(p);
             obj.put("paths", pathsArr);
 
             JSONArray fnArr = new JSONArray();
-            for (String fn : agg.fileNames) fnArr.put(fn);
+            for (String fn : agg.fileNames)
+                fnArr.put(fn);
             obj.put("fileNames", fnArr);
 
             JSONArray appsArr = new JSONArray();

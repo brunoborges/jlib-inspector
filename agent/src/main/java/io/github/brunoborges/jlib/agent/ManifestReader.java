@@ -12,44 +12,58 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 /**
- * Utility for reading and parsing MANIFEST.MF attributes from a class' {@link ProtectionDomain}.
+ * Utility for reading and parsing MANIFEST.MF attributes from a class'
+ * {@link ProtectionDomain}.
  * <p>
  * Supports:
  * <ul>
- *   <li>Regular JARs (file:...jar)</li>
- *   <li>Nested JAR style locations (file:outer.jar!/BOOT-INF/lib/inner.jar)</li>
- *   <li>"jar:nested:" custom Spring Boot loader style URLs</li>
- *   <li>Exploded directories (file:/path/to/classes/)</li>
+ * <li>Regular JARs (file:...jar)</li>
+ * <li>Nested JAR style locations (file:outer.jar!/BOOT-INF/lib/inner.jar)</li>
+ * <li>"jar:nested:" custom Spring Boot loader style URLs</li>
+ * <li>Exploded directories (file:/path/to/classes/)</li>
  * </ul>
- * Returns an empty map if the manifest cannot be read. All logging is at FINE/INFO
+ * Returns an empty map if the manifest cannot be read. All logging is at
+ * FINE/INFO
  * to avoid noisy output while still providing traceability when enabled.
  */
 final class ManifestReader {
 
     private static final Logger LOG = Logger.getLogger(ManifestReader.class.getName());
 
-    private ManifestReader() {}
+    private ManifestReader() {
+    }
 
     /**
      * Reads and parses manifest attributes from the given ProtectionDomain.
-     * The returned map is mutable (caller may copy or wrap if immutability is desired).
+     * The returned map is mutable (caller may copy or wrap if immutability is
+     * desired).
      *
      * @param pd protection domain
-     * @return map of manifest main section (and any subsequent sections) attributes; empty if not available
+     * @return map of manifest main section (and any subsequent sections)
+     *         attributes; empty if not available
      */
-    static Map<String,String> read(ProtectionDomain pd) {
+    static Map<String, String> read(ProtectionDomain pd) {
         String stage = "start";
         boolean manifestRead = false;
         String locStr = null;
-        Map<String,String> attrs = new HashMap<>();
+        Map<String, String> attrs = new HashMap<>();
         try {
-            if (pd == null) { LOG.fine(msg(stage, "pd null")); return attrs; }
+            if (pd == null) {
+                LOG.fine(msg(stage, "pd null"));
+                return attrs;
+            }
             stage = "codesource";
             CodeSource cs = pd.getCodeSource();
-            if (cs == null) { LOG.fine(msg(stage, "CodeSource null")); return attrs; }
+            if (cs == null) {
+                LOG.fine(msg(stage, "CodeSource null"));
+                return attrs;
+            }
             stage = "location";
             URL loc = cs.getLocation();
-            if (loc == null) { LOG.fine(msg(stage, "location null")); return attrs; }
+            if (loc == null) {
+                LOG.fine(msg(stage, "location null"));
+                return attrs;
+            }
             locStr = loc.toString();
             stage = "scheme-eval";
             LOG.fine("Attempting MANIFEST read; stage=" + stage + ", location=" + locStr);
@@ -123,7 +137,8 @@ final class ManifestReader {
                 manifestRead = true;
             }
         } catch (Exception e) {
-            LOG.fine("Exception during manifest read (stage=" + stage + ", location=" + locStr + "): " + e.getMessage());
+            LOG.fine(
+                    "Exception during manifest read (stage=" + stage + ", location=" + locStr + "): " + e.getMessage());
         } finally {
             if (!manifestRead) {
                 String finalLoc = (locStr == null ? "<unknown>" : locStr);
@@ -132,7 +147,6 @@ final class ManifestReader {
         }
         return attrs;
     }
-
 
     private static String ensureEndsWithBangSlash(String base) {
         if (!base.endsWith("!/")) {
@@ -145,7 +159,11 @@ final class ManifestReader {
         return base;
     }
 
-    /** Duplicate of logic in {@code ClassLoaderTrackerTransformer#normalizeJarNestedUrl} to avoid tight coupling. */
+    /**
+     * Duplicate of logic in
+     * {@code ClassLoaderTrackerTransformer#normalizeJarNestedUrl} to avoid tight
+     * coupling.
+     */
     private static String normalizeJarNestedUrl(String url) {
         String path = url.substring("jar:nested:".length());
         int bangIndex = path.indexOf("/!");
@@ -167,5 +185,7 @@ final class ManifestReader {
         }
     }
 
-    private static String msg(String stage, String detail) { return "Manifest scan aborted (stage=" + stage + "): " + detail; }
+    private static String msg(String stage, String detail) {
+        return "Manifest scan aborted (stage=" + stage + "): " + detail;
+    }
 }

@@ -1,0 +1,71 @@
+### ---------------------------------------------------------------------------
+### JLib Inspector – HTTP Request Collection
+### Use with VS Code REST Client (humao.rest-client) or similar tools.
+### Set variables below as needed.
+### ---------------------------------------------------------------------------
+
+@base = http://localhost:8080
+@appId = 56797b7d72774f0cecbe7533935fac1e08b0fe7c1749bd5cca4ab0d2b1652597
+
+### 1. Healthcheck
+GET {{base}}/health
+
+### 2. List all applications (summary)
+GET {{base}}/api/apps
+
+### 3. Get full application detail (includes jars & manifest attributes)
+GET {{base}}/api/apps/{{appId}}
+
+### 4. List only jars of a given application ID (lighter than full detail)
+GET {{base}}/api/apps/{{appId}}/jars
+
+### 5. Upsert (create/update) an application and its jar inventory
+# Typically performed by the Java agent. Provide realistic values if calling manually.
+PUT {{base}}/api/apps/{{appId}}
+Content-Type: application/json
+
+{
+	"commandLine": "java -jar sample-spring-app-1.0-SNAPSHOT.jar",
+	"jdkVersion": "21.0.2",
+	"jdkVendor": "Eclipse Adoptium",
+	"jdkPath": "/usr/lib/jvm/jdk-21",
+	"jars": [
+		{
+			"path": "file:/app/sample-spring-app-1.0-SNAPSHOT.jar",
+			"fileName": "sample-spring-app-1.0-SNAPSHOT.jar",
+			"size": 1234567,
+			"checksum": "2f54deadbeefcafefeed112233aabbccddeeff00112233445566778899aabbcc",
+			"loaded": true
+		},
+		{
+			"path": "file:/app/lib/spring-core-6.1.0.jar",
+			"fileName": "spring-core-6.1.0.jar",
+			"size": 543210,
+			"checksum": "?",
+			"loaded": true
+		}
+	]
+}
+
+### 6. Update application metadata only (name / description / tags)
+PUT {{base}}/api/apps/{{appId}}/metadata
+Content-Type: application/json
+
+{
+	"name": "Sample Spring App",
+	"description": "Demo application for JLib Inspector",
+	"tags": ["demo", "spring", "sample"]
+}
+
+### 7. Dashboard snapshot (all apps + jars in one payload)
+GET {{base}}/api/dashboard
+
+### 8. Unique loaded JARs report (aggregation across apps)
+GET {{base}}/report
+
+### ---------------------------------------------------------------------------
+### Tips:
+### - Run the sample app with the agent to populate data.
+### - Change @appId after listing applications.
+### - PUT endpoints return plain text or full JSON (metadata update) per API docs.
+### ---------------------------------------------------------------------------

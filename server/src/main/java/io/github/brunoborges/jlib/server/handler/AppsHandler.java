@@ -144,10 +144,6 @@ public class AppsHandler implements HttpHandler {
         }
     }
 
-    // Removed stripQuotes helper (org.json handles string values directly).
-
-    // Removed manual parseStringArray in favor of org.json JSONArray parsing.
-
     private String extractAppId(String path) {
         String[] parts = path.split("/");
         return parts[3]; // /api/apps/{appId}
@@ -169,12 +165,12 @@ public class AppsHandler implements HttpHandler {
         LOG.info("Processing update for app: " + appId);
         LOG.info("JSON data received: " + jsonData);
 
-    // Use org.json for parsing now
-    JSONObject obj = new JSONObject(jsonData);
-    String commandLine = obj.optString("commandLine", null);
-    String jdkVersion = obj.optString("jdkVersion", null);
-    String jdkVendor = obj.optString("jdkVendor", null);
-    String jdkPath = obj.optString("jdkPath", null);
+        // Use org.json for parsing now
+        JSONObject obj = new JSONObject(jsonData);
+        String commandLine = obj.optString("commandLine", null);
+        String jdkVersion = obj.optString("jdkVersion", null);
+        String jdkVendor = obj.optString("jdkVendor", null);
+        String jdkPath = obj.optString("jdkPath", null);
 
         if (commandLine == null || jdkVersion == null || jdkVendor == null || jdkPath == null) {
             LOG.warning("Missing required fields. commandLine=" + commandLine +
@@ -187,7 +183,7 @@ public class AppsHandler implements HttpHandler {
         app.updateLastSeen();
 
         // Process JAR updates if present
-    String jarsData = obj.has("jars") ? obj.get("jars").toString() : null;
+        String jarsData = obj.has("jars") ? obj.get("jars").toString() : null;
         if (jarsData != null) {
             jarService.processJarUpdates(app, jarsData);
         }

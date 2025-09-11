@@ -15,7 +15,8 @@ import io.github.brunoborges.jlib.common.JarMetadata;
 /**
  * Handles HTTP communication with the JLib server.
  * 
- * <p>This class is responsible for sending application and JAR inventory data
+ * <p>
+ * This class is responsible for sending application and JAR inventory data
  * to the configured JLib server endpoint, including JSON serialization and
  * HTTP request handling.
  */
@@ -25,9 +26,10 @@ public class JLibServerClient {
     private static final String ENV_VAR = "JLIB_SERVER_URL";
     private static final int DEFAULT_PORT = 8080;
 
-    // Normalized base URL (scheme://host[:port][/optionalPath]) with no trailing '/'
+    // Normalized base URL (scheme://host[:port][/optionalPath]) with no trailing
+    // '/'
     private final String baseUrl;
-    
+
     /**
      * Creates a new server client for the specified host and port.
      * 
@@ -45,36 +47,40 @@ public class JLibServerClient {
     }
 
     /**
-     * Factory that returns a client if the environment variable is present, otherwise null.
+     * Factory that returns a client if the environment variable is present,
+     * otherwise null.
      */
     public static JLibServerClient fromEnv() {
         String override = System.getenv(ENV_VAR);
-        if (override == null || override.isBlank()) return null;
+        if (override == null || override.isBlank())
+            return null;
         return new JLibServerClient("localhost", DEFAULT_PORT); // constructor will override with env
     }
-    
+
     /**
      * Sends application and JAR inventory data to the configured server.
      * 
      * @param applicationId The unique application identifier
-     * @param inventory The jar inventory to send
+     * @param inventory     The jar inventory to send
      * @throws Exception if sending fails
      */
     public void sendApplicationData(final String applicationId, JarInventory inventory) throws Exception {
         final long start = System.currentTimeMillis();
         final int jarCount = inventory.snapshot().size();
 
-        LOG.info(() -> "Preparing to send application inventory: appId=" + applicationId + ", jars=" + jarCount + ", target=" + baseUrl);
+        LOG.info(() -> "Preparing to send application inventory: appId=" + applicationId + ", jars=" + jarCount
+                + ", target=" + baseUrl);
 
         // Build JSON payload
         String json = buildApplicationJson(inventory);
         int payloadBytes = json.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
-        LOG.info(() -> String.format("Sending %d bytes of inventory data for appId=%s to %s/api/apps/%s", payloadBytes, applicationId, baseUrl, applicationId));
+        LOG.info(() -> String.format("Sending %d bytes of inventory data for appId=%s to %s/api/apps/%s", payloadBytes,
+                applicationId, baseUrl, applicationId));
 
         // Send PUT request using modern HTTP client
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(baseUrl + "/api/apps/" + applicationId))
+                .uri(URI.create(baseUrl + "/api/apps/" + applicationId))
                 .PUT(HttpRequest.BodyPublishers.ofString(json))
                 .header("Content-Type", "application/json")
                 .build();
@@ -83,13 +89,14 @@ public class JLibServerClient {
 
         if (response.statusCode() == 200) {
             long took = System.currentTimeMillis() - start;
-            LOG.info(() -> String.format("Successfully sent inventory for appId=%s (status=%d, jars=%d, bytes=%d, took=%dms)",
-            applicationId, response.statusCode(), jarCount, payloadBytes, took));
+            LOG.info(() -> String.format(
+                    "Successfully sent inventory for appId=%s (status=%d, jars=%d, bytes=%d, took=%dms)",
+                    applicationId, response.statusCode(), jarCount, payloadBytes, took));
         } else {
             long took = System.currentTimeMillis() - start;
             LOG.warning("Failed to send inventory for appId=" + applicationId +
-                " status=" + response.statusCode() +
-                " took=" + took + "ms body=" + response.body());
+                    " status=" + response.statusCode() +
+                    " took=" + took + "ms body=" + response.body());
         }
     }
 
@@ -198,30 +205,13 @@ public class JLibServerClient {
             return fallback.toString();
         }
     }
-
     /**
-     * Escapes special characters for JSON string values.
+     * Normalizes and validates the base URL.
+     * Ensures it has a scheme, host, and optional port/path, with no trailing slash.
      * 
-     * @param str The string to escape
-     * @return JSON-safe escaped string
+     * @param raw The raw URL string
+     * @return Normalized URL string
      */
-    // Manual escapeJson no longer needed (org.json handles escaping when serializing values).
-    // Temporary compatibility shim: some tests (or stale compiled artifacts) still attempt to
-    // reflect a private escapeJson(String) method. Re-introduce a minimal implementation that
-    // delegates escaping to org.json. Safe to remove once tests are fully updated and stale
-    // class files eliminated.
-    @SuppressWarnings("unused")
-    private static String escapeJson(String str) {
-        if (str == null) return "";
-        // JSONObject.quote returns a JSON string literal including surrounding quotes.
-        String quoted = JSONObject.quote(str);
-        // Strip leading and trailing quotes to mimic previous behavior that returned the inner escaped value.
-        if (quoted.length() >= 2 && quoted.startsWith("\"") && quoted.endsWith("\"")) {
-            return quoted.substring(1, quoted.length() - 1);
-        }
-        return quoted; // Fallback (should not normally happen)
-    }
-
     private static String normalizeBaseUrl(String raw) {
         try {
             String v = raw.trim();
@@ -231,19 +221,24 @@ public class JLibServerClient {
             URI uri = URI.create(v);
             String scheme = uri.getScheme();
             String host = uri.getHost();
-            // If URI couldn't parse host (e.g., raw host w/out scheme already handled; else fallback)
+            // If URI couldn't parse host (e.g., raw host w/out scheme already handled; else
+            // fallback)
             if (host == null) {
-                // Could be something like http://localhost:8080 without parsing? host null rarely.
+                // Could be something like http://localhost:8080 without parsing? host null
+                // rarely.
                 return v.replaceAll("/$", "");
             }
             int port = uri.getPort();
             StringBuilder b = new StringBuilder();
             b.append(scheme).append("://").append(host);
-            if (port != -1) b.append(":").append(port);
+            if (port != -1)
+                b.append(":").append(port);
             String path = uri.getPath();
             if (path != null && !path.isBlank() && !"/".equals(path)) {
-                if (!path.startsWith("/")) b.append('/');
-                if (path.endsWith("/")) path = path.substring(0, path.length()-1);
+                if (!path.startsWith("/"))
+                    b.append('/');
+                if (path.endsWith("/"))
+                    path = path.substring(0, path.length() - 1);
                 b.append(path);
             }
             return b.toString();

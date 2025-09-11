@@ -10,8 +10,11 @@ import io.github.brunoborges.jlib.common.JarMetadata;
 /**
  * Handles reporting and formatting of JAR inventory data.
  * 
- * <p>This class is responsible for generating human-readable reports from JAR inventory data,
- * including summary statistics, detailed tables, and various formatting utilities.
+ * <p>
+ * This class is responsible for generating human-readable reports from JAR
+ * inventory data,
+ * including summary statistics, detailed tables, and various formatting
+ * utilities.
  */
 class JarInventoryReport {
 
@@ -19,11 +22,11 @@ class JarInventoryReport {
      * Generates a comprehensive human-readable report of JAR inventory data.
      * 
      * @param jarData Collection of JAR metadata to report on
-     * @param out PrintStream to write the report to
+     * @param out     PrintStream to write the report to
      */
     public static void generateReport(Collection<JarMetadata> jarData, PrintStream out) {
         var list = new ArrayList<>(jarData);
-        
+
         // Sort: loaded first, then top-level before nested, then filename
         list.sort((a, b) -> {
             int cmpLoaded = Boolean.compare(b.isLoaded(), a.isLoaded());
@@ -75,7 +78,7 @@ class JarInventoryReport {
         // Table header
         String header = String.format("%s %s %s %8s %12s %s %s %s",
                 pad("#", 3), "L", "T", "SIZE", "BYTES", pad("SHA256(12)", 12), pad("FILENAME", 40), "FULL-PATH / ID");
-        
+
         out.println("Details");
         out.println(repeat('-', header.length()));
         out.println(header);
@@ -92,18 +95,23 @@ class JarInventoryReport {
             String name = pad(truncateString(r.fileName, 40), 40);
             out.printf("%s %s %s %8s %12s %s %s %s%n", idx, l, t, sizeHuman, sizeBytes, hash, name, r.fullPath);
         }
-        
+
         out.println(repeat('-', header.length()));
-        out.printf("Legend: L=Loaded, T=Top-level, N=Nested. Size is human-readable (base 1024). Hash truncated to 12 chars.%n");
+        out.printf(
+                "Legend: L=Loaded, T=Top-level, N=Nested. Size is human-readable (base 1024). Hash truncated to 12 chars.%n");
     }
 
     /**
-     * Truncates a string to the specified maximum length, adding "..." if truncated.
+     * Truncates a string to the specified maximum length, adding "..." if
+     * truncated.
      */
     private static String truncateString(String s, int max) {
-        if (s == null) return "?";
-        if (s.length() <= max) return s;
-        if (max <= 3) return s.substring(0, max);
+        if (s == null)
+            return "?";
+        if (s.length() <= max)
+            return s;
+        if (max <= 3)
+            return s.substring(0, max);
         return s.substring(0, max - 3) + "...";
     }
 
@@ -111,7 +119,8 @@ class JarInventoryReport {
      * Calculates percentage as a double.
      */
     private static double percentage(long part, long total) {
-        if (total <= 0) return 0.0;
+        if (total <= 0)
+            return 0.0;
         return (part * 100.0) / total;
     }
 
@@ -126,7 +135,8 @@ class JarInventoryReport {
      * Pads a string to the specified width with spaces.
      */
     private static String pad(String s, int width) {
-        if (s == null) s = "";
+        if (s == null)
+            s = "";
         return s.length() >= width ? s : s + repeat(' ', width - s.length());
     }
 
@@ -134,19 +144,22 @@ class JarInventoryReport {
      * Converts bytes to human-readable format (e.g., "1.5KB", "2.3MB").
      */
     private static String humanReadableSize(long bytes) {
-        if (bytes < 1024) return bytes + "B";
-        
+        if (bytes < 1024)
+            return bytes + "B";
+
         double value = bytes;
         String[] units = { "KB", "MB", "GB", "TB", "PB" };
         int unitIndex = -1;
-        
+
         while (value >= 1024 && unitIndex < units.length - 1) {
             value /= 1024.0;
             unitIndex++;
-            if (value < 1024 || unitIndex == units.length - 1) break;
+            if (value < 1024 || unitIndex == units.length - 1)
+                break;
         }
-        
-        if (unitIndex < 0) unitIndex = 0; // safety fallback
+
+        if (unitIndex < 0)
+            unitIndex = 0; // safety fallback
         return String.format("%.1f%s", value, units[unitIndex]);
     }
 }

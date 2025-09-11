@@ -55,8 +55,9 @@ public final class JarInventory {
     }
 
     /** Attach manifest attributes to an existing jar if absent. */
-    public void attachManifest(String id, Map<String,String> manifestAttrs) {
-        if (id == null || manifestAttrs == null || manifestAttrs.isEmpty()) return;
+    public void attachManifest(String id, Map<String, String> manifestAttrs) {
+        if (id == null || manifestAttrs == null || manifestAttrs.isEmpty())
+            return;
         JarMetadata meta = jars.get(id);
         if (meta != null) {
             meta.setManifestAttributesIfAbsent(manifestAttrs);

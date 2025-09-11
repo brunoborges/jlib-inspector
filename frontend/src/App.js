@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import LoadingSpinner from './components/LoadingSpinner';
 import StatisticsCards from './components/StatisticsCards';
-import SearchAndFilter from './components/SearchAndFilter';
 import ApplicationsList from './components/ApplicationsList';
 import { useDashboardData } from './hooks/useDashboardData';
 import { initLucideIcons } from './utils/helpers';
@@ -292,14 +291,6 @@ const App = () => {
             </div>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <SearchAndFilter 
-                    searchTerm={searchTerm}
-                    onSearchChange={setSearchTerm}
-                    filterType={filterType}
-                    onFilterChange={setFilterType}
-                    onRefresh={handleRefresh}
-                    isRefreshing={isRefreshing}
-                />
 
                 <StatisticsCards 
                     applications={dashboardData.applications} 
@@ -321,6 +312,11 @@ const App = () => {
                         totalCount={dashboardData.applications.length}
                         onOpenJarModal={handleOpenAppPage}
                         onRefresh={handleRefresh}
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        filterType={filterType}
+                        onFilterChange={setFilterType}
+                        isRefreshing={isRefreshing}
                     />
                 )}
 

@@ -4,8 +4,9 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import io.github.brunoborges.jlib.common.JavaApplication;
-import io.github.brunoborges.jlib.json.JsonParserFactory;
-import io.github.brunoborges.jlib.json.JsonParserInterface;
+// Removed direct use of custom JsonParser in favor of org.json
+import org.json.JSONArray;
+import org.json.JSONObject;
 import io.github.brunoborges.jlib.json.JsonResponseBuilder;
 import io.github.brunoborges.jlib.server.service.ApplicationService;
 import io.github.brunoborges.jlib.server.service.JarService;
@@ -15,7 +16,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -27,7 +27,7 @@ public class AppsHandler implements HttpHandler {
 
     private final ApplicationService applicationService;
     private final JarService jarService;
-    private final JsonParserInterface jsonParser = JsonParserFactory.getDefaultParser();
+    // Retain parser factory for backward compatibility with other services if needed.
 
     public AppsHandler(ApplicationService applicationService, JarService jarService) {
         this.applicationService = applicationService;
@@ -115,16 +115,21 @@ public class AppsHandler implements HttpHandler {
                 return;
             }
             try {
-                Map<String, String> data = jsonParser.parseSimpleJson(requestBody);
-                if (data.containsKey("name")) {
-                    app.setName(stripQuotes(data.get("name")));
+                JSONObject obj = new JSONObject(requestBody);
+                if (obj.has("name")) {
+                    app.setName(obj.optString("name", ""));
                 }
-                if (data.containsKey("description")) {
-                    app.setDescription(stripQuotes(data.get("description")));
+                if (obj.has("description")) {
+                    app.setDescription(obj.optString("description", ""));
                 }
-                if (data.containsKey("tags")) {
-                    String tagsJson = data.get("tags");
-                    java.util.List<String> tags = parseStringArray(tagsJson);
+                if (obj.has("tags")) {
+                    JSONArray arr = obj.optJSONArray("tags");
+                    java.util.List<String> tags = new java.util.ArrayList<>();
+                    if (arr != null) {
+                        for (int i = 0; i < arr.length(); i++) {
+                            tags.add(arr.optString(i));
+                        }
+                    }
                     app.setTags(tags);
                 }
                 app.updateLastSeen();
@@ -139,47 +144,9 @@ public class AppsHandler implements HttpHandler {
         }
     }
 
-    private String stripQuotes(String s) {
-        if (s == null) return null;
-        if (s.startsWith("\"") && s.endsWith("\"")) {
-            return s.substring(1, s.length() - 1);
-        }
-        return s;
-    }
+    // Removed stripQuotes helper (org.json handles string values directly).
 
-    private java.util.List<String> parseStringArray(String json) {
-        java.util.List<String> result = new java.util.ArrayList<>();
-        if (json == null) return result;
-        String trimmed = json.trim();
-        if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return result;
-        // very simple array of strings parser
-        String body = trimmed.substring(1, trimmed.length() - 1).trim();
-        if (body.isEmpty()) return result;
-        int i = 0; boolean inQuotes = false; StringBuilder cur = new StringBuilder();
-        while (i < body.length()) {
-            char c = body.charAt(i);
-            if (c == '"') { inQuotes = !inQuotes; cur.append(c); i++; continue; }
-            if (c == ',' && !inQuotes) {
-                String item = cur.toString().trim();
-                if (item.startsWith("\"") && item.endsWith("\"")) {
-                    item = item.substring(1, item.length() - 1);
-                }
-                if (!item.isEmpty()) result.add(item);
-                cur.setLength(0);
-            } else {
-                cur.append(c);
-            }
-            i++;
-        }
-        String last = cur.toString().trim();
-        if (!last.isEmpty()) {
-            if (last.startsWith("\"") && last.endsWith("\"")) {
-                last = last.substring(1, last.length() - 1);
-            }
-            if (!last.isEmpty()) result.add(last);
-        }
-        return result;
-    }
+    // Removed manual parseStringArray in favor of org.json JSONArray parsing.
 
     private String extractAppId(String path) {
         String[] parts = path.split("/");
@@ -202,14 +169,12 @@ public class AppsHandler implements HttpHandler {
         LOG.info("Processing update for app: " + appId);
         LOG.info("JSON data received: " + jsonData);
 
-        // Simple JSON parsing - in production, use a proper JSON library
-        Map<String, String> data = jsonParser.parseSimpleJson(jsonData);
-        LOG.info("Parsed data: " + data);
-
-        String commandLine = data.get("commandLine");
-        String jdkVersion = data.get("jdkVersion");
-        String jdkVendor = data.get("jdkVendor");
-        String jdkPath = data.get("jdkPath");
+    // Use org.json for parsing now
+    JSONObject obj = new JSONObject(jsonData);
+    String commandLine = obj.optString("commandLine", null);
+    String jdkVersion = obj.optString("jdkVersion", null);
+    String jdkVendor = obj.optString("jdkVendor", null);
+    String jdkPath = obj.optString("jdkPath", null);
 
         if (commandLine == null || jdkVersion == null || jdkVendor == null || jdkPath == null) {
             LOG.warning("Missing required fields. commandLine=" + commandLine +
@@ -222,7 +187,7 @@ public class AppsHandler implements HttpHandler {
         app.updateLastSeen();
 
         // Process JAR updates if present
-        String jarsData = data.get("jars");
+    String jarsData = obj.has("jars") ? obj.get("jars").toString() : null;
         if (jarsData != null) {
             jarService.processJarUpdates(app, jarsData);
         }

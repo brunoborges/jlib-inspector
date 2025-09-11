@@ -2,12 +2,11 @@ package io.github.brunoborges.jlib.server.service;
 
 import io.github.brunoborges.jlib.common.JarMetadata;
 import io.github.brunoborges.jlib.common.JavaApplication;
-import io.github.brunoborges.jlib.json.JsonParserFactory;
-import io.github.brunoborges.jlib.json.JsonParserInterface;
+// Replaced custom JsonParser usage with org.json for robust parsing.
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -16,7 +15,6 @@ import java.util.logging.Logger;
 public class JarService {
 
     private static final Logger LOG = Logger.getLogger(JarService.class.getName());
-    private final JsonParserInterface jsonParser = JsonParserFactory.getDefaultParser();
 
     /**
      * Processes JAR updates for an application.
@@ -34,79 +32,63 @@ public class JarService {
             return;
         }
 
-        // Split the JSON array into individual entries
-        List<String> jarEntries = jsonParser.splitJsonArray(jarsData);
-        LOG.info("Found " + jarEntries.size() + " JAR entries");
+        try {
+            JSONArray array = new JSONArray(jarsData);
+            LOG.info("Found " + array.length() + " JAR entries");
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject obj = array.optJSONObject(i);
+                if (obj == null) continue;
+                LOG.info("Processing entry " + (i + 1) + ": " + obj.toString().substring(0, Math.min(100, obj.toString().length())) + "...");
 
-        for (int i = 0; i < jarEntries.size(); i++) {
-            String entry = jarEntries.get(i);
-            LOG.info("Processing entry " + (i + 1) + ": " + entry.substring(0, Math.min(100, entry.length()))
-                    + "...");
+                String path = obj.optString("path", null);
+                String fileName = obj.optString("fileName", "");
+                if (path == null) {
+                    LOG.warning("Skipping JAR entry with null path. Index: " + i);
+                    continue;
+                }
+                long size = obj.optLong("size", 0L);
+                String checksum = obj.has("checksum") ? obj.optString("checksum", null) : null;
+                boolean loaded = obj.optBoolean("loaded", false);
 
-            Map<String, String> jarData = jsonParser.parseSimpleJson(entry);
-            String path = jarData.get("path");
-            String fileName = jarData.get("fileName");
+                JarMetadata jarInfo = app.jars.computeIfAbsent(path,
+                        p -> new JarMetadata(p, fileName, size, checksum, Instant.now(), Instant.now(), loaded));
 
-            LOG.info("Parsed path: " + path + ", fileName: " + fileName);
-
-            // Skip entries with null path (parsing failed)
-            if (path == null) {
-                LOG.warning("Skipping JAR entry with null path. Entry: " + entry);
-                continue;
-            }
-
-            long size = Long.parseLong(jarData.getOrDefault("size", "0"));
-            String checksum = jarData.get("checksum");
-            boolean loaded = Boolean.parseBoolean(jarData.getOrDefault("loaded", "false"));
-
-            // Get or create JAR metadata, then update it
-            JarMetadata jarInfo = app.jars.computeIfAbsent(path,
-                    p -> new JarMetadata(p, fileName, size, checksum, Instant.now(), Instant.now(), loaded));
-
-            // Extract manifest sub-object if present.
-            // Two formats supported:
-            // 1) Flattened:   manifest.Implementation-Title="..."
-            // 2) Nested obj:  manifest:{"Implementation-Title":"..."}
-            java.util.Map<String,String> manifestMap = new java.util.LinkedHashMap<>();
-            final String manifestPrefix = "manifest.";
-            for (var e : jarData.entrySet()) {
-                String k = e.getKey();
-                if (k.startsWith(manifestPrefix)) {
-                    String realKey = k.substring(manifestPrefix.length());
-                    if (!realKey.isBlank()) {
-                        manifestMap.put(realKey, trimQuotes(e.getValue()));
-                    }
-                } else if ("manifest".equals(k)) {
-                    String rawObj = e.getValue(); // should be a JSON object string
-                    if (rawObj != null && rawObj.startsWith("{") && rawObj.endsWith("}")) {
-                        // Parse nested object
-                        var nested = jsonParser.parseSimpleJson(rawObj);
-                        for (var me : nested.entrySet()) {
-                            if (!me.getKey().isBlank()) {
-                                manifestMap.put(me.getKey(), trimQuotes(me.getValue()));
-                            }
-                        }
+                // Manifest extraction: support nested 'manifest' object and flattened 'manifest.' keys
+                java.util.Map<String,String> manifestMap = new java.util.LinkedHashMap<>();
+                final String manifestPrefix = "manifest.";
+                for (String key : obj.keySet()) {
+                    if (key.startsWith(manifestPrefix)) {
+                        String realKey = key.substring(manifestPrefix.length());
+                        if (!realKey.isBlank()) manifestMap.put(realKey, trimQuotes(obj.optString(key))); 
                     }
                 }
-            }
+                if (obj.has("manifest") && obj.get("manifest") instanceof JSONObject nested) {
+                    for (String k : nested.keySet()) {
+                        String v = nested.optString(k, null);
+                        if (v != null && !k.isBlank()) manifestMap.put(k, v);
+                    }
+                }
 
-            boolean needsReplacement = (jarInfo.size != size || !java.util.Objects.equals(jarInfo.sha256Hash, checksum));
-            if (needsReplacement) {
-                JarMetadata newJar = new JarMetadata(path, fileName, size, checksum, jarInfo.firstSeen, Instant.now(), loaded);
-                if (!manifestMap.isEmpty()) {
-                    newJar.setManifestAttributesIfAbsent(manifestMap);
-                } else if (jarInfo.getManifestAttributes() != null) {
-                    newJar.setManifestAttributesIfAbsent(jarInfo.getManifestAttributes());
-                }
-                app.jars.put(path, newJar);
-            } else {
-                if (!manifestMap.isEmpty()) {
-                    jarInfo.setManifestAttributesIfAbsent(manifestMap);
-                }
-                if (loaded) {
-                    jarInfo.markLoaded();
+                boolean needsReplacement = (jarInfo.size != size || !java.util.Objects.equals(jarInfo.sha256Hash, checksum));
+                if (needsReplacement) {
+                    JarMetadata newJar = new JarMetadata(path, fileName, size, checksum, jarInfo.firstSeen, Instant.now(), loaded);
+                    if (!manifestMap.isEmpty()) {
+                        newJar.setManifestAttributesIfAbsent(manifestMap);
+                    } else if (jarInfo.getManifestAttributes() != null) {
+                        newJar.setManifestAttributesIfAbsent(jarInfo.getManifestAttributes());
+                    }
+                    app.jars.put(path, newJar);
+                } else {
+                    if (!manifestMap.isEmpty()) {
+                        jarInfo.setManifestAttributesIfAbsent(manifestMap);
+                    }
+                    if (loaded) {
+                        jarInfo.markLoaded();
+                    }
                 }
             }
+        } catch (Exception e) {
+            LOG.warning("Failed to parse JAR array with org.json: " + e.getMessage());
         }
         LOG.info("Processed " + app.jars.size() + " total JARs for application");
         

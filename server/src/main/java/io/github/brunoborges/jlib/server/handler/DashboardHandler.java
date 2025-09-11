@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * Dashboard handler consolidating applications with their JAR inventories (including manifest attributes).
@@ -37,22 +39,16 @@ public class DashboardHandler implements HttpHandler {
             return;
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append('{');
-        sb.append("\"applications\":[");
-        boolean first = true;
+        JSONArray apps = new JSONArray();
         for (JavaApplication app : applicationService.getAllApplications()) {
-            if (!first) sb.append(',');
-            // buildAppDetailsJson already embeds jars + manifest now
-            sb.append(JsonResponseBuilder.buildAppDetailsJson(app));
-            first = false;
+            apps.put(new JSONObject(JsonResponseBuilder.buildAppDetailsJson(app)));
         }
-        sb.append(']');
-        sb.append(",\"lastUpdated\":\"").append(Instant.now()).append("\",");
-        sb.append("\"serverStatus\":\"connected\"");
-        sb.append('}');
+        JSONObject root = new JSONObject();
+        root.put("applications", apps);
+        root.put("lastUpdated", Instant.now().toString());
+        root.put("serverStatus", "connected");
 
-        byte[] bytes = sb.toString().getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = root.toString().getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
         exchange.sendResponseHeaders(200, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {

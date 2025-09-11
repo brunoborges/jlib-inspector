@@ -2,138 +2,109 @@ package io.github.brunoborges.jlib.json;
 
 import io.github.brunoborges.jlib.common.JarMetadata;
 import io.github.brunoborges.jlib.common.JavaApplication;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * Utility for building JSON responses.
  */
 public class JsonResponseBuilder {
     
-    private static final JsonParserInterface jsonParser = JsonParserFactory.getDefaultParser();
+    // All JSON generation handled directly by org.json.
 
     /**
      * Builds JSON for applications list.
      */
     public static String buildAppsListJson(Iterable<JavaApplication> applications) {
-        StringBuilder json = new StringBuilder();
-        json.append("{\"applications\":[");
-        boolean first = true;
+        JSONArray appsArray = new JSONArray();
         for (JavaApplication app : applications) {
-            if (!first)
-                json.append(",");
-            json.append("{")
-                    .append("\"appId\":\"").append(app.appId).append("\",")
-                    .append("\"name\":\"").append(app.name == null ? "" : jsonParser.escapeJson(app.name)).append("\",")
-                    .append("\"commandLine\":\"").append(jsonParser.escapeJson(app.commandLine)).append("\",")
-                    .append("\"jdkVersion\":\"").append(app.jdkVersion).append("\",")
-                    .append("\"jdkVendor\":\"").append(app.jdkVendor).append("\",")
-                    .append("\"firstSeen\":\"").append(app.firstSeen).append("\",")
-                    .append("\"lastUpdated\":\"").append(app.lastUpdated).append("\",")
-                    .append("\"jarCount\":").append(app.jars.size())
-                    .append("}");
-            first = false;
+            JSONObject o = new JSONObject();
+            o.put("appId", app.appId);
+            o.put("name", app.name == null ? "" : app.name);
+            o.put("commandLine", app.commandLine);
+            o.put("jdkVersion", app.jdkVersion);
+            o.put("jdkVendor", app.jdkVendor);
+            o.put("firstSeen", app.firstSeen.toString());
+            o.put("lastUpdated", app.lastUpdated.toString());
+            o.put("jarCount", app.jars.size());
+            appsArray.put(o);
         }
-        json.append("]}");
-        return json.toString();
+        return new JSONObject().put("applications", appsArray).toString();
     }
 
     /**
      * Builds JSON for application details.
      */
     public static String buildAppDetailsJson(JavaApplication app) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("{")
-                    .append("\"appId\":\"").append(app.appId).append("\",")
-                    .append("\"name\":\"").append(app.name == null ? "" : jsonParser.escapeJson(app.name)).append("\",")
-                    .append("\"description\":\"").append(app.description == null ? "" : jsonParser.escapeJson(app.description)).append("\",")
-                    .append("\"commandLine\":\"").append(jsonParser.escapeJson(app.commandLine)).append("\",")
-                    .append("\"jdkVersion\":\"").append(app.jdkVersion).append("\",")
-                    .append("\"jdkVendor\":\"").append(app.jdkVendor).append("\",")
-                    .append("\"jdkPath\":\"").append(jsonParser.escapeJson(app.jdkPath)).append("\",")
-                    .append("\"firstSeen\":\"").append(app.firstSeen).append("\",")
-                    .append("\"lastUpdated\":\"").append(app.lastUpdated).append("\",")
-                    .append("\"jarCount\":").append(app.jars.size()).append(",")
-                    .append("\"tags\":[").append(buildTagsArray(app)).append("]");
-                // Inline minimal jars array for details with manifest attributes so client doesn't need a second call.
-                sb.append(",\"jars\":[");
-                boolean first = true;
-                for (JarMetadata jar : app.jars.values()) {
-                        if (!first) sb.append(',');
-                        sb.append('{')
-                            .append("\"path\":\"").append(jsonParser.escapeJson(jar.fullPath)).append("\",")
-                            .append("\"fileName\":\"").append(jsonParser.escapeJson(jar.fileName)).append("\",")
-                            .append("\"size\":").append(jar.size).append(',')
-                            .append("\"checksum\":\"").append(jsonParser.escapeJson(jar.sha256Hash)).append("\",")
-                            .append("\"loaded\":").append(jar.isLoaded()).append(',')
-                            .append("\"lastAccessed\":\"").append(jar.getLastAccessed()).append("\"");
-                        if (jar.getManifestAttributes() != null && !jar.getManifestAttributes().isEmpty()) {
-                                sb.append(",\"manifest\":{");
-                                boolean firstAttr = true;
-                                for (var e : jar.getManifestAttributes().entrySet()) {
-                                        if (!firstAttr) sb.append(',');
-                                        sb.append("\"").append(jsonParser.escapeJson(e.getKey())).append("\":\"")
-                                            .append(jsonParser.escapeJson(e.getValue())).append("\"");
-                                        firstAttr = false;
-                                }
-                                sb.append('}');
-                        }
-                        sb.append('}');
-                        first = false;
+        JSONObject root = new JSONObject();
+        root.put("appId", app.appId);
+        root.put("name", app.name == null ? "" : app.name);
+        root.put("description", app.description == null ? "" : app.description);
+        root.put("commandLine", app.commandLine);
+        root.put("jdkVersion", app.jdkVersion);
+        root.put("jdkVendor", app.jdkVendor);
+        root.put("jdkPath", app.jdkPath);
+        root.put("firstSeen", app.firstSeen.toString());
+        root.put("lastUpdated", app.lastUpdated.toString());
+        root.put("jarCount", app.jars.size());
+        JSONArray tags = new JSONArray();
+        for (String tag : app.tags) {
+            tags.put(tag);
+        }
+        root.put("tags", tags);
+        JSONArray jars = new JSONArray();
+        for (JarMetadata jar : app.jars.values()) {
+            JSONObject jo = new JSONObject();
+            jo.put("path", jar.fullPath);
+            jo.put("fileName", jar.fileName);
+            jo.put("size", jar.size);
+            jo.put("checksum", jar.sha256Hash);
+            jo.put("loaded", jar.isLoaded());
+            jo.put("lastAccessed", jar.getLastAccessed().toString());
+            if (jar.getManifestAttributes() != null && !jar.getManifestAttributes().isEmpty()) {
+                JSONObject mf = new JSONObject();
+                for (var e : jar.getManifestAttributes().entrySet()) {
+                    mf.put(e.getKey(), e.getValue());
                 }
-                sb.append(']');
-                sb.append('}');
-                return sb.toString();
+                jo.put("manifest", mf);
+            }
+            jars.put(jo);
+        }
+        root.put("jars", jars);
+        return root.toString();
     }
 
-    private static String buildTagsArray(JavaApplication app) {
-        StringBuilder sb = new StringBuilder();
-        boolean first = true;
-        for (String tag : app.tags) {
-            if (!first) sb.append(",");
-            sb.append("\"").append(jsonParser.escapeJson(tag)).append("\"");
-            first = false;
-        }
-        return sb.toString();
-    }
+    // Legacy helper removed (replaced by direct JSONArray building).
 
     /**
      * Builds JSON for JARs list.
      */
     public static String buildJarsListJson(JavaApplication app) {
-        StringBuilder json = new StringBuilder();
-        json.append("{\"jars\":[");
-        boolean first = true;
+        JSONArray jars = new JSONArray();
         for (JarMetadata jar : app.jars.values()) {
-            if (!first)
-                json.append(",");
-            json.append("{")
-                    .append("\"path\":\"").append(jsonParser.escapeJson(jar.fullPath)).append("\",")
-                    .append("\"fileName\":\"").append(jar.fileName).append("\",")
-                    .append("\"size\":").append(jar.size).append(",")
-                    .append("\"checksum\":\"").append(jar.sha256Hash).append("\",")
-                    .append("\"loaded\":").append(jar.isLoaded()).append(",")
-                    .append("\"lastAccessed\":\"").append(jar.getLastAccessed()).append("\"");
+            JSONObject jo = new JSONObject();
+            jo.put("path", jar.fullPath);
+            jo.put("fileName", jar.fileName);
+            jo.put("size", jar.size);
+            jo.put("checksum", jar.sha256Hash);
+            jo.put("loaded", jar.isLoaded());
+            jo.put("lastAccessed", jar.getLastAccessed().toString());
             if (jar.getManifestAttributes() != null && !jar.getManifestAttributes().isEmpty()) {
-                json.append(",\"manifest\":{");
-                boolean firstAttr = true;
+                JSONObject mf = new JSONObject();
                 for (var e : jar.getManifestAttributes().entrySet()) {
-                    if (!firstAttr) json.append(',');
-                    json.append("\"").append(jsonParser.escapeJson(e.getKey())).append("\":\"")
-                        .append(jsonParser.escapeJson(e.getValue())).append("\"");
-                    firstAttr = false;
+                    mf.put(e.getKey(), e.getValue());
                 }
-                json.append("}");
+                jo.put("manifest", mf);
             }
-            json.append("}");
-            first = false;
+            jars.put(jo);
         }
-        json.append("]}");
-        return json.toString();
+        return new JSONObject().put("jars", jars).toString();
     }
 
     /**
      * Builds JSON for health check.
      */
     public static String buildHealthJson(int applicationCount) {
-        return "{\"status\":\"healthy\",\"applications\":" + applicationCount + "}";
+        return new JSONObject().put("status", "healthy").put("applications", applicationCount).toString();
     }
 }

@@ -5,8 +5,7 @@ import com.sun.net.httpserver.HttpHandler;
 
 import io.github.brunoborges.jlib.common.JarMetadata;
 import io.github.brunoborges.jlib.common.JavaApplication;
-import io.github.brunoborges.jlib.json.JsonParserFactory;
-import io.github.brunoborges.jlib.json.JsonParserInterface;
+// Custom JsonParser no longer needed directly; using org.json for building output.
 import io.github.brunoborges.jlib.server.service.ApplicationService;
 
 import java.io.IOException;
@@ -19,6 +18,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * HTTP handler for /report endpoint that aggregates unique JARs across
@@ -27,7 +28,7 @@ import java.util.Set;
 public class ReportHandler implements HttpHandler {
 
     private final ApplicationService applicationService;
-    private final JsonParserInterface jsonParser = JsonParserFactory.getDefaultParser();
+    // Deprecated parser usage removed.
 
     public ReportHandler(ApplicationService applicationService) {
         this.applicationService = applicationService;
@@ -104,75 +105,44 @@ public class ReportHandler implements HttpHandler {
             }
         }
 
-        // Build JSON response
-        StringBuilder sb = new StringBuilder();
-        sb.append("{\"uniqueJars\":[");
-        boolean first = true;
+        JSONArray uniqueJars = new JSONArray();
         for (Agg agg : aggByKey.values()) {
-            if (!first)
-                sb.append(",");
-            sb.append("{");
-            if (agg.checksum != null) {
-                sb.append("\"checksum\":\"").append(jsonParser.escapeJson(agg.checksum)).append("\",");
-            }
-            sb.append("\"size\":").append(agg.size).append(",")
-                    .append("\"fileName\":\"")
-                    .append(jsonParser.escapeJson(agg.sampleFileName == null ? "" : agg.sampleFileName)).append("\",")
-                    .append("\"firstSeen\":\"").append(agg.firstSeen == null ? "" : agg.firstSeen.toString())
-                    .append("\",")
-                    .append("\"lastAccessed\":\"").append(agg.lastAccessed == null ? "" : agg.lastAccessed.toString())
-                    .append("\",")
-                    .append("\"loadedCount\":").append(agg.loadedCount).append(",");
+            JSONObject obj = new JSONObject();
+            if (agg.checksum != null) obj.put("checksum", agg.checksum);
+            obj.put("size", agg.size);
+            obj.put("fileName", agg.sampleFileName == null ? "" : agg.sampleFileName);
+            obj.put("firstSeen", agg.firstSeen == null ? "" : agg.firstSeen.toString());
+            obj.put("lastAccessed", agg.lastAccessed == null ? "" : agg.lastAccessed.toString());
+            obj.put("loadedCount", agg.loadedCount);
 
-            // paths
-            sb.append("\"paths\":[");
-            boolean firstPath = true;
-            for (String p : agg.paths) {
-                if (!firstPath)
-                    sb.append(",");
-                sb.append("\"").append(jsonParser.escapeJson(p)).append("\"");
-                firstPath = false;
-            }
-            sb.append("],");
+            JSONArray pathsArr = new JSONArray();
+            for (String p : agg.paths) pathsArr.put(p);
+            obj.put("paths", pathsArr);
 
-            // fileNames
-            sb.append("\"fileNames\":[");
-            boolean firstFn = true;
-            for (String fn : agg.fileNames) {
-                if (!firstFn)
-                    sb.append(",");
-                sb.append("\"").append(jsonParser.escapeJson(fn)).append("\"");
-                firstFn = false;
-            }
-            sb.append("],");
+            JSONArray fnArr = new JSONArray();
+            for (String fn : agg.fileNames) fnArr.put(fn);
+            obj.put("fileNames", fnArr);
 
-            // applications
-            sb.append("\"applications\":[");
-            boolean firstApp = true;
+            JSONArray appsArr = new JSONArray();
             for (Map<String, Object> ai : agg.applications) {
-                if (!firstApp)
-                    sb.append(",");
-                sb.append("{")
-                        .append("\"appId\":\"").append(ai.get("appId")).append("\",")
-                        .append("\"jdkVersion\":\"").append(ai.get("jdkVersion")).append("\",")
-                        .append("\"jdkVendor\":\"").append(ai.get("jdkVendor")).append("\",")
-                        .append("\"jdkPath\":\"").append(jsonParser.escapeJson((String) ai.get("jdkPath")))
-                        .append("\",")
-                        .append("\"firstSeen\":\"").append(ai.get("firstSeen")).append("\",")
-                        .append("\"lastUpdated\":\"").append(ai.get("lastUpdated")).append("\",")
-                        .append("\"jarPath\":\"").append(jsonParser.escapeJson((String) ai.get("jarPath")))
-                        .append("\",")
-                        .append("\"loaded\":").append(ai.get("loaded")).append(",")
-                        .append("\"lastAccessed\":\"").append(ai.get("lastAccessed")).append("\"")
-                        .append("}");
-                firstApp = false;
+                JSONObject jo = new JSONObject();
+                jo.put("appId", ai.get("appId"));
+                jo.put("jdkVersion", ai.get("jdkVersion"));
+                jo.put("jdkVendor", ai.get("jdkVendor"));
+                jo.put("jdkPath", ai.get("jdkPath"));
+                jo.put("firstSeen", ai.get("firstSeen"));
+                jo.put("lastUpdated", ai.get("lastUpdated"));
+                jo.put("jarPath", ai.get("jarPath"));
+                jo.put("loaded", ai.get("loaded"));
+                jo.put("lastAccessed", ai.get("lastAccessed"));
+                appsArr.put(jo);
             }
-            sb.append("]}");
-            first = false;
+            obj.put("applications", appsArr);
+            uniqueJars.put(obj);
         }
-        sb.append("]}");
 
-        byte[] bytes = sb.toString().getBytes(StandardCharsets.UTF_8);
+        JSONObject root = new JSONObject().put("uniqueJars", uniqueJars);
+        byte[] bytes = root.toString().getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
         exchange.sendResponseHeaders(200, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {

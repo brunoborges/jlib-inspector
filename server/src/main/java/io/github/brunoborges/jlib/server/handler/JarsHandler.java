@@ -17,8 +17,8 @@ import java.util.Map;
 /**
  * Handler exposing global JAR inventory endpoints:
  * <ul>
- *   <li>GET /api/jars - list all known JARs (deduplicated by jarId)</li>
- *   <li>GET /api/jars/{jarId} - detail with applications that reference it</li>
+ * <li>GET /api/jars - list all known JARs (deduplicated by jarId)</li>
+ * <li>GET /api/jars/{jarId} - detail with applications that reference it</li>
  * </ul>
  */
 public class JarsHandler implements HttpHandler {
@@ -48,14 +48,23 @@ public class JarsHandler implements HttpHandler {
 
     private void handleList(HttpExchange exchange) throws IOException {
         // Deduplicate by jarId, choose first occurrence for basic info and count apps
-        class Agg { JarMetadata jar; int appCount; int loadedCount; }
+        class Agg {
+            JarMetadata jar;
+            int appCount;
+            int loadedCount;
+        }
         Map<String, Agg> byId = new LinkedHashMap<>();
         for (JavaApplication app : applicationService.getAllApplications()) {
             for (JarMetadata jar : app.jars.values()) {
                 String id = jar.getJarId();
-                Agg agg = byId.computeIfAbsent(id, k -> { Agg a = new Agg(); a.jar = jar; return a; });
+                Agg agg = byId.computeIfAbsent(id, k -> {
+                    Agg a = new Agg();
+                    a.jar = jar;
+                    return a;
+                });
                 agg.appCount++;
-                if (jar.isLoaded()) agg.loadedCount++;
+                if (jar.isLoaded())
+                    agg.loadedCount++;
             }
         }
         JSONArray arr = new JSONArray();
@@ -79,7 +88,8 @@ public class JarsHandler implements HttpHandler {
         for (JavaApplication app : applicationService.getAllApplications()) {
             for (JarMetadata jar : app.jars.values()) {
                 if (jar.getJarId().equals(jarId)) {
-                    if (representative == null) representative = jar;
+                    if (representative == null)
+                        representative = jar;
                     JSONObject a = new JSONObject();
                     a.put("appId", app.appId);
                     a.put("loaded", jar.isLoaded());
@@ -115,13 +125,17 @@ public class JarsHandler implements HttpHandler {
         byte[] b = msg.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
         ex.sendResponseHeaders(code, b.length);
-        try (OutputStream os = ex.getResponseBody()) { os.write(b); }
+        try (OutputStream os = ex.getResponseBody()) {
+            os.write(b);
+        }
     }
 
     private void sendJson(HttpExchange ex, String json) throws IOException {
         byte[] b = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
         ex.sendResponseHeaders(200, b.length);
-        try (OutputStream os = ex.getResponseBody()) { os.write(b); }
+        try (OutputStream os = ex.getResponseBody()) {
+            os.write(b);
+        }
     }
 }

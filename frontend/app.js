@@ -159,6 +159,34 @@ app.get('/api/applications/:appId', (req, res) => {
   res.json(app);
 });
 
+// Proxy: global JAR list (deduplicated) from JLib Server
+app.get('/api/jars', async (req, res) => {
+  try {
+    const response = await axios.get(`${JLIB_SERVER_URL}/api/jars`, { timeout: 5000 });
+    res.set({ 'Cache-Control': 'no-cache, no-store, must-revalidate' });
+    res.json(response.data);
+  } catch (error) {
+    console.error('Failed to proxy /api/jars:', error.message);
+    res.status(502).json({ error: 'Failed to retrieve jars list from JLib Server' });
+  }
+});
+
+// Proxy: single JAR detail (includes manifest & application references)
+app.get('/api/jars/:jarId', async (req, res) => {
+  const { jarId } = req.params;
+  try {
+    const response = await axios.get(`${JLIB_SERVER_URL}/api/jars/${jarId}`, { timeout: 5000 });
+    res.set({ 'Cache-Control': 'no-cache, no-store, must-revalidate' });
+    res.json(response.data);
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return res.status(404).json({ error: 'Jar not found' });
+    }
+    console.error(`Failed to proxy /api/jars/${jarId}:`, error.message);
+    res.status(502).json({ error: 'Failed to retrieve jar detail from JLib Server' });
+  }
+});
+
 // Update application metadata (name, description, tags)
 app.put('/api/applications/:appId/metadata', async (req, res) => {
   const { appId } = req.params;

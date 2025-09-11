@@ -9,15 +9,17 @@ WORKDIR /app
 
 COPY ./mvnw ./mvnw
 COPY ./.mvn ./.mvn
+RUN chmod +x ./mvnw
 
 COPY ./pom.xml ./pom.xml
 COPY ./common/pom.xml ./common/pom.xml
 COPY ./server/pom.xml ./server/pom.xml
 
+RUN ./mvnw -P server dependency:go-offline
+
 COPY ./common/src ./common/src
 COPY ./server/src ./server/src
 
-RUN chmod +x ./mvnw
 RUN ./mvnw -P server clean package
 RUN cp ./server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar ./jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
 

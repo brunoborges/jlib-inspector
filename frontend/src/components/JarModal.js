@@ -115,7 +115,7 @@ const JarModal = ({ isOpen, onClose, application }) => {
                                     {application.jars ? application.jars.length : 0} dependencies for application
                                 </p>
                                 <div className="flex items-center space-x-2">
-                                    <span className="text-sm text-gray-500 font-mono">{application.appId.substring(0, 12)}...</span>
+                                    <span className="text-sm text-gray-500 font-mono">{application.appId}</span>
                                     <button 
                                         onClick={handleCopyAppId}
                                         className={`text-xs transition-colors ${

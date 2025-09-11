@@ -52,6 +52,7 @@ public class JarsHandler implements HttpHandler {
             JarMetadata jar;
             int appCount;
             int loadedCount;
+            JSONArray applicationIds = new JSONArray();
         }
         Map<String, Agg> byId = new LinkedHashMap<>();
         for (JavaApplication app : applicationService.getAllApplications()) {
@@ -65,6 +66,15 @@ public class JarsHandler implements HttpHandler {
                 agg.appCount++;
                 if (jar.isLoaded())
                     agg.loadedCount++;
+                // Track application id (avoid duplicates if same jar instance re-processed)
+                // Simple linear check given typically low cardinality per jar.
+                boolean already = false;
+                for (int i = 0; i < agg.applicationIds.length(); i++) {
+                    if (app.appId.equals(agg.applicationIds.getString(i))) { already = true; break; }
+                }
+                if (!already) {
+                    agg.applicationIds.put(app.appId);
+                }
             }
         }
         JSONArray arr = new JSONArray();
@@ -77,6 +87,7 @@ public class JarsHandler implements HttpHandler {
             o.put("size", jar.size);
             o.put("appCount", e.getValue().appCount);
             o.put("loadedAppCount", e.getValue().loadedCount);
+            o.put("applicationIds", e.getValue().applicationIds);
             arr.put(o);
         }
         sendJson(exchange, new JSONObject().put("jars", arr).toString());

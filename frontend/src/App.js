@@ -12,6 +12,7 @@ const ApplicationDetails = lazy(() => import('./pages/ApplicationDetails'));
 const UniqueJarsPage = lazy(() => import('./pages/UniqueJarsPage'));
 const JarDetails = lazy(() => import('./pages/JarDetails'));
 const ServerConfig = lazy(() => import('./components/ServerConfig'));
+const HelpDialog = lazy(() => import('./components/HelpDialog'));
 import ErrorBoundary from './components/ErrorBoundary';
 
 const App = () => {
@@ -27,6 +28,7 @@ const App = () => {
     const [uniqueJarsFilter, setUniqueJarsFilter] = useState('all');
     const [showServerConfig, setShowServerConfig] = useState(false);
     const [currentServerUrl, setCurrentServerUrl] = useState('http://localhost:8080');
+    const [showHelp, setShowHelp] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     useEffect(() => {
@@ -122,13 +124,10 @@ const App = () => {
         window.history.pushState({ page: 'unique', filter }, '', `#/jars/${filter}`);
     };
 
-    const handleOpenServerConfig = () => {
-        setShowServerConfig(true);
-    };
-
-    const handleCloseServerConfig = () => {
-        setShowServerConfig(false);
-    };
+    const handleOpenServerConfig = () => setShowServerConfig(true);
+    const handleCloseServerConfig = () => setShowServerConfig(false);
+    const handleOpenHelp = () => setShowHelp(true);
+    const handleCloseHelp = () => setShowHelp(false);
 
     const handleServerUrlChange = (newUrl) => {
         setCurrentServerUrl(newUrl);
@@ -285,6 +284,7 @@ const App = () => {
                 currentView={currentView}
                 onViewToggle={handleViewToggle}
                 onOpenServerConfig={handleOpenServerConfig}
+                onOpenHelp={handleOpenHelp}
             />
 
             {/* Production Warning Banner */}
@@ -387,6 +387,9 @@ const App = () => {
                     currentUrl={currentServerUrl}
                     onUrlChange={handleServerUrlChange}
                 />
+            </Suspense>
+            <Suspense fallback={<div></div>}>
+                <HelpDialog isOpen={showHelp} onClose={handleCloseHelp} />
             </Suspense>
         </div>
     );

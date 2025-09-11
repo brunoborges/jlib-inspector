@@ -6,7 +6,8 @@ const Header = ({
     lastUpdated, 
     currentView, 
     onViewToggle,
-    onOpenServerConfig 
+    onOpenServerConfig,
+    onOpenHelp
 }) => {
     useEffect(() => {
         initLucideIcons();
@@ -69,6 +70,13 @@ const Header = ({
                                 title="Configure JLib Server Connection"
                             >
                                 <i data-lucide="settings" className="w-5 h-5"></i>
+                            </button>
+                            <button
+                                onClick={onOpenHelp}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="Help & Reference"
+                            >
+                                <i data-lucide="help-circle" className="w-5 h-5" />
                             </button>
                             <button 
                                 onClick={onViewToggle}

@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpServer;
 import io.github.brunoborges.jlib.common.ApplicationIdUtil;
 import io.github.brunoborges.jlib.server.handler.AppsHandler;
 import io.github.brunoborges.jlib.server.handler.HealthHandler;
+import io.github.brunoborges.jlib.server.handler.DashboardHandler;
 import io.github.brunoborges.jlib.server.service.ApplicationService;
 import io.github.brunoborges.jlib.server.service.JarService;
 import io.github.brunoborges.jlib.server.handler.ReportHandler;
@@ -65,7 +66,8 @@ public class JLibServer {
         server.setExecutor(Executors.newCachedThreadPool());
 
         // Configure handlers with dependency injection
-        server.createContext("/api/apps", new AppsHandler(applicationService, jarService));
+    server.createContext("/api/apps", new AppsHandler(applicationService, jarService));
+    server.createContext("/api/dashboard", new DashboardHandler(applicationService));
     server.createContext("/health", new HealthHandler(applicationService));
     server.createContext("/report", new ReportHandler(applicationService));
 

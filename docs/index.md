@@ -9,6 +9,7 @@ title: JLib Inspector
 	<div class="cta-row">
 		<a class="btn accent" href="#quick-start">Get Started</a>
 		<a class="btn" href="https://github.com/{{ site.repository }}">GitHub</a>
+		<a class="btn" href="{{ site.baseurl }}/latest.html">Latest Release 1.0.0</a>
 	</div>
 </section>
 

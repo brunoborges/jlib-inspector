@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -11,6 +12,7 @@
   <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/style.css?v=1" />
   <script defer src="{{ site.baseurl }}/assets/js/main.js"></script>
 </head>
+
 <body class="theme-dark">
   <header class="site-header">
     <div class="wrap nav-bar">
@@ -34,8 +36,8 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <p>&copy; {{ site.time | date: '%Y' }} <a href="https://github.com/{{ site.github_username | default: 'brunoborges' }}">{{ site.github_username | default: 'brunoborges' }}</a> · <a href="https://github.com/{{ site.repository }}">Source</a> · <a href="{{ site.baseurl }}/javadoc/">Javadoc</a></p>
-      <p class="small">Made for production JVM observability. Minimal overhead. Actionable insight.</p>
+      <p>&copy; {{ site.time | date: '%Y' }} <a href="https://github.com/{{ site.github_username | default: 'brunoborges' }}">{{ site.github_username | default: 'brunoborges' }}</a> · <a href="https://github.com/{{ site.repository }}">Source</a></p>
+      <p class="small">Made for JVM observability. Minimal overhead. Actionable insight.</p>
     </div>
   </footer>
 </body>

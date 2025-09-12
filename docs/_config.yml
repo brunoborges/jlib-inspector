@@ -14,14 +14,6 @@ exclude:
   - Gemfile*
   - vendor
 
-defaults:
-  - scope:
-      path: "javadoc"
-    values:
-      layout: null
-      sitemap: false
-      render_with_liquid: false
-
 nav:
   - text: Home
     url: /
@@ -33,8 +25,6 @@ nav:
     url: /#quick-start
   - text: GitHub
     url: https://github.com/brunoborges/jlib-inspector
-  - text: Javadoc
-    url: /javadoc/
 
 # Social / SEO extras (optional placeholders)
 twitter_username: brunoborges

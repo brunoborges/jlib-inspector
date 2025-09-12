@@ -11,3 +11,5 @@ frontend/dist/**
 
 # IntelliJ IDE files
 .idea/
+docs/Gemfile.lock
+docs/_site/**

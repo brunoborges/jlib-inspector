@@ -3,7 +3,7 @@
 
     <groupId>io.github.brunoborges</groupId>
     <artifactId>jlib-inspector</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -29,7 +29,7 @@
         <connection>scm:git:git@github.com:brunoborges/jlib-inspector.git</connection>
         <developerConnection>scm:git:git@github.com:brunoborges/jlib-inspector.git</developerConnection>
         <url>https://github.com/brunoborges/jlib-inspector</url>
-        <tag>v1.0.1</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <dependencyManagement>
@@ -37,7 +37,7 @@
             <dependency>
                 <groupId>io.github.brunoborges</groupId>
                 <artifactId>jlib-inspector-common</artifactId>
-                <version>1.0.1</version>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <!-- Third-party deps versions managed here -->
             <dependency>

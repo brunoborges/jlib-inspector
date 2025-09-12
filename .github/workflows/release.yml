@@ -38,7 +38,7 @@ jobs:
 
       - name: Build profile release
         run: |
-          mvn -B -P release -DskipTests=false verify
+          ./mvnw -B -P release -DskipTests=false verify
 
       - name: Collect shaded artifacts
         run: |
@@ -65,5 +65,4 @@ jobs:
           files: |
             dist/*-shaded.jar
             dist/*.sha256
-            # dist/*.asc
-            # dist/bom.json
+

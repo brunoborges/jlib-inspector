@@ -37,8 +37,7 @@ jobs:
           java-version: 21
           cache: maven
 
-      # Build only the modules in your 'release' profile (agent, server, and their needed deps)
-      - name: Build (profile: release)
+      - name: Build profile release
         run: |
           mvn -B -P release -DskipTests=false verify
 

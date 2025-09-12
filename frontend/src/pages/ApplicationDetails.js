@@ -329,7 +329,11 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
             {!jarsLoading && !jarsError && (
               filteredJars.length > 0 ? (
                 filteredJars.map((jar, index) => (
-                  <JarItem key={index} jar={jar} onOpenJar={() => onOpenJar && jar.jarId && onOpenJar(jar.jarId)} />
+                  <JarItem 
+                    key={index} 
+                    jar={jar} 
+                    onOpenJar={() => onOpenJar && jar.jarId && onOpenJar(jar.jarId)}
+                  />
                 ))
               ) : getTabData().length === 0 ? (
                 <EmptyState type={activeTab} />

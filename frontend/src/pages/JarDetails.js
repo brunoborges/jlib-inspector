@@ -110,6 +110,12 @@ const JarDetails = ({ jarId, origin = 'app', onBack, onOpenApp }) => {
     </div>
   );
 
+  // Determine icon based on whether this is a JAR (gracefully handle missing filename)
+  const isJar = (fileName || '').toLowerCase().endsWith('.jar');
+  const iconName = isJar ? 'package' : 'layers';
+  // Match roughly the text-2xl height (~24px). w-6 h-6 = 24px, providing consistent alignment.
+  const iconClass = `${isJar ? 'text-green-500' : 'text-blue-500'} w-6 h-6 mr-2 flex-shrink-0`;
+
   return (
     <div className="max-w-5xl mx-auto py-6">
       <button onClick={onBack} className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
@@ -119,7 +125,10 @@ const JarDetails = ({ jarId, origin = 'app', onBack, onOpenApp }) => {
       <div className="bg-white rounded-xl shadow p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="pr-4">
-            <h2 className="text-2xl font-bold text-gray-900 break-all">{fileName || realJarId || 'Unknown JAR'}</h2>
+            <h2 className="flex items-center text-2xl font-bold text-gray-900 break-all">
+              <i data-lucide={iconName} className={iconClass} />
+              <span>{fileName || realJarId || 'Unknown JAR'}</span>
+            </h2>
             {jarPath && <p className="text-xs text-gray-500 break-all mt-1 font-mono" title="Reported path from server">{jarPath}</p>}
             <div className="mt-2 text-xs space-y-1">
               <div className="flex items-center">
@@ -193,7 +202,6 @@ const JarDetails = ({ jarId, origin = 'app', onBack, onOpenApp }) => {
                             </a>
                             <button onClick={() => copyToClipboard(a.appId)} className="text-gray-400 hover:text-blue-600" title="Copy App ID"><i data-lucide="copy" className="w-3 h-3" /></button>
                           </div>
-                          <div className="font-mono text-[10px] text-gray-500 break-all" title={a.appId}>{a.appId.substring(0, 12)}...</div>
                         </td>
                         <td className="px-2 py-1">
                           <span className={`inline-flex px-1.5 py-0.5 rounded border ${a.loaded ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>{a.loaded ? 'Yes' : 'No'}</span>

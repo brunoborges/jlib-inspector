@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 // Removed JarItem import because Recent JARs list is no longer shown on dashboard
 import { formatRelativeTime, copyToClipboard, initLucideIcons } from '../utils/helpers';
 
-const ApplicationCard = ({ application, isGridView, onOpenJarModal }) => {
+const ApplicationCard = ({ application, isGridView, onOpenJar }) => {
     const [copyStatus, setCopyStatus] = useState(null);
     const [appIdCopyStatus, setAppIdCopyStatus] = useState(null);
 
@@ -31,7 +31,7 @@ const ApplicationCard = ({ application, isGridView, onOpenJarModal }) => {
     return (
         <div 
             className="app-card card p-6 fade-in" 
-            onClick={() => onOpenJarModal(application)}
+            onClick={() => onOpenJar(application)}
         >
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">

@@ -176,7 +176,10 @@ const App = () => {
             const parts = hash.slice(2).split('/').filter(Boolean);
             if (parts[0] === 'jar' && parts[1]) {
                 // New style route: #/jar/{jarId}
-                handleOpenJarDetails(parts[1], 'unique');
+                const jarIdFromHash = parts[1];
+                // Preserve existing origin if we're already on this JAR (prevents flipping from 'app' -> 'unique')
+                const originToUse = (route.name === 'jar' && selectedJarId === jarIdFromHash) ? jarOrigin : 'unique';
+                handleOpenJarDetails(jarIdFromHash, originToUse);
             } else if (parts[0] === 'app' && parts[1]) {
                 // Backward compatibility: #/app/{appId}/jar/{...oldPath}
                 if (parts[2] === 'jar' && parts[3]) {
@@ -203,7 +206,7 @@ const App = () => {
         window.addEventListener('popstate', applyHashRoute);
         applyHashRoute();
         return () => window.removeEventListener('popstate', applyHashRoute);
-    }, [dashboardData.applications]);
+    }, [dashboardData.applications, route.name, selectedJarId, jarOrigin]);
 
     if (isLoading) {
         return (
@@ -323,7 +326,7 @@ const App = () => {
                         currentView={currentView}
                         filteredCount={filteredApplications.length}
                         totalCount={dashboardData.applications.length}
-                        onOpenJarModal={handleOpenAppPage}
+                        onOpenJar={handleOpenAppPage}
                         onRefresh={handleRefresh}
                         searchTerm={searchTerm}
                         onSearchChange={setSearchTerm}

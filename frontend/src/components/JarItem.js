@@ -8,9 +8,9 @@ const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNa
         initLucideIcons();
     }, [copyStatus]);
 
-    const isSystemJar = jar.path.startsWith('jrt:/');
-    const iconClass = isSystemJar ? 'w-4 h-4 text-blue-500' : 'w-4 h-4 text-green-500';
-    const iconName = isSystemJar ? 'layers' : 'package';
+    const isJar = jar.fileName.endsWith('.jar');
+    const iconClass = !isJar ? 'w-4 h-4 text-blue-500' : 'w-4 h-4 text-green-500';
+    const iconName = !isJar ? 'layers' : 'package';
     const mvnUrl = getMvnRepositoryUrl(jar.fileName);
 
     const handleCopyChecksum = async (e) => {
@@ -19,103 +19,6 @@ const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNa
         setCopyStatus(success ? 'success' : 'error');
         setTimeout(() => setCopyStatus(null), 2000);
     };
-
-    if (isCompact) {
-        return (
-            <div className={`compact-jar ${jar.loaded ? 'loaded' : 'not-loaded'} flex items-center justify-between py-1 px-2 text-xs bg-gray-50 rounded`}>
-                <div className="flex items-center flex-1 mr-2 min-w-0">
-                    <span className="truncate">{jar.fileName || 'Unknown'}</span>
-                    {mvnUrl && (
-                        <a 
-                            href={mvnUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            onClick={(e) => e.stopPropagation()} 
-                            className="ml-1 text-blue-500 hover:text-blue-700 flex-shrink-0" 
-                            title="Search on mvnrepository.com"
-                        >
-                            <i data-lucide="external-link" className="w-3 h-3"></i>
-                        </a>
-                    )}
-                </div>
-                <span className={`${jar.loaded ? 'text-green-600' : 'text-gray-400'} flex-shrink-0`}>
-                    {jar.loaded ? '●' : '○'}
-                </span>
-            </div>
-        );
-    }
-
-    if (isUniqueJar) {
-        return (
-            <div className={`bg-gray-50 rounded-lg p-4 transition-colors ${onOpenJar ? 'hover:bg-gray-100 cursor-pointer' : ''}`}
-                 onClick={() => { if (onOpenJar && jar.jarId) onOpenJar(jar.jarId); }}>
-                <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                            <i data-lucide="package" className="w-4 h-4 text-gray-500"></i>
-                            <h4 className="font-medium text-gray-900">{jar.fileName}</h4>
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                                {jar.applications.length} app{jar.applications.length !== 1 ? 's' : ''}
-                            </span>
-                            {jar.size && (
-                                <span className="text-xs text-gray-500">
-                                    {formatFileSize(jar.size)}
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                            <span className="font-mono text-xs bg-gray-200 px-2 py-1 rounded">
-                                {jar.path}
-                            </span>
-                            <button
-                                onClick={() => copyToClipboard(jar.path)}
-                                className="text-gray-400 hover:text-blue-600 transition-colors"
-                                title="Copy path"
-                            >
-                                <i data-lucide="copy" className="w-3 h-3"></i>
-                            </button>
-                            {mvnUrl && (
-                                <a 
-                                    href={mvnUrl} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    className="text-blue-500 hover:text-blue-700 transition-colors" 
-                                    title="Search on mvnrepository.com"
-                                >
-                                    <i data-lucide="external-link" className="w-3 h-3"></i>
-                                </a>
-                            )}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                {jar.applications.map((app, appIndex) => (
-                                <button
-                                    key={appIndex}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (onOpenApp) onOpenApp(app.appId);
-                                    }}
-                                    className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200 underline-offset-2 hover:underline"
-                    title={`Open application: ${(appNameById && appNameById.get(app.appId)) || app.name || app.appId} (ID: ${app.appId})`}
-                                >
-                    {(appNameById && appNameById.get(app.appId)) || app.name || `${app.appId.substring(0, 8)}…`}
-                                </button>
-                            ))}
-                        </div>
-                        {onOpenJar && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); if (onOpenJar && jar.jarId) onOpenJar(jar.jarId); }}
-                                className="mt-3 inline-flex items-center text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
-                                title="View JAR Details"
-                            >
-                                <i data-lucide="file-search" className="w-3 h-3 mr-1"></i>
-                                Details
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="jar-modal-item p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { if (onOpenJar && jar.jarId) onOpenJar(jar.jarId); }}>
@@ -160,14 +63,6 @@ const JarItem = ({ jar, isCompact = false, isUniqueJar = false, onOpenApp, appNa
                                 Search on mvnrepository.com
                             </a>
                         )}
-                        <button
-                            onClick={(e) => { e.stopPropagation(); if (onOpenJar && jar.jarId) onOpenJar(jar.jarId); }}
-                            className="inline-flex items-center text-xs text-indigo-600 hover:text-indigo-800 hover:underline mt-2"
-                            title="View JAR Details"
-                        >
-                            <i data-lucide="file-search" className="w-3 h-3 mr-1"></i>
-                            Details
-                        </button>
                     </div>
                 </div>
                 <div className="text-right flex-shrink-0 ml-3">

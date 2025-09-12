@@ -7,7 +7,7 @@ const ApplicationsList = ({
     currentView, 
     filteredCount, 
     totalCount, 
-    onOpenJarModal, 
+    onOpenJar, 
     onRefresh,
     searchTerm,
     onSearchChange,
@@ -91,7 +91,7 @@ const ApplicationsList = ({
                         key={app.appId} 
                         application={app} 
                         isGridView={currentView === 'grid'}
-                        onOpenJarModal={onOpenJarModal}
+                        onOpenJar={onOpenJar}
                     />
                 ))}
             </div>

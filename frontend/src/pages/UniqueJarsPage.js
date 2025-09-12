@@ -41,7 +41,7 @@ const UniqueJarsPage = ({ applications = [], initialFilter = 'all', onBack, onOp
   // Map application names (may be empty given summary response lacks jar details)
   const appNameById = useMemo(() => {
     const m = new Map();
-    applications.forEach(a => m.set(a.appId, a.name || 'Java Application'));
+    applications.forEach(a => m.set(a.appId, a.name || a.appId.substring(0, 8) + "..."));
     return m;
   }, [applications]);
 
@@ -113,7 +113,7 @@ const UniqueJarsPage = ({ applications = [], initialFilter = 'all', onBack, onOp
             <>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-2xl font-bold text-gray-900">Global JAR Inventory</h3>
-                <div className="text-sm text-gray-500">Showing {filtered.length} of {counts.all} unique JARs</div>
+                <div className="text-sm text-gray-500">Showing {filtered.length} of {counts.all} JARs</div>
               </div>
               <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center">
                 <input
@@ -151,7 +151,6 @@ const UniqueJarsPage = ({ applications = [], initialFilter = 'all', onBack, onOp
                   <JarItem
                     key={jar.jarId}
                     jar={jar}
-                    isUniqueJar={true}
                     appNameById={appNameById}
                     onOpenJar={() => handleOpenJar(jar)}
                   />

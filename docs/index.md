@@ -97,12 +97,12 @@ docker compose up -d
 
 <div class="gallery" data-gallery>
 	<figure>
-		<img src="{{ site.baseurl }}/screenshot1.png" alt="Inventory View" data-full="{{ site.baseurl }}/screenshot1.png"/>
-		<figcaption>Inventory: Loaded Artifacts</figcaption>
+		<img src="{{ site.baseurl }}/assets/images/screenshot1.png" alt="Inventory of Applications" data-full="{{ site.baseurl }}/assets/images/screenshot1.png"/>
+		<figcaption>Applications</figcaption>
 	</figure>
 	<figure>
-		<img src="{{ site.baseurl }}/screenshot2.png" alt="Class Lookup" data-full="{{ site.baseurl }}/screenshot2.png"/>
-		<figcaption>Class Resolution & Search</figcaption>
+		<img src="{{ site.baseurl }}/assets/images/screenshot2.png" alt="Inventory of JARs" data-full="{{ site.baseurl }}/assets/images/screenshot2.png"/>
+		<figcaption>JARs</figcaption>
 	</figure>
 </div>
 

@@ -161,11 +161,11 @@ Open your browser and navigate to: **http://localhost:3000**
 
 Main dashboard:
 
-![alt text](screenshot1.png)
+![alt text](docs/assets/images/screenshot1.png)
 
 JAR list:
 
-![alt text](screenshot2.png)
+![alt text](docs/assets/images/screenshot2.png)
 
 ### Dashboard Features
 

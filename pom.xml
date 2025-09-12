@@ -3,7 +3,7 @@
 
     <groupId>io.github.brunoborges</groupId>
     <artifactId>jlib-inspector</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -37,7 +37,7 @@
             <dependency>
                 <groupId>io.github.brunoborges</groupId>
                 <artifactId>jlib-inspector-common</artifactId>
-                <version>1.0.1-SNAPSHOT</version>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <!-- Third-party deps versions managed here -->
             <dependency>

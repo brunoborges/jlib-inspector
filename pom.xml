@@ -26,6 +26,14 @@
         <maven.surefire.report.plugin.version>3.5.3</maven.surefire.report.plugin.version>
     </properties>
 
+    <scm>
+        <!-- Use SSH or HTTPS, but make sure it matches how your devs push -->
+        <connection>scm:git:git@github.com:brunoborges/jlib-inspector.git</connection>
+        <developerConnection>scm:git:git@github.com:brunoborges/jlib-inspector.git</developerConnection>
+        <url>https://github.com/brunoborges/jlib-inspector</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -165,6 +173,25 @@
                 <configuration>
                     <release>${maven.compiler.release}</release>
                     <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.1.1</version> <!-- or latest -->
+                <configuration>
+                    <!-- Ensure multi-module parents/children all get the same version -->
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+
+                    <!-- Tag name like v1.2.3 -->
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
+
+                    <!-- What to run to prove the release compiles/tests before tagging -->
+                    <preparationGoals>clean verify</preparationGoals>
+
+                    <!-- Don’t run perform (we won’t deploy anywhere); we’ll build on CI from the tag -->
+                    <pushChanges>true</pushChanges>
+                    <localCheckout>false</localCheckout>
                 </configuration>
             </plugin>
         </plugins>

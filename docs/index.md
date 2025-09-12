@@ -106,10 +106,6 @@ docker compose up -d
 	</figure>
 </div>
 
-## Javadoc & Integration
-
-Browse the <a href="{{ site.baseurl }}/javadoc/">API docs</a>. Javadoc is rebuilt automatically from `main` on each push.
-
 ## Roadmap (Snapshot)
 
 - OpenTelemetry exporter (spans / events for classload anomalies)

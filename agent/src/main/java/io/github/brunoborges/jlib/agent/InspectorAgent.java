@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 /**
@@ -90,9 +91,14 @@ public class InspectorAgent {
             // Send to server if configured
             if (serverClient != null) {
                 try {
-                    serverClient.sendApplicationData(applicationId, inventory);
-                } catch (Exception e) {
-                    LOG.warning("Failed to send data to server: " + e.getMessage());
+                    var future = serverClient.sendApplicationDataAsync(applicationId, inventory);
+                    // Best effort: wait a short time so the HTTP call can complete, but don't block shutdown indefinitely.
+                    future.orTimeout(5, TimeUnit.SECONDS).exceptionally(ex -> {
+                        LOG.fine(() -> "Async send did not complete before timeout/shutdown: " + ex.getMessage());
+                        return null;
+                    }).join();
+                } catch (Throwable e) {
+                    LOG.warning("Failed to schedule async send to server: " + e.getMessage());
                 }
             }
         }, "jlib-inspector-shutdown"));

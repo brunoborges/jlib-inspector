@@ -5,6 +5,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.List;
 import java.util.logging.Logger;
 import org.json.JSONArray;
@@ -57,46 +63,83 @@ public class JLibServerClient {
         return new JLibServerClient("localhost", DEFAULT_PORT); // constructor will override with env
     }
 
+    // Single-thread executor for async HTTP sends (daemon so it won't block JVM exit)
+    private final ExecutorService httpExecutor = Executors.newSingleThreadExecutor(new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(r, "jlib-server-client-http");
+            t.setDaemon(true);
+            t.setPriority(Thread.NORM_PRIORITY - 1);
+            return t;
+        }
+    });
+
     /**
-     * Sends application and JAR inventory data to the configured server.
-     * 
+     * Asynchronously sends application and JAR inventory data to the configured server.
+     * Fire-and-forget style: returns a {@link CompletableFuture} you may observe, but
+     * the agent will not block waiting for completion. Heavy work (JSON build + HTTP)
+     * is performed off the caller thread.
+     *
      * @param applicationId The unique application identifier
      * @param inventory     The jar inventory to send
-     * @throws Exception if sending fails
+     * @return future that completes when the HTTP call finishes (success or failure)
      */
-    public void sendApplicationData(final String applicationId, JarInventory inventory) throws Exception {
-        final long start = System.currentTimeMillis();
-        final int jarCount = inventory.snapshot().size();
+    public CompletableFuture<Void> sendApplicationDataAsync(final String applicationId, final JarInventory inventory) {
+        return CompletableFuture.supplyAsync(() -> {
+            final long start = System.currentTimeMillis();
+            try {
+                final int jarCount = inventory.snapshot().size();
+                LOG.info(() -> "Preparing to send application inventory (async): appId=" + applicationId + ", jars=" + jarCount
+                        + ", target=" + baseUrl);
 
-        LOG.info(() -> "Preparing to send application inventory: appId=" + applicationId + ", jars=" + jarCount
-                + ", target=" + baseUrl);
+                String json = buildApplicationJson(inventory); // build inside background
+                int payloadBytes = json.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+                LOG.info(() -> String.format("Async send %d bytes of inventory data for appId=%s to %s/api/apps/%s", payloadBytes,
+                        applicationId, baseUrl, applicationId));
 
-        // Build JSON payload
-        String json = buildApplicationJson(inventory);
-        int payloadBytes = json.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
-        LOG.info(() -> String.format("Sending %d bytes of inventory data for appId=%s to %s/api/apps/%s", payloadBytes,
-                applicationId, baseUrl, applicationId));
+                HttpClient client = HttpClient.newBuilder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .build();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + "/api/apps/" + applicationId))
+                        .timeout(Duration.ofSeconds(15))
+                        .PUT(HttpRequest.BodyPublishers.ofString(json))
+                        .header("Content-Type", "application/json")
+                        .build();
 
-        // Send PUT request using modern HTTP client
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/api/apps/" + applicationId))
-                .PUT(HttpRequest.BodyPublishers.ofString(json))
-                .header("Content-Type", "application/json")
-                .build();
+                return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                        .orTimeout(20, TimeUnit.SECONDS)
+                        .whenComplete((resp, err) -> {
+                            long took = System.currentTimeMillis() - start;
+                            if (err != null) {
+                                LOG.warning("Async send failed for appId=" + applicationId + ": " + err.getClass().getSimpleName() + " - " + err.getMessage());
+                            } else if (resp.statusCode() == 200) {
+                                LOG.info(() -> String.format(
+                                        "Async inventory sent appId=%s status=%d bytes=%d took=%dms",
+                                        applicationId, resp.statusCode(), payloadBytes, took));
+                            } else {
+                                LOG.warning("Async send non-200 for appId=" + applicationId + " status=" + resp.statusCode() +
+                                        " took=" + took + "ms body=" + resp.body());
+                            }
+                        });
+            } catch (Throwable t) {
+                LOG.warning("Failed to schedule async send for appId=" + applicationId + ": " + t.getMessage());
+                return CompletableFuture.<HttpResponse<String>>failedFuture(t);
+            }
+        }, httpExecutor).thenCompose(f -> f).thenAccept(r -> {}); // Convert to CompletableFuture<Void>
+    }
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() == 200) {
-            long took = System.currentTimeMillis() - start;
-            LOG.info(() -> String.format(
-                    "Successfully sent inventory for appId=%s (status=%d, jars=%d, bytes=%d, took=%dms)",
-                    applicationId, response.statusCode(), jarCount, payloadBytes, took));
-        } else {
-            long took = System.currentTimeMillis() - start;
-            LOG.warning("Failed to send inventory for appId=" + applicationId +
-                    " status=" + response.statusCode() +
-                    " took=" + took + "ms body=" + response.body());
+    /**
+     * Best-effort attempt to shutdown the HTTP executor; called optionally in shutdown hooks.
+     * Not required since threads are daemon, but allows flushing if desired.
+     * @param timeoutMillis time to await termination
+     */
+    public void shutdown(long timeoutMillis) {
+        httpExecutor.shutdown();
+        try {
+            httpExecutor.awaitTermination(timeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
         }
     }
 

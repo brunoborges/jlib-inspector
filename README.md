@@ -367,6 +367,15 @@ Complete documentation is available on the [project website](https://brunoborges
 - **API Reference (Javadoc)** - Complete code documentation
 - **Screenshots** - Visual overview of the dashboard
 
+### Preview documentation page locally
+
+```bash
+docker run --rm -p 4000:4000 -v "$PWD/docs":/srv/jekyll -w /srv/jekyll jekyll/jekyll:4 \
+  bash -lc "bundle install && jekyll serve --livereload --host localhost"
+```
+
+Open http://localhost:4000 in your browser.
+
 ## 📄 License
 
 MIT License - see LICENSE file for details.

@@ -9,7 +9,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - JAVA_OPTS=-Xms512m -Xmx1g
+      - JDK_JAVA_OPTIONS=-Xms512m -Xmx1g
 
   # Frontend (Dashboard)
   frontend:
@@ -30,7 +30,7 @@ services:
       context: ../
       dockerfile: docker/Dockerfile.samplespring
     environment:
-      - JAVA_OPTS=-Xms512m -Xmx1g
+      - JDK_JAVA_OPTIONS=-Xms512m -Xmx1g
       - JLIB_SERVER_URL=http://server:8080
     depends_on:
       - server

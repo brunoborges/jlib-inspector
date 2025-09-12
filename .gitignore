@@ -3,7 +3,7 @@ target/**
 common/target/**
 agent/target/**
 server/target/**
-sample-spring-app/target/**
+sample-*/target/**
 
 # Node folders
 frontend/node_modules/**

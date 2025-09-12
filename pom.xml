@@ -219,6 +219,14 @@
             </subprojects>
         </profile>
         <profile>
+            <id>release</id>
+            <subprojects>
+                <subproject>common</subproject>
+                <subproject>server</subproject>
+                <subproject>agent</subproject>
+            </subprojects>
+        </profile>
+        <profile>
             <id>all</id>
             <activation>
                 <activeByDefault>true</activeByDefault>

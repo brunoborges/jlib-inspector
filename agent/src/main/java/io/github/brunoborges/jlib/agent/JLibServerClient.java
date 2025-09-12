@@ -113,6 +113,15 @@ public class JLibServerClient {
         root.put("jdkVendor", System.getProperty("java.vendor"));
         root.put("jdkPath", System.getProperty("java.home"));
 
+        // JVM details snapshot (may be heavy; consider pruning later if needed)
+        try {
+            io.github.brunoborges.jlib.agent.jvm.ShowJVM show = new io.github.brunoborges.jlib.agent.jvm.ShowJVM();
+            var details = show.extractJVMDetails();
+            root.put("jvmDetails", details.toJson());
+        } catch (Throwable t) {
+            LOG.warning("Failed to collect JVM details: " + t.getMessage());
+        }
+
         JSONArray jars = new JSONArray();
         for (JarMetadata jar : inventory.snapshot()) {
             JSONObject jo = new JSONObject();

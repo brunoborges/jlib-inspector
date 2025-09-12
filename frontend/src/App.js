@@ -11,6 +11,7 @@ import './styles/globals.css';
 const ApplicationDetails = lazy(() => import('./pages/ApplicationDetails'));
 const UniqueJarsPage = lazy(() => import('./pages/UniqueJarsPage'));
 const JarDetails = lazy(() => import('./pages/JarDetails'));
+const JVMDetails = lazy(() => import('./pages/JVMDetails'));
 const ServerConfig = lazy(() => import('./components/ServerConfig'));
 const HelpDialog = lazy(() => import('./components/HelpDialog'));
 import ErrorBoundary from './components/ErrorBoundary';
@@ -21,7 +22,7 @@ const App = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all');
     const [selectedApplication, setSelectedApplication] = useState(null);
-    const [route, setRoute] = useState({ name: 'dashboard' }); // 'dashboard' | 'app' | 'unique' | 'jar'
+    const [route, setRoute] = useState({ name: 'dashboard' }); // 'dashboard' | 'app' | 'unique' | 'jar' | 'jvm'
     const [selectedJar, setSelectedJar] = useState(null); // legacy object (kept for potential fallback)
     const [selectedJarId, setSelectedJarId] = useState(null);
     const [jarOrigin, setJarOrigin] = useState('app'); // 'app' | 'unique'
@@ -118,6 +119,14 @@ const App = () => {
         window.history.pushState({ page: 'jar', jarId, origin }, '', `#/jar/${jarId}`);
     };
 
+    const handleOpenJvmDetails = (appId) => {
+        if (!appId) return;
+        const app = dashboardData.applications.find(a => a.appId === appId);
+        if (app) setSelectedApplication(app);
+        setRoute({ name: 'jvm' });
+        window.history.pushState({ page: 'jvm', appId }, '', `#/app/${appId}/jvm`);
+    };
+
     const handleOpenUniqueJarsPage = (filter = 'all') => {
         setUniqueJarsFilter(filter);
         setRoute({ name: 'unique' });
@@ -192,6 +201,8 @@ const App = () => {
                             handleOpenJarDetails(jar.jarId, 'app', appId);
                         }
                     }
+                } else if (parts[2] === 'jvm') {
+                    handleOpenJvmDetails(parts[1]);
                 } else {
                     handleOpenAppPageById(parts[1]);
                 }
@@ -343,8 +354,26 @@ const App = () => {
                             onBack={handleBackToDashboard}
                             onLocalUpdateApp={handleLocalUpdateApp}
                             onOpenJar={(jarId) => handleOpenJarDetails(jarId, 'app', selectedApplication && selectedApplication.appId)}
+                            onOpenJvm={() => selectedApplication && handleOpenJvmDetails(selectedApplication.appId)}
                         />
                     </Suspense>
+                )}
+                {route.name === 'jvm' && (
+                    <ErrorBoundary jar={{ jarId: selectedJarId }}>
+                        <Suspense fallback={<div></div>}>
+                            <JVMDetails 
+                                appId={selectedApplication && selectedApplication.appId}
+                                onBack={() => {
+                                    if (selectedApplication) {
+                                        setRoute({ name: 'app' });
+                                        window.history.pushState({ page: 'app', appId: selectedApplication.appId }, '', `#/app/${selectedApplication.appId}`);
+                                    } else {
+                                        handleBackToDashboard();
+                                    }
+                                }}
+                            />
+                        </Suspense>
+                    </ErrorBoundary>
                 )}
 
                 {route.name === 'jar' && (

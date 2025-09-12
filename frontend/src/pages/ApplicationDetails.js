@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import JarItem from '../components/JarItem';
 import { initLucideIcons, copyToClipboard } from '../utils/helpers';
 
-const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }) => {
+const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar, onOpenJvm }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [appIdCopyStatus, setAppIdCopyStatus] = useState(null);
@@ -39,8 +39,8 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
       try {
         setJarsLoading(true);
         setJarsError(null);
-    // Frontend proxy exposes /api/applications/:appId/jars (not /api/apps/...)
-    const res = await fetch(`/api/applications/${application.appId}/jars`, { signal: controller.signal });
+  // Fetch JARs for application
+  const res = await fetch(`/api/apps/${application.appId}/jars`, { signal: controller.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (!aborted) {
@@ -82,7 +82,7 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
     setSaving(true);
     try {
       const tags = editTags.split(',').map(t => t.trim()).filter(Boolean);
-      await fetch(`/api/applications/${application.appId}/metadata`, {
+  await fetch(`/api/apps/${application.appId}/metadata`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: editName, description: editDescription, tags })
@@ -164,6 +164,11 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
             <div>
               <h3 className="text-2xl font-bold text-gray-900">Application Details{application.name ? `: ${application.name}` : ''}</h3>
             </div>
+            {onOpenJvm && (
+              <button onClick={() => onOpenJvm()} className="inline-flex items-center px-3 py-2 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700">
+                <i data-lucide="cpu" className="w-4 h-4 mr-2" /> JVM Details
+              </button>
+            )}
           </div>
 
           {/* Application Info */}
@@ -315,7 +320,7 @@ const ApplicationDetails = ({ application, onBack, onLocalUpdateApp, onOpenJar }
                     // retrigger fetch by resetting dependency (appId stays same, so call directly)
                     if (application && application.appId) {
                       setJarsLoading(true);
-                      fetch(`/api/applications/${application.appId}/jars`)
+                      fetch(`/api/apps/${application.appId}/jars`)
                         .then(r => { if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
                         .then(d => { const list = Array.isArray(d.jars) ? d.jars : Array.isArray(d) ? d : []; setJars(list); setJarsError(null); })
                         .catch(e => setJarsError(e.message))

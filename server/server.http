@@ -56,13 +56,6 @@ Content-Type: application/json
 	"description": "Demo application for JLib Inspector",
 	"tags": ["demo", "spring", "sample"]
 }
-
-### 7. Dashboard snapshot (all apps + jars in one payload)
-GET {{base}}/api/dashboard
-
-### 8. Unique loaded JARs report (aggregation across apps)
-GET {{base}}/report
-
 ### 9. Global JAR list (deduplicated)
 GET {{base}}/api/jars
 
@@ -70,7 +63,7 @@ GET {{base}}/api/jars
 @jarId = ed3ef4e4641e91ab8d880dccc670d7111759e33aac8c8482722f2f62b45a84fc
 GET {{base}}/api/jars/{{jarId}}
 
-### localhost:3000
+### Test Frontend localhost:3000
 GET http://localhost:3000/api/jars/{{jarId}}
 
 ### ---------------------------------------------------------------------------
@@ -79,3 +72,14 @@ GET http://localhost:3000/api/jars/{{jarId}}
 ### - Change @appId after listing applications.
 ### - PUT endpoints return plain text or full JSON (metadata update) per API docs.
 ### ---------------------------------------------------------------------------
+
+### Get JVM details from an app
+GET {{base}}/api/apps/{{appId}}/jvm
+
+
+### 7. Dashboard snapshot (all apps + jars in one payload)
+GET {{base}}/api/dashboard
+
+### 8. Unique loaded JARs report (aggregation across apps)
+GET {{base}}/report
+

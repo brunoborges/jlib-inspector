@@ -20,6 +20,8 @@ public class JavaApplication {
     public volatile String name;
     public volatile String description;
     public final java.util.List<String> tags = new java.util.concurrent.CopyOnWriteArrayList<>();
+    // JVM details JSON (as received from agent) stored verbatim
+    public volatile String jvmDetails; // nullable
 
     public JavaApplication(String appId, String commandLine, String jdkVersion,
             String jdkVendor, String jdkPath) {

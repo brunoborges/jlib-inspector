@@ -126,11 +126,11 @@ app.post('/api/server-config', (req, res) => {
   });
 });
 
-app.get('/api/applications', (req, res) => {
+app.get('/api/apps', (req, res) => {
   res.json(dashboardData.applications);
 });
 
-app.get('/api/applications/:appId', (req, res) => {
+app.get('/api/apps/:appId', (req, res) => {
   const app = dashboardData.applications.find(a => a.appId === req.params.appId);
   if (!app) {
     return res.status(404).json({ error: 'Application not found' });
@@ -139,7 +139,7 @@ app.get('/api/applications/:appId', (req, res) => {
 });
 
 // Lazy load per-application jars when specifically requested
-app.get('/api/applications/:appId/jars', async (req, res) => {
+app.get('/api/apps/:appId/jars', async (req, res) => {
   const { appId } = req.params;
   try {
     const jarsResp = await axios.get(`${JLIB_SERVER_URL}/api/apps/${appId}/jars`, { timeout: 5000 });
@@ -150,6 +150,21 @@ app.get('/api/applications/:appId/jars', async (req, res) => {
     }
     console.error(`Failed to fetch jars for app ${appId}:`, error.message);
     res.status(502).json({ error: 'Failed to retrieve jars for application' });
+  }
+});
+
+// JVM details (on-demand snapshot from server storage)
+app.get('/api/apps/:appId/jvm', async (req, res) => {
+  const { appId } = req.params;
+  try {
+    const jvmResp = await axios.get(`${JLIB_SERVER_URL}/api/apps/${appId}/jvm`, { timeout: 5000 });
+    res.json(jvmResp.data);
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return res.status(404).json({ error: 'JVM details not found' });
+    }
+    console.error(`Failed to fetch JVM details for app ${appId}:`, error.message);
+    res.status(502).json({ error: 'Failed to retrieve JVM details for application' });
   }
 });
 
@@ -182,7 +197,7 @@ app.get('/api/jars/:jarId', async (req, res) => {
 });
 
 // Update application metadata (name, description, tags)
-app.put('/api/applications/:appId/metadata', async (req, res) => {
+app.put('/api/apps/:appId/metadata', async (req, res) => {
   const { appId } = req.params;
   const { name, description, tags } = req.body || {};
   try {

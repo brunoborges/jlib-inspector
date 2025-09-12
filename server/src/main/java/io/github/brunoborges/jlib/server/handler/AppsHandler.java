@@ -57,7 +57,7 @@ public class AppsHandler implements HttpHandler {
     }
 
     private void handleGet(HttpExchange exchange, String path) throws IOException {
-        if (path.equals("/api/apps")) {
+    if (path.equals("/api/apps")) {
             // GET /api/apps - List all applications
             sendJsonResponse(exchange, 200,
                     JsonResponseBuilder.buildAppsListJson(applicationService.getAllApplications()));
@@ -76,6 +76,17 @@ public class AppsHandler implements HttpHandler {
             JavaApplication app = applicationService.getApplication(appId);
             if (app != null) {
                 sendJsonResponse(exchange, 200, JsonResponseBuilder.buildJarsListJson(app));
+            } else {
+                sendResponse(exchange, 404, "Application not found");
+            }
+        } else if (path.matches("/api/apps/[^/]+/jvm$")) {
+            // GET /api/apps/{appId}/jvm - JVM details JSON
+            String appId = extractAppId(path);
+            JavaApplication app = applicationService.getApplication(appId);
+            if (app != null && app.jvmDetails != null) {
+                sendJsonResponse(exchange, 200, app.jvmDetails);
+            } else if (app != null) {
+                sendResponse(exchange, 404, "JVM details not available");
             } else {
                 sendResponse(exchange, 404, "Application not found");
             }
@@ -188,7 +199,17 @@ public class AppsHandler implements HttpHandler {
             jarService.processJarUpdates(app, jarsData);
         }
 
-        LOG.info("Updated application: " + appId);
+        // JVM details if provided
+        if (obj.has("jvmDetails")) {
+            Object jvm = obj.get("jvmDetails");
+            if (jvm instanceof JSONObject jo) {
+                app.jvmDetails = jo.toString();
+            } else if (jvm instanceof String s && !s.isBlank()) {
+                app.jvmDetails = s;
+            }
+        }
+
+        LOG.info("Updated application: " + appId + (app.jvmDetails != null ? " (with jvmDetails)" : ""));
     }
 
     private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {

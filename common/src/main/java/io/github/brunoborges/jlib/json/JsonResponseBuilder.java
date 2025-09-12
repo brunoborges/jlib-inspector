@@ -65,6 +65,14 @@ public class JsonResponseBuilder {
             jars.put(jo);
         }
         root.put("jars", jars);
+        if (app.jvmDetails != null) {
+            try {
+                root.put("jvmDetails", new JSONObject(app.jvmDetails));
+            } catch (Exception e) {
+                // Store raw if parsing fails
+                root.put("jvmDetails", app.jvmDetails);
+            }
+        }
         return root.toString();
     }
 

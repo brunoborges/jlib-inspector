@@ -83,7 +83,7 @@ jobs:
           retention-days: 30
 
   # Build and test the sample Spring app
-  build-sample-app:
+  build-sample-spring-app:
     name: Build Sample Spring App
     runs-on: ubuntu-latest
 
@@ -162,8 +162,8 @@ jobs:
   # Integration test: Test agent with server
   integration-test:
     name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: [build-agent, build-server, build-sample-app]
+  runs-on: ubuntu-latest
+  needs: [build-agent, build-server, build-sample-spring-app]
 
     steps:
       - name: Checkout code
@@ -225,8 +225,8 @@ jobs:
   # End-to-end test with full stack
   e2e-test:
     name: End-to-End Tests
-    runs-on: ubuntu-latest
-    needs: [build-agent, build-server, build-sample-app, build-frontend]
+  runs-on: ubuntu-latest
+  needs: [build-agent, build-server, build-sample-spring-app, build-frontend]
 
     steps:
       - name: Checkout code

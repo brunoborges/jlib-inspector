@@ -7,8 +7,7 @@ title: JLib Inspector
 	<h1>Runtime Library Intelligence<br/>for Production JVMs</h1>
 	<p class="tagline">Stop guessing which dependencies your services *really* use. JLib Inspector captures a precise, low‑overhead inventory of loaded JARs & classes so you can shrink images, prioritize CVE fixes, and eliminate dependency drift.</p>
 	<div class="cta-row">
-		<a class="btn accent" href="#quick-start">Get Started ▸</a>
-		<a class="btn" href="{{ site.baseurl }}/javadoc/">API Javadoc</a>
+		<a class="btn accent" href="#quick-start">Get Started</a>
 		<a class="btn" href="https://github.com/{{ site.repository }}">GitHub</a>
 	</div>
 </section>
@@ -40,11 +39,12 @@ Key principles:
 
 | Dimension         | Notes                                                    |
 | ----------------- | -------------------------------------------------------- |
-| JARs in Classpath | Shows JARs that may not be loaded ever                   |
+| JARs in Classpath | Shows JARs that may have not been loaded                 |
+| Loaded JARs       | List of JARs actually loaded by classloaders             | 
 | JAR Path          | Full path on disk (if available)                         |
 | Nested JARs       | Supports Spring Boot, One-JAR, etc.                      |
-| Artifact (GAV)    | Derivation via MANIFEST / path heuristics (if available) |
-| JAR Hash          | SHA-256 for integrity / SBOM correlation                 |
+| JAR Manifest      | Extracts content from the file MANIFEST.mf in each JAR.  |
+| JAR Hash          | SHA-256 for integrity / SBOM correlation.                |
 
 ## Quick Start (Docker Desktop) {#quick-start}
 

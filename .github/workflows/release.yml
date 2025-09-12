@@ -1,65 +1,31 @@
-name: Release Agent and Server
-
+# .github/workflows/release.yml
+name: release
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch:
-    inputs:
-      manual_tag:
-        description: 'Tag name to release (must already exist, e.g. v1.0.0)'
-        required: false
-
-permissions:
-  contents: read
-
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
+      - "v*.*.*"
 
 jobs:
-  build:
-    name: Build & Test
+  build-and-release:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-      - name: Set up JDK 21
+      - name: Set up Temurin JDK
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: 21
           cache: maven
 
-      - name: Determine version from tag
-        id: version
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.manual_tag }}" ]]; then
-            TAG="${{ inputs.manual_tag }}"
-          else
-            TAG="${GITHUB_REF##*/}"
-          fi
-          VERSION="${TAG#v}"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Resolved tag $TAG -> project version $VERSION"
+      - name: Build
+        run: mvn -B -DskipTests=false verify
 
-      - name: Set Maven project version
-        run: ./mvnw -q -B versions:set -DnewVersion=${{ steps.version.outputs.version }} -DgenerateBackupPoms=false
-
-      - name: Show effective versions (root poms)
-        run: |
-          grep -R "<version>" -m1 pom.xml || true
-          grep -R "<version>" agent/pom.xml | head -n1 || true
-          grep -R "<version>" server/pom.xml | head -n1 || true
-
-      - name: Build (Maven)
-        run: ./mvnw -q -B clean verify
-
-      - name: Collect shaded JARs
+      - name: Collect artifacts
         run: |
           mkdir -p artifacts
           ls -l agent/target || true
@@ -67,6 +33,7 @@ jobs:
           cp agent/target/*shaded.jar artifacts/ || echo "No agent shaded jar found" >&2
           cp server/target/*shaded.jar artifacts/ || echo "No server shaded jar found" >&2
           ls -l artifacts
+
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -94,7 +61,7 @@ jobs:
           echo "Resolved tag: $(grep tag= $GITHUB_OUTPUT)"
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: shaded-jars
           path: artifacts

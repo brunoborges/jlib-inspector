@@ -330,12 +330,10 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
-      - name: Build and install modules
-        run: ./mvnw clean install -DskipTests -B
-
-      - name: Run OWASP Dependency Check
+      - name: Build modules and run dependency check
         run: |
-          ./mvnw org.owasp:dependency-check-maven:check \
+          ./mvnw clean install org.owasp:dependency-check-maven:check \
+            -DskipTests \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
             -B || echo "Dependency check completed with warnings"
 

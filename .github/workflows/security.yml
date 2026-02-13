@@ -41,7 +41,7 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
       - name: Build modules and run dependency check
         run: |
-          ./mvnw clean install dependency-check:check \
+          ./mvnw clean install org.owasp:dependency-check-maven:check \
             -DskipTests \
             -Dformat=ALL -DfailBuildOnCVSS=7 \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} -B

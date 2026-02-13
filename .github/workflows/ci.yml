@@ -332,7 +332,7 @@ jobs:
 
       - name: Build modules and run dependency check
         run: |
-          ./mvnw clean install dependency-check:check \
+          ./mvnw clean install org.owasp:dependency-check-maven:check \
             -DskipTests \
             -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
             -B || echo "Dependency check completed with warnings"

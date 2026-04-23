@@ -18,7 +18,8 @@
         <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
         <maven.surefire.plugin.version>3.5.3</maven.surefire.plugin.version>
         <jacoco.plugin.version>0.8.13</jacoco.plugin.version>
-        <spring.boot.version>3.5.5</spring.boot.version>
+        <spring.boot.version>3.5.12</spring.boot.version>
+        <log4j2.version>2.25.3</log4j2.version>
         <!-- Site/reporting plugins -->
         <maven.site.plugin.version>3.12.1</maven.site.plugin.version>
         <maven.project.info.reports.version>3.6.0</maven.project.info.reports.version>
@@ -53,6 +54,23 @@
                 <artifactId>junit-jupiter</artifactId>
                 <version>${junit.jupiter.version}</version>
                 <scope>test</scope>
+            </dependency>
+
+            <!-- Log4j2 version override (CVE-2025-68161 fix) - must be declared before the BOM import -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${log4j2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${log4j2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-to-slf4j</artifactId>
+                <version>${log4j2.version}</version>
             </dependency>
 
             <!-- Spring Boot BOM (applies to all modules) -->

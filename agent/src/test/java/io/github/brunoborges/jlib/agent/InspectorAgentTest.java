@@ -237,6 +237,25 @@ class InspectorAgentTest {
         assertNull(serverClient);
     }
 
+    @Test
+    @DisplayName("Should parse comma-separated server and otel options")
+    void shouldParseCombinedServerAndOtelOptions() throws Exception {
+        Method parseArgsMethod = InspectorAgent.class.getDeclaredMethod("parseArguments", String.class);
+        parseArgsMethod.setAccessible(true);
+
+        parseArgsMethod.invoke(null, "server:8080, otel:collector:4318");
+
+        Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
+        serverClientField.setAccessible(true);
+        assertNotNull(serverClientField.get(null));
+
+        Field otelField = InspectorAgent.class.getDeclaredField("otelExporter");
+        otelField.setAccessible(true);
+        OtelEventExporter exporter = (OtelEventExporter) otelField.get(null);
+        assertNotNull(exporter);
+        assertEquals("http://collector:4318/v1/logs", exporter.endpoint().toString());
+    }
+
     /**
      * Helper method to reset static state in InspectorAgent for test isolation.
      */
@@ -244,6 +263,10 @@ class InspectorAgentTest {
         Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
         serverClientField.setAccessible(true);
         serverClientField.set(null, null);
+
+        Field otelField = InspectorAgent.class.getDeclaredField("otelExporter");
+        otelField.setAccessible(true);
+        otelField.set(null, null);
 
         Field applicationIdField = InspectorAgent.class.getDeclaredField("applicationId");
         applicationIdField.setAccessible(true);

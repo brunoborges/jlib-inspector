@@ -62,6 +62,8 @@ Sample app (included):
 java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
 ```
 
+Options are comma-separated; add `otel` (or `otel:http://collector:4318`) to also export OpenTelemetry `package.info` events over OTLP/HTTP JSON (e.g. `=server:8080,otel`).
+
 ## Run – frontend (dashboard)
 
 npm and node commands must always run in the frontend folder.

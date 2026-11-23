@@ -5,7 +5,6 @@
 
 <!-- BADGES -->
 [![CI/CD Pipeline](https://github.com/brunoborges/jlib-inspector/actions/workflows/ci.yml/badge.svg)](https://github.com/brunoborges/jlib-inspector/actions/workflows/ci.yml)
-[![Security & Maintenance](https://github.com/brunoborges/jlib-inspector/actions/workflows/security.yml/badge.svg)](https://github.com/brunoborges/jlib-inspector/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Java](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://openjdk.java.net/)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)

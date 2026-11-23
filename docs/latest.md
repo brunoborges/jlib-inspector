@@ -6,13 +6,12 @@ permalink: /latest.html
 
 # JLib Inspector {{ site.latest_release }}
 
-## What's New in 1.1.0
+## What's New in 1.2.0
 
-* **Periodic reporting.** Add `interval:<n>[s|m|h]` (for example `interval:30s`) and the agent sends its JAR inventory to the server on that schedule. Running apps now appear in the dashboard and stay current; without it, the agent still reports once, when the JVM exits.
-* **Optional OpenTelemetry export.** Add `otel[:endpoint]` and the agent sends one `package.info` event per archive to your OTLP/HTTP collector, using the same attributes as the OpenTelemetry Java agent's experimental package emitter. It also includes JARs that were declared but never loaded, and JARs nested in fat JARs. With `interval`, only new archives and archives that became loaded are sent after the first export.
-* **Fewer dependency clashes.** The agent's bundled `org.json` is now relocated, so it can't conflict with the `org.json` your application ships.
+* **Dashboard on GitHub Container Registry.** Pull `{{ site.container_image }}:{{ site.latest_release }}` from GitHub, or keep using the same version tag on Docker Hub.
+* **Spring Boot 4.2 sample.** The sample app now uses Spring Boot 4.2.0. Its integration test starts the packaged app with the Java agent attached.
 
-Full changelog: [v1.1.0 release notes](https://github.com/{{ site.repository }}/releases/tag/v1.1.0). Earlier versions: [all releases](https://github.com/{{ site.repository }}/releases).
+Full changelog: [v{{ site.latest_release }} release notes](https://github.com/{{ site.repository }}/releases/tag/v{{ site.latest_release }}). Earlier versions: [all releases](https://github.com/{{ site.repository }}/releases).
 
 ## Artifacts
 
@@ -140,7 +139,7 @@ docker run --rm --network host alpine curl -s http://localhost:8080/health
 * Add TLS (reverse proxy) for remote agents
 * Inventory payload includes JAR metadata—avoid unencrypted transit on untrusted networks
 
-## Roadmap Highlights After 1.1.0
+## Roadmap Highlights
 
 * SBOM correlation & drift diff
 * CycloneDX runtime delta export

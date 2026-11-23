@@ -11,7 +11,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -35,6 +37,9 @@ public class JLibServerClient {
     // Normalized base URL (scheme://host[:port][/optionalPath]) with no trailing
     // '/'
     private final String baseUrl;
+    // Only accessed from the single httpExecutor thread
+    private HttpClient httpClient;
+    private final AtomicBoolean sentOnce = new AtomicBoolean();
 
     /**
      * Creates a new server client for the specified host and port.
@@ -89,17 +94,20 @@ public class JLibServerClient {
             final long start = System.currentTimeMillis();
             try {
                 final int jarCount = inventory.snapshot().size();
-                LOG.info(() -> "Preparing to send application inventory (async): appId=" + applicationId + ", jars=" + jarCount
+                LOG.fine(() -> "Preparing to send application inventory (async): appId=" + applicationId + ", jars=" + jarCount
                         + ", target=" + baseUrl);
 
                 String json = buildApplicationJson(inventory); // build inside background
                 int payloadBytes = json.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
-                LOG.info(() -> String.format("Async send %d bytes of inventory data for appId=%s to %s/api/apps/%s", payloadBytes,
+                LOG.fine(() -> String.format("Async send %d bytes of inventory data for appId=%s to %s/api/apps/%s", payloadBytes,
                         applicationId, baseUrl, applicationId));
 
-                HttpClient client = HttpClient.newBuilder()
-                        .connectTimeout(Duration.ofSeconds(5))
-                        .build();
+                if (httpClient == null) {
+                    // Created on the (single) executor thread and reused for periodic sends
+                    httpClient = HttpClient.newBuilder()
+                            .connectTimeout(Duration.ofSeconds(5))
+                            .build();
+                }
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(baseUrl + "/api/apps/" + applicationId))
                         .timeout(Duration.ofSeconds(15))
@@ -107,14 +115,16 @@ public class JLibServerClient {
                         .header("Content-Type", "application/json")
                         .build();
 
-                return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                         .orTimeout(20, TimeUnit.SECONDS)
                         .whenComplete((resp, err) -> {
                             long took = System.currentTimeMillis() - start;
                             if (err != null) {
                                 LOG.warning("Async send failed for appId=" + applicationId + ": " + err.getClass().getSimpleName() + " - " + err.getMessage());
                             } else if (resp.statusCode() == 200) {
-                                LOG.info(() -> String.format(
+                                // Log the first success at INFO; periodic repeats only at FINE
+                                Level level = sentOnce.getAndSet(true) ? Level.FINE : Level.INFO;
+                                LOG.log(level, () -> String.format(
                                         "Async inventory sent appId=%s status=%d bytes=%d took=%dms",
                                         applicationId, resp.statusCode(), payloadBytes, took));
                             } else {

@@ -195,7 +195,7 @@ JAR list:
 ## 🔧 Configuration
 
 ### Agent Configuration
-The agent accepts the following parameters:
+The agent accepts the following parameters (combine several with commas):
 
 ```bash
 # Local mode only (no server reporting)
@@ -206,7 +206,50 @@ The agent accepts the following parameters:
 
 # Report to remote server
 -javaagent:jlib-inspector-agent.jar=server:remote-host:9000
+
+# Export OpenTelemetry events (endpoint from OTEL_EXPORTER_OTLP_* env vars, default http://localhost:4318)
+-javaagent:jlib-inspector-agent.jar=otel
+
+# Report to the server and export to a specific OTLP/HTTP collector
+-javaagent:jlib-inspector-agent.jar=server:8080,otel:http://collector:4318
+
+# Also report every 30 seconds while the application runs (units: s, m, h)
+-javaagent:jlib-inspector-agent.jar=server:8080,interval:30s
 ```
+
+`JLIB_SERVER_URL`, when set, overrides the `server:` option. Other options still apply.
+
+### Periodic Reporting (optional)
+
+By default the agent reports once, when the JVM shuts down. Long-running services may never stop, so add `interval:<duration>` to also report while the application runs (for example `interval:30s`, `interval:5m` or `interval:1h`; a bare number is seconds, minimum `1s`). The agent still reports at shutdown.
+
+- **jlib server**: each report sends the full inventory. The server merges it into the existing application and refreshes its last-updated time. JARs that load lazily show up as loaded without waiting for shutdown.
+- **OpenTelemetry**: the first report exports every archive. Later reports export only new archives or archives whose state changed, such as a declared JAR that is now loaded. When nothing changed, nothing is sent. A failed export is retried on the next report.
+
+### OpenTelemetry Export (optional)
+
+With the `otel` option, the agent sends the JAR inventory to an OpenTelemetry Collector or any OTLP/HTTP-compatible backend when the JVM shuts down, and on every [periodic report](#periodic-reporting-optional) if `interval:` is set. It sends one `package.info` log event per JAR. Nothing is exported unless you enable this option, and it adds no dependencies (OTLP/HTTP JSON is sent with the JDK HTTP client).
+
+Events use the same names as the [OpenTelemetry Java agent's experimental package emitter](https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/main/instrumentation/runtime-telemetry), so existing queries and dashboards work. They also cover what that emitter misses: JARs that are declared but never loaded, and JARs nested inside fat JARs.
+
+| Attribute | Description |
+| --- | --- |
+| `package.path` / `package.type` | Archive file name / extension (`jar`, `war`, `ear`) |
+| `package.name` / `package.version` | `groupId:artifactId` and version from `pom.properties` (version falls back to the manifest) |
+| `package.description` | Manifest `Implementation-Title` and `Implementation-Vendor` |
+| `package.checksum` / `package.checksum_algorithm` | Hex SHA-256 / `SHA-256` |
+| `jlib.jar.path` | Full path, including nested `!/BOOT-INF/lib/...` entries |
+| `jlib.jar.loaded` / `jlib.jar.nested` / `jlib.jar.size` | Whether classes were loaded from it, whether it is nested, size in bytes |
+
+Resource attributes include `service.name`, `process.*`, `host.name` and `jlib.application.id`. The standard SDK environment variables are honored:
+
+| Variable | Purpose |
+| --- | --- |
+| `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` / `OTEL_EXPORTER_OTLP_ENDPOINT` | Collector endpoint (used when `otel` has no endpoint; `/v1/logs` is appended to the generic one) |
+| `OTEL_EXPORTER_OTLP_HEADERS` / `OTEL_EXPORTER_OTLP_LOGS_HEADERS` | Extra headers, e.g. `Authorization=Bearer%20token` |
+| `OTEL_SERVICE_NAME` / `OTEL_RESOURCE_ATTRIBUTES` | Resource identity (defaults to `unknown_service:java`) |
+
+Only the `http/json` protocol is supported. The resource includes `process.command_line`, so be careful if your command line contains secrets.
 
 ### Environment Variables
 ```bash

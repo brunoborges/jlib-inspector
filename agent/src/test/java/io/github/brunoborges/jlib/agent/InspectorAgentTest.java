@@ -4,9 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.time.Duration;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -237,6 +240,54 @@ class InspectorAgentTest {
         assertNull(serverClient);
     }
 
+    @Test
+    @DisplayName("Should parse comma-separated server and otel options")
+    void shouldParseCombinedServerAndOtelOptions() throws Exception {
+        Method parseArgsMethod = InspectorAgent.class.getDeclaredMethod("parseArguments", String.class);
+        parseArgsMethod.setAccessible(true);
+
+        parseArgsMethod.invoke(null, "server:8080, otel:collector:4318");
+
+        Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
+        serverClientField.setAccessible(true);
+        assertNotNull(serverClientField.get(null));
+
+        Field otelField = InspectorAgent.class.getDeclaredField("otelExporter");
+        otelField.setAccessible(true);
+        OtelEventExporter exporter = (OtelEventExporter) otelField.get(null);
+        assertNotNull(exporter);
+        assertEquals("http://collector:4318/v1/logs", exporter.endpoint().toString());
+    }
+
+    @Test
+    @DisplayName("Should parse the reporting interval option")
+    void shouldParseIntervalOption() throws Exception {
+        Method parseArgsMethod = InspectorAgent.class.getDeclaredMethod("parseArguments", String.class);
+        parseArgsMethod.setAccessible(true);
+        Field intervalField = InspectorAgent.class.getDeclaredField("reportInterval");
+        intervalField.setAccessible(true);
+
+        parseArgsMethod.invoke(null, "server:8080,interval:5m");
+        assertEquals(Duration.ofMinutes(5), intervalField.get(null));
+
+        resetAgentState();
+        parseArgsMethod.invoke(null, "server:8080,interval:0");
+        assertNull(intervalField.get(null));
+    }
+
+    @Test
+    @DisplayName("Should parse interval durations in seconds, minutes and hours")
+    void shouldParseIntervalDurations() {
+        assertEquals(Duration.ofSeconds(30), InspectorAgent.parseInterval("30"));
+        assertEquals(Duration.ofSeconds(45), InspectorAgent.parseInterval("45s"));
+        assertEquals(Duration.ofMinutes(5), InspectorAgent.parseInterval("5M"));
+        assertEquals(Duration.ofHours(1), InspectorAgent.parseInterval("1h"));
+        for (String invalid : List.of("", "0", "-5", "abc", "10x", "m")) {
+            assertThrows(IllegalArgumentException.class, () -> InspectorAgent.parseInterval(invalid), invalid);
+        }
+        assertThrows(ArithmeticException.class, () -> InspectorAgent.parseInterval(Long.MAX_VALUE + "h"));
+    }
+
     /**
      * Helper method to reset static state in InspectorAgent for test isolation.
      */
@@ -244,6 +295,14 @@ class InspectorAgentTest {
         Field serverClientField = InspectorAgent.class.getDeclaredField("serverClient");
         serverClientField.setAccessible(true);
         serverClientField.set(null, null);
+
+        Field otelField = InspectorAgent.class.getDeclaredField("otelExporter");
+        otelField.setAccessible(true);
+        otelField.set(null, null);
+
+        Field intervalField = InspectorAgent.class.getDeclaredField("reportInterval");
+        intervalField.setAccessible(true);
+        intervalField.set(null, null);
 
         Field applicationIdField = InspectorAgent.class.getDeclaredField("applicationId");
         applicationIdField.setAccessible(true);

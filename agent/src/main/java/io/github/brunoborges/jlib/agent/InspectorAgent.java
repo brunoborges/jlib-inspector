@@ -6,11 +6,16 @@ import io.github.brunoborges.jlib.common.JarMetadata;
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -26,6 +31,14 @@ import java.util.logging.Logger;
  * server on localhost:8080</li>
  * <li>{@code -javaagent:jlib-inspector-agent.jar=server:remote-host:9000} -
  * Report to specific host:port</li>
+ * <li>{@code -javaagent:jlib-inspector-agent.jar=otel} - Export OpenTelemetry
+ * events (endpoint from {@code OTEL_EXPORTER_OTLP_*} or
+ * {@code http://localhost:4318})</li>
+ * <li>{@code -javaagent:jlib-inspector-agent.jar=server:8080,otel:http://collector:4318}
+ * - Combine options with commas</li>
+ * <li>{@code -javaagent:jlib-inspector-agent.jar=server:8080,interval:5m} -
+ * Also report every 5 minutes while the application runs (units: s, m,
+ * h)</li>
  * </ul>
  * 
  * <p>
@@ -41,7 +54,15 @@ public class InspectorAgent {
 
     // Server configuration (null if local-only mode)
     private static JLibServerClient serverClient;
+    // OpenTelemetry exporter (null unless the "otel" option is set)
+    private static OtelEventExporter otelExporter;
+    // Interval between periodic reports (null to report only at shutdown)
+    private static Duration reportInterval;
     private static String applicationId;
+
+    private static final Duration MIN_REPORT_INTERVAL = Duration.ofSeconds(1);
+    private static final long SHUTDOWN_TIMEOUT_SECONDS = 5;
+    private static final long PERIODIC_TIMEOUT_SECONDS = 30;
 
     public static void premain(String args, Instrumentation inst) {
         // Parse agent arguments for optional server configuration
@@ -76,32 +97,88 @@ public class InspectorAgent {
         // inventory)
         ClasspathJarTracker classpathTracker = new ClasspathJarTracker(inst, inventory);
 
-        // Generate application ID if server mode is enabled
-        if (serverClient != null) {
+        // Generate application ID if any remote reporting is enabled
+        if (serverClient != null || otelExporter != null) {
             applicationId = generateApplicationId(inventory, classpathTracker);
-            LOG.info("Application ID: " + applicationId + " (will report to server)");
+            LOG.info("Application ID: " + applicationId + " (will be reported)");
         }
+
+        ScheduledExecutorService reporter = startPeriodicReporting(inventory);
 
         // Shutdown hook to emit consolidated report
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (reporter != null) {
+                reporter.shutdownNow();
+            }
             System.out.println("");
             inventory.report(System.out);
             System.out.println("");
 
-            // Send to server if configured
-            if (serverClient != null) {
-                try {
-                    var future = serverClient.sendApplicationDataAsync(applicationId, inventory);
-                    // Best effort: wait a short time so the HTTP call can complete, but don't block shutdown indefinitely.
-                    future.orTimeout(5, TimeUnit.SECONDS).exceptionally(ex -> {
-                        LOG.fine(() -> "Async send did not complete before timeout/shutdown: " + ex.getMessage());
+            // Best effort: wait a short time so the HTTP calls can complete, but don't block shutdown indefinitely.
+            report(inventory, SHUTDOWN_TIMEOUT_SECONDS);
+        }, "jlib-inspector-shutdown"));
+    }
+
+    /**
+     * Starts reporting to the configured destinations every
+     * {@link #reportInterval}, if set.
+     *
+     * @return the scheduler, or null when reporting happens only at shutdown
+     */
+    private static ScheduledExecutorService startPeriodicReporting(JarInventory inventory) {
+        if (reportInterval == null) {
+            return null;
+        }
+        if (serverClient == null && otelExporter == null) {
+            LOG.warning("Ignoring interval option: enable server or otel reporting to use it");
+            return null;
+        }
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "jlib-inspector-reporter");
+            t.setDaemon(true);
+            t.setPriority(Thread.NORM_PRIORITY - 1);
+            return t;
+        });
+        long millis = reportInterval.toMillis();
+        scheduler.scheduleWithFixedDelay(() -> {
+            try {
+                report(inventory, PERIODIC_TIMEOUT_SECONDS);
+            } catch (RuntimeException e) {
+                // An exception would cancel all future runs
+                LOG.warning("Periodic report failed: " + e);
+            }
+        }, millis, millis, TimeUnit.MILLISECONDS);
+        LOG.info("Reporting every " + reportInterval.toSeconds() + "s and at shutdown");
+        return scheduler;
+    }
+
+    /**
+     * Sends the inventory to every configured destination and waits for the
+     * sends to finish, up to the given timeout.
+     */
+    private static void report(JarInventory inventory, long timeoutSeconds) {
+        List<CompletableFuture<Void>> pending = new ArrayList<>();
+        if (serverClient != null) {
+            try {
+                pending.add(serverClient.sendApplicationDataAsync(applicationId, inventory));
+            } catch (Throwable e) {
+                LOG.warning("Failed to schedule async send to server: " + e.getMessage());
+            }
+        }
+        if (otelExporter != null) {
+            try {
+                pending.add(otelExporter.exportAsync(inventory, applicationId));
+            } catch (Throwable e) {
+                LOG.warning("Failed to schedule OpenTelemetry export: " + e.getMessage());
+            }
+        }
+        if (!pending.isEmpty()) {
+            CompletableFuture.allOf(pending.toArray(CompletableFuture[]::new))
+                    .orTimeout(timeoutSeconds, TimeUnit.SECONDS).exceptionally(ex -> {
+                        LOG.fine(() -> "Async send did not complete before timeout: " + ex.getMessage());
                         return null;
                     }).join();
-                } catch (Throwable e) {
-                    LOG.warning("Failed to schedule async send to server: " + e.getMessage());
-                }
-            }
-        }, "jlib-inspector-shutdown"));
+        }
     }
 
     private static String normalizeLocation(String url) {
@@ -121,46 +198,97 @@ public class InspectorAgent {
     }
 
     /**
-     * Parses agent arguments to configure optional server reporting.
+     * Parses agent arguments to configure optional server reporting and
+     * OpenTelemetry export.
      * 
-     * @param args Agent arguments string. Format: "server:port" or
-     *             "server:host:port"
+     * @param args Agent arguments string: comma-separated options among
+     *             "server:port", "server:host:port", "otel", "otel:endpoint"
+     *             and "interval:duration"
      */
     private static void parseArguments(String args) {
-        // 1) Highest precedence: environment variable JLIB_SERVER_URL
+        // Environment variable JLIB_SERVER_URL takes precedence over the server option
+        boolean serverFromEnv = false;
         if (serverClient == null) {
             serverClient = JLibServerClient.fromEnv();
             if (serverClient != null) {
+                serverFromEnv = true;
                 LOG.info("Configured to report to server via environment variable JLIB_SERVER_URL");
-                return; // env var wins; ignore args
             }
         }
 
         if (args == null || args.trim().isEmpty()) {
-            return; // Local reporting only (no env var either)
+            return; // Local reporting only (unless env var set)
         }
 
-        if (args.startsWith("server:")) {
-            String serverSpec = args.substring(7);
-            String[] parts = serverSpec.split(":");
-            try {
-                String serverHost;
-                int serverPort;
-                if (parts.length == 1) {
-                    serverHost = "localhost";
-                    serverPort = Integer.parseInt(parts[0]);
-                } else if (parts.length == 2) {
-                    serverHost = parts[0];
-                    serverPort = Integer.parseInt(parts[1]);
-                } else {
-                    LOG.warning("Invalid server specification: " + args);
-                    return;
+        for (String option : args.split(",")) {
+            String opt = option.trim();
+            if (opt.startsWith("server:")) {
+                if (!serverFromEnv) {
+                    parseServerOption(opt);
                 }
-                serverClient = new JLibServerClient(serverHost, serverPort);
-                LOG.info("Configured to report to server at " + serverHost + ":" + serverPort);
-            } catch (NumberFormatException e) {
-                LOG.warning("Invalid port in server specification: " + args);
+            } else if (opt.equals("otel") || opt.startsWith("otel:")) {
+                otelExporter = OtelEventExporter.create(opt.length() > 5 ? opt.substring(5) : null);
+                LOG.info("Configured to export OpenTelemetry events to " + otelExporter.endpoint());
+            } else if (opt.startsWith("interval:")) {
+                try {
+                    reportInterval = parseInterval(opt.substring(9));
+                } catch (IllegalArgumentException | ArithmeticException e) {
+                    LOG.warning("Invalid interval specification '" + opt + "': " + e.getMessage());
+                }
+            } else if (!opt.isEmpty()) {
+                LOG.warning("Ignoring unrecognized agent option: " + opt);
             }
+        }
+    }
+
+    /**
+     * Parses a reporting interval such as {@code 30}, {@code 30s}, {@code 5m} or
+     * {@code 1h}. A number without a unit is in seconds.
+     *
+     * @throws IllegalArgumentException if invalid or shorter than one second
+     */
+    static Duration parseInterval(String spec) {
+        String s = spec.trim().toLowerCase(Locale.ROOT);
+        long unitSeconds = 1;
+        if (s.endsWith("h")) {
+            unitSeconds = 3600;
+        } else if (s.endsWith("m")) {
+            unitSeconds = 60;
+        }
+        if (!s.isEmpty() && Character.isLetter(s.charAt(s.length() - 1))) {
+            if ("hms".indexOf(s.charAt(s.length() - 1)) < 0) {
+                throw new IllegalArgumentException("unknown unit, use s, m or h");
+            }
+            s = s.substring(0, s.length() - 1).trim();
+        }
+        Duration interval = Duration.ofMillis(
+                Math.multiplyExact(Math.multiplyExact(Long.parseLong(s), unitSeconds), 1000L));
+        if (interval.compareTo(MIN_REPORT_INTERVAL) < 0) {
+            throw new IllegalArgumentException("must be at least " + MIN_REPORT_INTERVAL.toSeconds() + "s");
+        }
+        return interval;
+    }
+
+    private static void parseServerOption(String args) {
+        String serverSpec = args.substring(7);
+        String[] parts = serverSpec.split(":");
+        try {
+            String serverHost;
+            int serverPort;
+            if (parts.length == 1) {
+                serverHost = "localhost";
+                serverPort = Integer.parseInt(parts[0]);
+            } else if (parts.length == 2) {
+                serverHost = parts[0];
+                serverPort = Integer.parseInt(parts[1]);
+            } else {
+                LOG.warning("Invalid server specification: " + args);
+                return;
+            }
+            serverClient = new JLibServerClient(serverHost, serverPort);
+            LOG.info("Configured to report to server at " + serverHost + ":" + serverPort);
+        } catch (NumberFormatException e) {
+            LOG.warning("Invalid port in server specification: " + args);
         }
     }
 
@@ -211,7 +339,7 @@ public class InspectorAgent {
      * 
      * @return Complete command line string
      */
-    private static String getFullCommandLine() {
+    static String getFullCommandLine() {
         try {
             // Try to get the complete command line using ProcessHandle (Java 9+)
             ProcessHandle currentProcess = ProcessHandle.current();

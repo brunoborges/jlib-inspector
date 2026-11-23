@@ -27,7 +27,7 @@ GitHub Releases: [v{{ site.latest_release }}](https://github.com/{{ site.reposit
 
 ## Frontend Container Image
 
-A pre-built container image for the dashboard (UI + REST proxy + WebSocket) is published.
+A pre-built container image for the dashboard (UI + REST proxy + WebSocket) is published to the [GitHub Container Registry](https://github.com/{{ site.repository }}/pkgs/container/jlib-frontend).
 
 macOS / Windows (Docker Desktop) quick start (Linux differs; see below):
 
@@ -35,12 +35,14 @@ macOS / Windows (Docker Desktop) quick start (Linux differs; see below):
 docker run \
   -e JLIB_SERVER_URL=http://host.docker.internal:8080 \
   -ti -p 3000:3000 -p 3001:3001 \
-  brunoborges/jlib-frontend:{{ site.latest_release }}
+  {{ site.container_image }}:{{ site.latest_release }}
 ```
 
 Then open: <http://localhost:3000>
 
 WebSocket default port: 3001 (exposed). Change via `PORT` / `WS_PORT` if needed.
+
+> The image is also still published to Docker Hub as `brunoborges/jlib-frontend` for existing users. That is a legacy location; prefer `{{ site.container_image }}`.
 
 ## Running the Server (Java)
 
@@ -87,7 +89,7 @@ Host networking differs across platforms; this affects a containerized frontend 
 
 True host networking is available:
 ```bash
-docker run --rm --network host brunoborges/jlib-frontend:{{ site.latest_release }}
+docker run --rm --network host {{ site.container_image }}:{{ site.latest_release }}
 ```
 * Dashboard: <http://localhost:3000>
 * Frontend reaches server at `http://localhost:8080`
@@ -105,7 +107,7 @@ Example:
 docker run \
   -e JLIB_SERVER_URL=http://host.docker.internal:8080 \
   -p 3000:3000 -p 3001:3001 \
-  brunoborges/jlib-frontend:{{ site.latest_release }}
+  {{ site.container_image }}:{{ site.latest_release }}
 ```
 Why:
 * `host.docker.internal` resolves to the host OS

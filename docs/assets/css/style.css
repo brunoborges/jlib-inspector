@@ -6,7 +6,7 @@ h1[id],h2[id],h3[id],h4[id],h5[id],h6[id] { scroll-margin-top:80px; }
 body { margin:0; font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; background:var(--c-bg); color:var(--c-fg); -webkit-font-smoothing:antialiased; }
 a { color:#63b3ff; text-decoration:none; }
 a:hover { color:#fff; }
-.wrap { width:100%; max-width:1180px; margin:0 auto; padding:0 1.4rem; }
+.wrap { max-width:1180px; margin:0 auto; padding:0 1.4rem; }
 .site-header { position:sticky; top:0; backdrop-filter: blur(12px); background:rgba(12,17,22,.85); border-bottom:1px solid #1d2a36; z-index:40; }
 .nav-bar { display:flex; align-items:center; justify-content:space-between; min-height:60px; }
 .logo { font-weight:700; font-size:1.05rem; letter-spacing:.5px; background:linear-gradient(120deg,var(--c-accent),var(--c-accent-alt)); -webkit-background-clip:text; background-clip:text; color:transparent; }
@@ -40,7 +40,39 @@ a:hover { color:#fff; }
 pre { background:#111a22; color:#e9eef2; padding:.9rem 1rem; border:1px solid #1f2d3a; border-radius:12px; font-size:.8rem; overflow:auto; line-height:1.35; }
 code { font-family:Menlo,monospace; background:#17222c; padding:.2rem .45rem; border-radius:6px; font-size:.8rem; }
 
-.diagram { background:var(--c-panel); border:1px solid #1f2d3a; padding:1rem 1.2rem; border-radius:12px; font-family:Menlo,monospace; font-size:.75rem; line-height:1.25; margin-top:1.25rem; white-space:pre; overflow:auto; }
+/* Architecture flow */
+.architecture {
+  --node-size:2.75rem;
+  --flow-gap:2rem;
+  --line:#44596d;
+  --ink:var(--c-accent-alt);
+  margin:1.25rem 0;
+  background:var(--c-bg-alt);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+}
+.architecture ol { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--flow-gap); list-style:none; margin:0; padding:clamp(1rem,3vw,2rem); }
+.architecture li { position:relative; }
+.architecture svg { display:block; box-sizing:border-box; width:var(--node-size); height:var(--node-size); padding:.55rem; background:var(--c-panel); border:1px solid var(--line); border-radius:10px; stroke:var(--ink); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; fill:none; }
+.architecture li:not(:last-child)::before,
+.architecture li:not(:last-child)::after { content:""; position:absolute; top:calc(var(--node-size) / 2); right:calc(.6rem - var(--flow-gap)); color:var(--line); }
+.architecture li:not(:last-child)::before { left:calc(var(--node-size) + .6rem); border-top:1px solid; }
+.architecture li:not(:last-child)::after { width:.4rem; height:.4rem; border:solid; border-width:1px 1px 0 0; transform:translateY(-50%) rotate(45deg); }
+.architecture h3 { margin:1rem 0 .4rem; font-size:1.1rem; }
+.architecture p, .architecture figcaption { margin:0; color:var(--c-fg-dim); font-size:.9rem; line-height:1.5; }
+.architecture figcaption { display:flex; flex-wrap:wrap; gap:.25rem 1rem; border-top:1px solid var(--line); padding:.85rem clamp(1rem,3vw,2rem); }
+.architecture figcaption strong { color:var(--c-fg); }
+
+@media (max-width:700px) {
+  .architecture ol { grid-template-columns:1fr; }
+  .architecture li { padding-left:calc(var(--node-size) + 1rem); min-height:var(--node-size); }
+  .architecture svg { position:absolute; left:0; top:0; }
+  .architecture h3 { margin-top:0; }
+  .architecture li:not(:last-child)::before,
+  .architecture li:not(:last-child)::after { left:calc(var(--node-size) / 2); right:auto; bottom:calc(.6rem - var(--flow-gap)); }
+  .architecture li:not(:last-child)::before { top:calc(var(--node-size) + .6rem); border-top:0; border-left:1px solid; }
+  .architecture li:not(:last-child)::after { top:auto; transform:translateX(-50%) rotate(135deg); }
+}
 
 table { width:100%; border-collapse:collapse; margin-top:.5rem; }
 th,td { padding:.55rem .65rem; border-bottom:1px solid #1d2a36; font-size:.75rem; }
@@ -68,7 +100,7 @@ body.theme-light .site-header { background:rgba(255,255,255,.85); border-color:#
 body.theme-light .feature { border-color:#e3e8ee; }
 body.theme-light pre { background:#f3f6f9; border-color:#e3e8ee; color:#222; }
 body.theme-light code { background:#ebf0f4; }
-body.theme-light .diagram { background:#f3f6f9; border-color:#d9e1e8; }
+body.theme-light .architecture { --line:#acb8c3; --ink:#985011; }
 body.theme-light .site-footer { background:#f5f7f9; border-color:#e1e6eb; }
 body.theme-light .gallery figure { border-color:#dfe6ec; background:#ffffff; }
 body.theme-light .gallery figcaption { color:#5b6774; }

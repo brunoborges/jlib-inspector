@@ -1,5 +1,5 @@
 # Use OpenJDK 21 as base image
-FROM openjdk:21-jdk-slim
+FROM openjdk:21-ea-jdk-slim
 
 # Set working directory
 WORKDIR /app
@@ -19,6 +19,8 @@ COPY ./agent/src ./agent/src
 COPY ./sample-spring-app/src ./sample-spring-app/src
 
 RUN ./mvnw -P sample-spring verify
+RUN cp ./agent/target/*-shaded.jar ./agent.jar \
+    && cp ./sample-spring-app/target/*.jar ./sample-spring-app.jar
 
-# Run the JLib server shaded jar
-CMD ["java", "-javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080", "-jar", "sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar"]
+# Run the sample application with the inspector agent
+CMD ["java", "-javaagent:agent.jar=server:8080", "-jar", "sample-spring-app.jar"]

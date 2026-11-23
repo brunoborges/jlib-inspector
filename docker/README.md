@@ -42,6 +42,11 @@ This document explains how to run the JLib Inspector using Docker Compose.
 
 ## Docker Configuration
 
+The Java Dockerfiles build their JARs with `./mvnw verify` inside the image;
+no separate host-side Maven build is required. They copy the generated artifacts
+to version-independent runtime filenames, so project version changes do not
+require Dockerfile updates.
+
 ### Backend (Dockerfile.backend)
 - Base image: OpenJDK 21
 - Builds Maven project

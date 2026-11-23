@@ -53,6 +53,35 @@ When the next security vulnerability emerges, you'll have immediate answers inst
 
 ## 📋 Prerequisites
 
+### Run with Aspire
+
+- **Docker Desktop or Docker Engine**, running and configured for Linux containers.
+- **.NET SDK**, installed with [dotnetup](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnetup/).
+  Follow the [dotnetup installation instructions](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnetup/getting-started), then run:
+
+  ```bash
+  dotnetup init
+  ```
+
+  Select the latest stable SDK and configure access to `dotnet`. Open a new
+  terminal after setup, then verify the SDK and install the Aspire CLI:
+
+  ```bash
+  dotnet --version
+  dotnet tool install --global Aspire.Cli --version 17.0.0
+  aspire --version
+  ```
+
+  Follow any installer instructions to add the .NET global tools directory to
+  `PATH`. `dotnetup` is currently in public preview.
+- **Internet access** on the first run to restore .NET packages, pull container
+  base images, and download Maven and npm dependencies.
+
+Host-side Java, Maven, and Node.js installations are **not required** for the
+Aspire workflow; these tools run inside the Docker builds.
+
+### Run manually without Aspire
+
 - **Java 21+** (JDK)
 - **Maven 4+** (use the included wrapper `./mvnw`)
 - **Node.js 18+** and **npm**
@@ -60,7 +89,51 @@ When the next security vulnerability emerges, you'll have immediate answers inst
 
 ## 🚀 Quick Start
 
+### Run with Aspire
+
+After completing the [Aspire prerequisites](#run-with-aspire), run from the
+repository root:
+
+```bash
+aspire run --apphost aspire/apphost.cs
+```
+
+Or start the same application in the background:
+
+```bash
+aspire start --apphost aspire/apphost.cs
+```
+
+Both commands build the AppHost and its three Dockerfile resources. Docker pulls
+missing base images and reuses cached images and build layers when available:
+
+- **Server:** builds `common` and `server` with `./mvnw -P server verify`.
+- **Sample application:** builds `common`, `agent`, and `sample-spring-app` with
+  `./mvnw -P sample-spring verify`.
+- **Frontend:** installs npm dependencies and builds the React dashboard.
+
+**No separate Maven build, npm install, or manual image pull is required.**
+The Java builds include packaging and tests inside Docker. The manual steps
+1-4 below are an alternative to Aspire, not prerequisites for it. The first
+startup can take several minutes while images and dependencies are downloaded.
+
+The Aspire dashboard shows the dynamically assigned frontend and server HTTP
+URLs. The frontend also requires host port 3001 for its WebSocket. The sample
+application reports its JAR inventory at shutdown by default.
+
+The Aspire AppHost also enables the sample's `otel` agent option and configures
+OTLP/HTTP JSON export to the Aspire dashboard. After the sample finishes, open
+**Structured logs**, select `sample-spring-app`, and inspect the `package.info`
+events and their `package.*` and `jlib.jar.*` attributes. This exports JAR inventory
+logs, not application traces or metrics.
+
+The local dashboard OTLP HTTP receiver uses port 19138 with Aspire-managed
+authentication. HTTP avoids requiring the Java container to trust a host
+development certificate. The Docker Compose workflow is unchanged.
+
 ### 1. Build the Project
+
+For the manual workflow only, using the host-side Java and Node.js prerequisites:
 
 ```bash
 # Clone and navigate to the project

@@ -203,18 +203,16 @@ class JLibServerClientTest {
 
         String json = (String) buildJsonMethod.invoke(client, inventory);
 
-        // Verify JSON structure
-        assertTrue(json.startsWith("{"));
-        assertTrue(json.endsWith("}"));
+        // Parse the document instead of counting delimiters, which may also
+        // legitimately occur inside command-line arguments or JVM detail strings.
+        org.json.JSONObject root = new org.json.JSONObject(json);
+        org.json.JSONArray jars = root.getJSONArray("jars");
 
-        // Count braces to ensure they're balanced
-        long openBraces = json.chars().filter(ch -> ch == '{').count();
-        long closeBraces = json.chars().filter(ch -> ch == '}').count();
-        assertEquals(openBraces, closeBraces);
-
-        // Count brackets to ensure they're balanced
-        long openBrackets = json.chars().filter(ch -> ch == '[').count();
-        long closeBrackets = json.chars().filter(ch -> ch == ']').count();
-        assertEquals(openBrackets, closeBrackets);
+        assertEquals(1, jars.length());
+        org.json.JSONObject jar = jars.getJSONObject(0);
+        assertEquals("/test.jar", jar.getString("path"));
+        assertEquals("test.jar", jar.getString("fileName"));
+        assertEquals(1000L, jar.getLong("size"));
+        assertTrue(jar.getBoolean("loaded"));
     }
 }

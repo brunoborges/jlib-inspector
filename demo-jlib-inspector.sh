@@ -13,6 +13,13 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$SCRIPT_DIR"
 
+# All modules inherit the version declared by the root project.
+PROJECT_VERSION=$(sed -n 's/^[[:space:]]*<version>\([^<]*\)<\/version>.*/\1/p' "$PROJECT_ROOT/pom.xml" | head -n 1)
+if [ -z "$PROJECT_VERSION" ]; then
+    echo "Error: could not determine the project version from $PROJECT_ROOT/pom.xml" >&2
+    exit 1
+fi
+
 # Check prerequisites
 if ! command -v curl &> /dev/null; then
     echo -e "${RED}Error: curl is required but not installed.${NC}"
@@ -46,18 +53,25 @@ MVN_CMD="./mvnw"
 if [ ! -x "$MVN_CMD" ]; then
     MVN_CMD="mvn"
 fi
-$MVN_CMD verify -q
+"$MVN_CMD" verify -q
 if [ $? -ne 0 ]; then
     echo -e "${RED}Build failed!${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}2. Testing local-only mode (no server arguments)...${NC}"
-echo -e "${GRAY}   Running: java -javaagent:agent.jar -jar sample-spring-app-1.0-SNAPSHOT.jar${NC}"
+AGENT_PATH="$PROJECT_ROOT/agent/target/jlib-inspector-agent-${PROJECT_VERSION}-shaded.jar"
+SERVER_PATH="$PROJECT_ROOT/server/target/jlib-inspector-server-${PROJECT_VERSION}-shaded.jar"
+SPRING_JAR="$PROJECT_ROOT/sample-spring-app/target/sample-spring-app-${PROJECT_VERSION}.jar"
 
-AGENT_PATH="agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar"
-SERVER_PATH="server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar"
-SPRING_JAR="sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar"
+for JAR_PATH in "$AGENT_PATH" "$SERVER_PATH" "$SPRING_JAR"; do
+    if [ ! -f "$JAR_PATH" ]; then
+        echo -e "${RED}Expected JAR was not generated: $JAR_PATH${NC}"
+        exit 1
+    fi
+done
+
+echo -e "${GREEN}2. Testing local-only mode (no server arguments)...${NC}"
+echo -e "${GRAY}   Running: java -javaagent:jlib-inspector-agent-${PROJECT_VERSION}-shaded.jar -jar sample-spring-app-${PROJECT_VERSION}.jar${NC}"
 
 # Test 1: Local-only mode (no args)
 OUTPUT1=$(java -javaagent:"$AGENT_PATH" -jar "$SPRING_JAR" 2>&1)
@@ -196,6 +210,6 @@ echo -e "${GREEN}✓ Full server integration when available${NC}"
 echo -e "${GREEN}✓ Flexible argument parsing (server:port and server:host:port)${NC}"
 echo ""
 echo -e "${YELLOW}Usage Examples:${NC}"
-echo -e "${GRAY}  -javaagent:jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar                    # Local only${NC}"
-echo -e "${GRAY}  -javaagent:jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080        # Report to localhost:8080${NC}"
-echo -e "${GRAY}  -javaagent:jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:remote:9000 # Report to remote:9000${NC}"
+echo -e "${GRAY}  -javaagent:jlib-inspector-agent-${PROJECT_VERSION}-shaded.jar                    # Local only${NC}"
+echo -e "${GRAY}  -javaagent:jlib-inspector-agent-${PROJECT_VERSION}-shaded.jar=server:8080        # Report to localhost:8080${NC}"
+echo -e "${GRAY}  -javaagent:jlib-inspector-agent-${PROJECT_VERSION}-shaded.jar=server:remote:9000 # Report to remote:9000${NC}"

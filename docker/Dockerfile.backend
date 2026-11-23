@@ -1,5 +1,5 @@
 # Use OpenJDK 21 as base image
-FROM openjdk:21-jdk-slim
+FROM azul-zulu:21
 
 # Set working directory
 WORKDIR /app
@@ -21,10 +21,10 @@ COPY ./common/src ./common/src
 COPY ./server/src ./server/src
 
 RUN ./mvnw -P server verify
-RUN cp ./server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar ./jlib-inspector-server-1.0-SNAPSHOT-shaded.jar
+RUN cp ./server/target/jlib-inspector-server-*-shaded.jar ./jlib-inspector-server.jar
 
 # Expose port 8080
 EXPOSE 8080
 
 # Run the JLib server shaded jar
-CMD ["java", "-jar", "jlib-inspector-server-1.0-SNAPSHOT-shaded.jar", "8080"]
+CMD ["java", "-jar", "jlib-inspector-server.jar", "8080"]

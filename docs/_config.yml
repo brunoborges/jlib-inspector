@@ -3,6 +3,8 @@ description: Runtime inventory of the libraries actually loaded by your JVM.
 url: https://brunoborges.github.io
 baseurl: /jlib-inspector
 repository: brunoborges/jlib-inspector
+# Bump on every release; used for the release button, download links and JAR names.
+latest_release: 1.1.0
 theme: minima
 markdown: kramdown
 plugins:

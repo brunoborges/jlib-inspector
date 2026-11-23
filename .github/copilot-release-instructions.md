@@ -277,6 +277,7 @@ Validation Steps Copilot Should Run (if tools available):
 2. Frontend builds (`npm run build`).
 3. Tag points to commit with version bump.
 4. Release contains expected assets.
+5. Docs site (GitHub Pages builds `main:/docs`): `latest_release` in `docs/_config.yml` and the "What's New" notes in `docs/latest.md` are updated to the new version.
 
 ---
 ## Troubleshooting

@@ -83,9 +83,9 @@ curl -s http://localhost:8080/api/apps | jq
 Run your JVM process pointing the agent at the running server:
 <pre><code>java 
   -javaagent:/absolute/path/to/agent/ \
-  jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 \
+  jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080,interval:30s \
   -jar your-app.jar</code></pre>
-It will appear in the UI within seconds when classes start loading.
+With <code>interval:30s</code>, it appears in the UI within 30 seconds and stays up to date while it runs. Without it, the agent reports once, when the JVM exits.
 </div>
 
 ### Optional: Rebuild After Code Changes
@@ -112,10 +112,10 @@ docker compose up --build
 
 ## OpenTelemetry Export {#opentelemetry}
 
-Already use OpenTelemetry? Add the `otel` option and the agent sends its JAR inventory to your OTLP/HTTP collector when the JVM shuts down. It sends one `package.info` event per archive, with the same attributes (`package.name`, `package.version`, `package.checksum`, …) as the OpenTelemetry Java agent's experimental package emitter. It also adds JARs that were declared but never loaded, and JARs nested in fat JARs.
+Already use OpenTelemetry? Add the `otel` option and the agent sends its JAR inventory to your OTLP/HTTP collector when the JVM shuts down. Add `interval:5m` (or any `s`/`m`/`h` duration) to also export while the app runs; after the first export, only new archives and archives that became loaded are sent. It sends one `package.info` event per archive, with the same attributes (`package.name`, `package.version`, `package.checksum`, …) as the OpenTelemetry Java agent's experimental package emitter. It also adds JARs that were declared but never loaded, and JARs nested in fat JARs.
 
 <pre><code>java \
-  -javaagent:/absolute/path/to/agent/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080,otel:http://collector:4318 \
+  -javaagent:/absolute/path/to/agent/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080,otel:http://collector:4318,interval:5m \
   -jar your-app.jar</code></pre>
 
 Use `otel` with no endpoint to rely on `OTEL_EXPORTER_OTLP_ENDPOINT` (default `http://localhost:4318`). `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` and `OTEL_EXPORTER_OTLP_HEADERS` are also honored. See the [README](https://github.com/{{ site.repository }}#opentelemetry-export-optional) for the full attribute list.

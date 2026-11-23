@@ -11,10 +11,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.Attributes;
@@ -155,6 +158,51 @@ class OtelEventExporterTest {
         } finally {
             server.stop(0);
         }
+    }
+
+    @Test
+    @DisplayName("Should re-export only new or changed archives, retrying after a failed export")
+    void shouldExportOnlyChangesAndRetryFailures() throws Exception {
+        Deque<Integer> statuses = new ArrayDeque<>(List.of(503, 200, 200));
+        List<String> bodies = new CopyOnWriteArrayList<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            bodies.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            exchange.sendResponseHeaders(statuses.removeFirst(), -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            String declaredId = tmp.resolve("lazy-1.0.jar").toUri().toString();
+            JarInventory inventory = new JarInventory();
+            inventory.registerDeclared(declaredId, -1L, null);
+            inventory.markLoaded(tmp.resolve("eager-1.0.jar").toUri().toString());
+            OtelEventExporter exporter = new OtelEventExporter(
+                    "http://127.0.0.1:" + server.getAddress().getPort(), Map.of());
+
+            exporter.exportAsync(inventory, "app-1").get(10, TimeUnit.SECONDS); // 503: nothing recorded
+            exporter.exportAsync(inventory, "app-1").get(10, TimeUnit.SECONDS); // retried: both sent
+            exporter.exportAsync(inventory, "app-1").get(10, TimeUnit.SECONDS); // unchanged: no request
+            assertEquals(2, bodies.size());
+            assertEquals(2, logRecords(bodies.get(1)).length());
+
+            inventory.markLoaded(declaredId);
+            exporter.exportAsync(inventory, "app-1").get(10, TimeUnit.SECONDS);
+
+            assertEquals(3, bodies.size());
+            JSONArray records = logRecords(bodies.get(2));
+            assertEquals(1, records.length());
+            Map<String, Object> attrs = attributes(records.getJSONObject(0).getJSONArray("attributes"));
+            assertEquals("lazy-1.0.jar", attrs.get("package.path"));
+            assertEquals(true, attrs.get("jlib.jar.loaded"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    private static JSONArray logRecords(String body) {
+        return new JSONObject(body).getJSONArray("resourceLogs").getJSONObject(0)
+                .getJSONArray("scopeLogs").getJSONObject(0).getJSONArray("logRecords");
     }
 
     private static Path createJar(Path file, String groupId, String artifactId, String version) throws IOException {

@@ -212,13 +212,23 @@ The agent accepts the following parameters (combine several with commas):
 
 # Report to the server and export to a specific OTLP/HTTP collector
 -javaagent:jlib-inspector-agent.jar=server:8080,otel:http://collector:4318
+
+# Also report every 30 seconds while the application runs (units: s, m, h)
+-javaagent:jlib-inspector-agent.jar=server:8080,interval:30s
 ```
 
 `JLIB_SERVER_URL`, when set, overrides the `server:` option. Other options still apply.
 
+### Periodic Reporting (optional)
+
+By default the agent reports once, when the JVM shuts down. Long-running services may never stop, so add `interval:<duration>` to also report while the application runs (for example `interval:30s`, `interval:5m` or `interval:1h`; a bare number is seconds, minimum `1s`). The agent still reports at shutdown.
+
+- **jlib server**: each report sends the full inventory. The server merges it into the existing application and refreshes its last-updated time. JARs that load lazily show up as loaded without waiting for shutdown.
+- **OpenTelemetry**: the first report exports every archive. Later reports export only new archives or archives whose state changed, such as a declared JAR that is now loaded. When nothing changed, nothing is sent. A failed export is retried on the next report.
+
 ### OpenTelemetry Export (optional)
 
-With the `otel` option, the agent sends the JAR inventory to an OpenTelemetry Collector or any OTLP/HTTP-compatible backend when the JVM shuts down. It sends one `package.info` log event per JAR. Nothing is exported unless you enable this option, and it adds no dependencies (OTLP/HTTP JSON is sent with the JDK HTTP client).
+With the `otel` option, the agent sends the JAR inventory to an OpenTelemetry Collector or any OTLP/HTTP-compatible backend when the JVM shuts down, and on every [periodic report](#periodic-reporting-optional) if `interval:` is set. It sends one `package.info` log event per JAR. Nothing is exported unless you enable this option, and it adds no dependencies (OTLP/HTTP JSON is sent with the JDK HTTP client).
 
 Events use the same names as the [OpenTelemetry Java agent's experimental package emitter](https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/main/instrumentation/runtime-telemetry), so existing queries and dashboards work. They also cover what that emitter misses: JARs that are declared but never loaded, and JARs nested inside fat JARs.
 

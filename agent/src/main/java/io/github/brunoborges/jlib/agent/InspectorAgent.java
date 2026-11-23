@@ -6,12 +6,16 @@ import io.github.brunoborges.jlib.common.JarMetadata;
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -32,6 +36,9 @@ import java.util.logging.Logger;
  * {@code http://localhost:4318})</li>
  * <li>{@code -javaagent:jlib-inspector-agent.jar=server:8080,otel:http://collector:4318}
  * - Combine options with commas</li>
+ * <li>{@code -javaagent:jlib-inspector-agent.jar=server:8080,interval:5m} -
+ * Also report every 5 minutes while the application runs (units: s, m,
+ * h)</li>
  * </ul>
  * 
  * <p>
@@ -49,7 +56,13 @@ public class InspectorAgent {
     private static JLibServerClient serverClient;
     // OpenTelemetry exporter (null unless the "otel" option is set)
     private static OtelEventExporter otelExporter;
+    // Interval between periodic reports (null to report only at shutdown)
+    private static Duration reportInterval;
     private static String applicationId;
+
+    private static final Duration MIN_REPORT_INTERVAL = Duration.ofSeconds(1);
+    private static final long SHUTDOWN_TIMEOUT_SECONDS = 5;
+    private static final long PERIODIC_TIMEOUT_SECONDS = 30;
 
     public static void premain(String args, Instrumentation inst) {
         // Parse agent arguments for optional server configuration
@@ -90,36 +103,82 @@ public class InspectorAgent {
             LOG.info("Application ID: " + applicationId + " (will be reported)");
         }
 
+        ScheduledExecutorService reporter = startPeriodicReporting(inventory);
+
         // Shutdown hook to emit consolidated report
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (reporter != null) {
+                reporter.shutdownNow();
+            }
             System.out.println("");
             inventory.report(System.out);
             System.out.println("");
 
-            List<CompletableFuture<Void>> pending = new ArrayList<>();
-            if (serverClient != null) {
-                try {
-                    pending.add(serverClient.sendApplicationDataAsync(applicationId, inventory));
-                } catch (Throwable e) {
-                    LOG.warning("Failed to schedule async send to server: " + e.getMessage());
-                }
-            }
-            if (otelExporter != null) {
-                try {
-                    pending.add(otelExporter.exportAsync(inventory, applicationId));
-                } catch (Throwable e) {
-                    LOG.warning("Failed to schedule OpenTelemetry export: " + e.getMessage());
-                }
-            }
-            if (!pending.isEmpty()) {
-                // Best effort: wait a short time so the HTTP calls can complete, but don't block shutdown indefinitely.
-                CompletableFuture.allOf(pending.toArray(CompletableFuture[]::new))
-                        .orTimeout(5, TimeUnit.SECONDS).exceptionally(ex -> {
-                            LOG.fine(() -> "Async send did not complete before timeout/shutdown: " + ex.getMessage());
-                            return null;
-                        }).join();
-            }
+            // Best effort: wait a short time so the HTTP calls can complete, but don't block shutdown indefinitely.
+            report(inventory, SHUTDOWN_TIMEOUT_SECONDS);
         }, "jlib-inspector-shutdown"));
+    }
+
+    /**
+     * Starts reporting to the configured destinations every
+     * {@link #reportInterval}, if set.
+     *
+     * @return the scheduler, or null when reporting happens only at shutdown
+     */
+    private static ScheduledExecutorService startPeriodicReporting(JarInventory inventory) {
+        if (reportInterval == null) {
+            return null;
+        }
+        if (serverClient == null && otelExporter == null) {
+            LOG.warning("Ignoring interval option: enable server or otel reporting to use it");
+            return null;
+        }
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "jlib-inspector-reporter");
+            t.setDaemon(true);
+            t.setPriority(Thread.NORM_PRIORITY - 1);
+            return t;
+        });
+        long millis = reportInterval.toMillis();
+        scheduler.scheduleWithFixedDelay(() -> {
+            try {
+                report(inventory, PERIODIC_TIMEOUT_SECONDS);
+            } catch (RuntimeException e) {
+                // An exception would cancel all future runs
+                LOG.warning("Periodic report failed: " + e);
+            }
+        }, millis, millis, TimeUnit.MILLISECONDS);
+        LOG.info("Reporting every " + reportInterval.toSeconds() + "s and at shutdown");
+        return scheduler;
+    }
+
+    /**
+     * Sends the inventory to every configured destination and waits for the
+     * sends to finish, up to the given timeout.
+     */
+    private static void report(JarInventory inventory, long timeoutSeconds) {
+        List<CompletableFuture<Void>> pending = new ArrayList<>();
+        if (serverClient != null) {
+            try {
+                pending.add(serverClient.sendApplicationDataAsync(applicationId, inventory));
+            } catch (Throwable e) {
+                LOG.warning("Failed to schedule async send to server: " + e.getMessage());
+            }
+        }
+        if (otelExporter != null) {
+            try {
+                pending.add(otelExporter.exportAsync(inventory, applicationId));
+            } catch (Throwable e) {
+                LOG.warning("Failed to schedule OpenTelemetry export: " + e.getMessage());
+            }
+        }
+        if (!pending.isEmpty()) {
+            CompletableFuture.allOf(pending.toArray(CompletableFuture[]::new))
+                    .orTimeout(timeoutSeconds, TimeUnit.SECONDS).exceptionally(ex -> {
+                        LOG.fine(() -> "Async send did not complete before timeout: " + ex.getMessage());
+                        return null;
+                    }).join();
+        }
     }
 
     private static String normalizeLocation(String url) {
@@ -143,7 +202,8 @@ public class InspectorAgent {
      * OpenTelemetry export.
      * 
      * @param args Agent arguments string: comma-separated options among
-     *             "server:port", "server:host:port", "otel" and "otel:endpoint"
+     *             "server:port", "server:host:port", "otel", "otel:endpoint"
+     *             and "interval:duration"
      */
     private static void parseArguments(String args) {
         // Environment variable JLIB_SERVER_URL takes precedence over the server option
@@ -169,10 +229,44 @@ public class InspectorAgent {
             } else if (opt.equals("otel") || opt.startsWith("otel:")) {
                 otelExporter = OtelEventExporter.create(opt.length() > 5 ? opt.substring(5) : null);
                 LOG.info("Configured to export OpenTelemetry events to " + otelExporter.endpoint());
+            } else if (opt.startsWith("interval:")) {
+                try {
+                    reportInterval = parseInterval(opt.substring(9));
+                } catch (IllegalArgumentException | ArithmeticException e) {
+                    LOG.warning("Invalid interval specification '" + opt + "': " + e.getMessage());
+                }
             } else if (!opt.isEmpty()) {
                 LOG.warning("Ignoring unrecognized agent option: " + opt);
             }
         }
+    }
+
+    /**
+     * Parses a reporting interval such as {@code 30}, {@code 30s}, {@code 5m} or
+     * {@code 1h}. A number without a unit is in seconds.
+     *
+     * @throws IllegalArgumentException if invalid or shorter than one second
+     */
+    static Duration parseInterval(String spec) {
+        String s = spec.trim().toLowerCase(Locale.ROOT);
+        long unitSeconds = 1;
+        if (s.endsWith("h")) {
+            unitSeconds = 3600;
+        } else if (s.endsWith("m")) {
+            unitSeconds = 60;
+        }
+        if (!s.isEmpty() && Character.isLetter(s.charAt(s.length() - 1))) {
+            if ("hms".indexOf(s.charAt(s.length() - 1)) < 0) {
+                throw new IllegalArgumentException("unknown unit, use s, m or h");
+            }
+            s = s.substring(0, s.length() - 1).trim();
+        }
+        Duration interval = Duration.ofMillis(
+                Math.multiplyExact(Math.multiplyExact(Long.parseLong(s), unitSeconds), 1000L));
+        if (interval.compareTo(MIN_REPORT_INTERVAL) < 0) {
+            throw new IllegalArgumentException("must be at least " + MIN_REPORT_INTERVAL.toSeconds() + "s");
+        }
+        return interval;
     }
 
     private static void parseServerOption(String args) {

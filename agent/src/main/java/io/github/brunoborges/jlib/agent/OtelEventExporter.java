@@ -1,6 +1,7 @@
 package io.github.brunoborges.jlib.agent;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URLDecoder;
@@ -10,15 +11,19 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -38,7 +43,8 @@ import io.github.brunoborges.jlib.common.JarMetadata;
  * ({@code package.name}, {@code package.version}, {@code package.path},
  * {@code package.type}, {@code package.description}, {@code package.checksum},
  * {@code package.checksum_algorithm}), plus {@code jlib.jar.*} attributes for
- * data only jlib has, such as whether the JAR was actually loaded.
+ * data only jlib has, such as whether the JAR was actually loaded. An archive is
+ * exported again only when its state changes (e.g. a declared JAR gets loaded).
  *
  * <p>
  * Honors the standard OpenTelemetry environment variables
@@ -59,6 +65,10 @@ final class OtelEventExporter {
     private final URI endpoint;
     private final Map<String, String> headers;
     private final Map<String, String> env;
+    /** Last successfully exported state per archive id, so only changes are re-sent. */
+    private final Map<String, String> exported = new ConcurrentHashMap<>();
+    /** Only accessed from the exporter thread. */
+    private HttpClient client;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "jlib-otel-exporter");
@@ -98,29 +108,15 @@ final class OtelEventExporter {
     }
 
     /**
-     * Builds and sends the events off the caller thread.
+     * Builds and sends, off the caller thread, events for archives that are new
+     * or whose state changed since the last successful export. Exports run one at
+     * a time, so periodic and shutdown exports never overlap.
      *
      * @return future that completes when the export finishes (successfully or
      *         not)
      */
     CompletableFuture<Void> exportAsync(JarInventory inventory, String applicationId) {
-        long start = System.currentTimeMillis();
-        return CompletableFuture.supplyAsync(() -> buildPayload(inventory.snapshot(), applicationId), executor)
-                .thenCompose(payload -> {
-                    int events = payload.getJSONArray("resourceLogs").getJSONObject(0)
-                            .getJSONArray("scopeLogs").getJSONObject(0)
-                            .getJSONArray("logRecords").length();
-                    return send(payload.toString()).thenAccept(resp -> {
-                        long took = System.currentTimeMillis() - start;
-                        if (resp.statusCode() / 100 == 2) {
-                            LOG.info(() -> String.format("Exported %d OpenTelemetry %s events to %s status=%d took=%dms",
-                                    events, EVENT_NAME, endpoint, resp.statusCode(), took));
-                        } else {
-                            LOG.warning("OpenTelemetry export to " + endpoint + " failed: status=" + resp.statusCode()
-                                    + " body=" + resp.body());
-                        }
-                    });
-                })
+        return CompletableFuture.runAsync(() -> exportChanges(inventory, applicationId), executor)
                 .whenComplete((ignored, err) -> {
                     if (err != null) {
                         LOG.warning("OpenTelemetry export to " + endpoint + " failed: " + err.getMessage());
@@ -128,7 +124,40 @@ final class OtelEventExporter {
                 });
     }
 
-    private CompletableFuture<HttpResponse<String>> send(String json) {
+    private void exportChanges(JarInventory inventory, String applicationId) {
+        long start = System.currentTimeMillis();
+        List<JarMetadata> changed = new ArrayList<>();
+        Map<String, String> states = new HashMap<>();
+        for (JarMetadata jar : inventory.snapshot()) {
+            String state = jar.isLoaded() ? "loaded" : "declared";
+            if (archiveType(jar.fileName) != null && !state.equals(exported.get(jar.fullPath))) {
+                changed.add(jar);
+                states.put(jar.fullPath, state);
+            }
+        }
+        if (changed.isEmpty()) {
+            LOG.fine("No new or changed archives to export to OpenTelemetry");
+            return;
+        }
+        try {
+            HttpResponse<String> resp = send(buildPayload(changed, applicationId).toString());
+            long took = System.currentTimeMillis() - start;
+            if (resp.statusCode() / 100 == 2) {
+                exported.putAll(states);
+                LOG.info(() -> String.format("Exported %d OpenTelemetry %s events to %s status=%d took=%dms",
+                        changed.size(), EVENT_NAME, endpoint, resp.statusCode(), took));
+            } else {
+                LOG.warning("OpenTelemetry export to " + endpoint + " failed: status=" + resp.statusCode()
+                        + " body=" + resp.body());
+            }
+        } catch (IOException e) {
+            LOG.warning("OpenTelemetry export to " + endpoint + " failed: " + e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private HttpResponse<String> send(String json) throws IOException, InterruptedException {
         HttpRequest.Builder request = HttpRequest.newBuilder(endpoint)
                 .timeout(Duration.ofSeconds(10))
                 .header("Content-Type", "application/json")
@@ -140,11 +169,14 @@ final class OtelEventExporter {
                 LOG.warning("Skipping unsupported OTLP header '" + name + "': " + e.getMessage());
             }
         });
-        HttpClient client = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-        return client.sendAsync(request.build(), HttpResponse.BodyHandlers.ofString());
+        if (client == null) {
+            // Created lazily on the exporter thread and reused across periodic exports
+            client = HttpClient.newBuilder()
+                    .version(HttpClient.Version.HTTP_1_1)
+                    .connectTimeout(Duration.ofSeconds(5))
+                    .build();
+        }
+        return client.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     /** Builds an OTLP/JSON {@code ExportLogsServiceRequest} for the archives. */

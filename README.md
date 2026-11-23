@@ -12,6 +12,8 @@
 
 A comprehensive Java application monitoring dashboard that tracks JAR dependencies loaded during application runtime. The system consists of a Java agent, a standalone data collection server, and a modern React-based web dashboard to exemplify data visualization.
 
+**Getting started:** [Using JLib Inspector](#using-jlib-inspector) | [OpenTelemetry export](#opentelemetry-export) | [Contributing and building from source](#contributing-and-building-from-source)
+
 ## 🎯 Why JLib Inspector?
 
 When security vulnerabilities like **Log4Shell** strike, organizations face a critical challenge: **identifying which production systems are affected**. During the Log4j vulnerability crisis, many teams struggled with fundamental questions:
@@ -51,92 +53,97 @@ When the next security vulnerability emerges, you'll have immediate answers inst
 - **JLib Server**: Standalone server that collects and aggregates data from instrumented applications (Port 8080, shaded server JAR)
 - **Web Dashboard**: React-based frontend with real-time updates (Ports 3000 for http and 3001 for websocket)
 
-## 📋 Prerequisites
+## Using JLib Inspector
 
-- **Java 21+** (JDK)
-- **Maven 4+** (use the included wrapper `./mvnw`)
-- **Node.js 18+** and **npm**
-- **PowerShell** (for Windows) or equivalent shell
+You do **not** need Maven or a source build to use the released agent and server JARs. Download them from [GitHub Releases](https://github.com/brunoborges/jlib-inspector/releases/latest). If you want to modify the project or build it yourself, see [Contributing and building from source](#contributing-and-building-from-source).
 
-## 🚀 Quick Start
+### Runtime requirements
 
-### 1. Build the Project
+| What you want to run | What you need |
+| --- | --- |
+| Java agent | Java 21+ in the application JVM and the released shaded agent JAR |
+| JLib Server | Java 21+ runtime and the released shaded server JAR |
+| Dashboard directly on your machine | Node.js 18.12+ and npm; the setup below builds the frontend locally |
+| Containerized setup | Docker and Docker Compose; build tools run inside the containers |
 
-```bash
-# Clone and navigate to the project
-cd jlib-inspector
+The server and dashboard are optional: you can use the agent in local-only mode or export to OpenTelemetry without either. Node.js is **not** required in the JVM running the agent or on a machine running only the JLib Server.
 
-# Build all components (agent + server + sample app)
-./mvnw clean package
-```
+### 1. Download the agent and optional server
 
-### 2. Start the JLib Server
+From the same release, download:
 
-The JLib Server collects data from instrumented Java applications:
+- `jlib-inspector-agent-<version>-shaded.jar`
+- `jlib-inspector-server-<version>-shaded.jar` if you want centralized collection
 
-```bash
-# Start the data collection server on port 8080 (shaded jar)
-java -jar server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar 8080
-```
+For the commands below, rename these files to `jlib-inspector-agent.jar` and `jlib-inspector-server.jar`, respectively. Run the commands from the directory containing the downloaded JARs.
 
-**Expected Output:**
-```
-JLib HTTP Server started on port 8080
-Available endpoints:
-  PUT /api/apps/{appId} - Register/update application
-  GET /api/apps - List all applications
-  GET /api/apps/{appId} - Get application details
-  GET /api/apps/{appId}/jars - List application JARs
-  GET /health - Health check
-```
-
-### 3. Start the Web Dashboard
-
-The unified Express.js server serves the React frontend:
+To use the agent without a server or dashboard:
 
 ```bash
-# Navigate to frontend directory
-cd frontend
+java -javaagent:jlib-inspector-agent.jar -jar /path/to/your-application.jar
+```
 
-# Install dependencies (first time only)
+### 2. Collect data with the server (optional)
+
+Start the server:
+
+```bash
+java -jar jlib-inspector-server.jar 8080
+```
+
+In another terminal on the same machine, run your application with server reporting enabled:
+
+```bash
+java "-javaagent:jlib-inspector-agent.jar=server:8080" -jar /path/to/your-application.jar
+```
+
+The agent reports when the application JVM shuts down by default. See [Agent Configuration](#agent-configuration), [OpenTelemetry Export](#opentelemetry-export), and [Periodic Reporting](#periodic-reporting-optional) for additional options.
+
+### 3. Start the dashboard (optional)
+
+The dashboard connects to the JLib Server. To run it directly on your machine, you need Node.js and npm, but **not Maven**. In another terminal, get the frontend source and start it:
+
+```bash
+git clone https://github.com/brunoborges/jlib-inspector.git
+cd jlib-inspector/frontend
 npm install
-
-# Build and start the unified server on port 3000
 npm start
 ```
 
-**Expected Output:**
-```
-> jlib-inspector-dashboard@2.0.0 start
-> npm run build && node app.js
+`npm start` builds the React frontend and starts Express at **http://localhost:3000**, connecting to **http://localhost:8080** by default. Set `JLIB_SERVER_URL` if the server is elsewhere. If you already have the repository, use its `frontend/` directory instead of cloning again.
 
-webpack 5.101.3 compiled successfully
-Setting up data fetching schedule...
-JLib Dashboard running on http://localhost:3000
-WebSocket server running on port 3001
-Connecting to JLib Server at http://localhost:8080
-```
+For a containerized setup instead, see the Docker section below.
 
-### 4. Run Java Applications with Monitoring
+## OpenTelemetry Export
 
-Instrument any Java application with the JLib Inspector agent:
-
-**For your own applications:**
-```bash
-java "-javaagent:path/to/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080" -jar your-application.jar
-```
-
-You can test with the sample Spring application contained in this project:
-
+The Java agent can send each JAR in its inventory as an OpenTelemetry `package.info` log event to an OTLP/HTTP-compatible collector. This works independently of the JLib Server and dashboard; nothing is exported unless you enable the `otel` option.
 
 ```bash
-# Run the sample Spring Boot application with monitoring
-java "-javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080" -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
+# Export when the application exits
+java "-javaagent:jlib-inspector-agent.jar=otel:http://collector:4318" -jar /path/to/your-application.jar
+
+# Also export updates every 5 minutes while it runs
+java "-javaagent:jlib-inspector-agent.jar=otel:http://collector:4318,interval:5m" -jar /path/to/your-application.jar
 ```
+
+The endpoint can be omitted to use `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` or `OTEL_EXPORTER_OTLP_ENDPOINT` (default `http://localhost:4318`). The generic endpoint gets `/v1/logs` appended. The agent sends the full inventory on its first report and only new or changed archives afterward. It supports OTLP over `http/json`; no OpenTelemetry SDK or additional application dependencies are required.
+
+Events use attribute names from the [OpenTelemetry Java agent's experimental package emitter](https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/main/instrumentation/runtime-telemetry), and also include JARs that were declared but never loaded and JARs nested inside fat JARs.
+
+| Attribute | Description |
+| --- | --- |
+| `package.path` / `package.type` | Archive file name / extension (`jar`, `war`, `ear`) |
+| `package.name` / `package.version` | `groupId:artifactId` and version from `pom.properties` (version falls back to the manifest) |
+| `package.description` | Manifest `Implementation-Title` and `Implementation-Vendor` |
+| `package.checksum` / `package.checksum_algorithm` | Hex SHA-256 / `SHA-256` |
+| `jlib.jar.path` | Full path, including nested `!/BOOT-INF/lib/...` entries |
+| `jlib.jar.loaded` / `jlib.jar.nested` / `jlib.jar.size` | Whether classes were loaded from it, whether it is nested, size in bytes |
+
+Resource attributes include `service.name`, `process.*`, `host.name` and `jlib.application.id`. `OTEL_EXPORTER_OTLP_HEADERS` / `OTEL_EXPORTER_OTLP_LOGS_HEADERS` configure headers, and `OTEL_SERVICE_NAME` / `OTEL_RESOURCE_ATTRIBUTES` configure resource identity. The resource includes `process.command_line`, so avoid putting secrets on the application command line.
 
 ## 🐳 Running with Docker
 
-For containerized deployment, JLib Inspector provides Docker images and Docker Compose orchestration. This approach simplifies deployment and ensures consistent environments across development, testing, and production.
+The repository includes Docker Compose setup for development and evaluation. It builds from source **inside containers**, so you do not need Java, Maven, or Node.js installed on the host for the included services. You need Docker, Docker Compose, and a copy of this repository.
 
 **Quick Docker Start:**
 ```bash
@@ -147,8 +154,8 @@ For containerized deployment, JLib Inspector provides Docker images and Docker C
 The Docker setup includes:
 - **Backend container** (JLib Server on port 8080)
 - **Frontend container** (Dashboard on port 3000)  
+- **Sample application** instrumented with the Java agent
 - **Automatic networking** between containers
-- **Volume mounts** for persistent data
 
 📁 **For detailed Docker setup instructions, configuration options, and troubleshooting, see the [docker/README.md](docker/README.md) file.**
 
@@ -225,31 +232,6 @@ By default the agent reports once, when the JVM shuts down. Long-running service
 - **jlib server**: each report sends the full inventory. The server merges it into the existing application and refreshes its last-updated time. JARs that load lazily show up as loaded without waiting for shutdown.
 - **OpenTelemetry**: the first report exports every archive. Later reports export only new archives or archives whose state changed, such as a declared JAR that is now loaded. When nothing changed, nothing is sent. A failed export is retried on the next report.
 
-### OpenTelemetry Export (optional)
-
-With the `otel` option, the agent sends the JAR inventory to an OpenTelemetry Collector or any OTLP/HTTP-compatible backend when the JVM shuts down, and on every [periodic report](#periodic-reporting-optional) if `interval:` is set. It sends one `package.info` log event per JAR. Nothing is exported unless you enable this option, and it adds no dependencies (OTLP/HTTP JSON is sent with the JDK HTTP client).
-
-Events use the same names as the [OpenTelemetry Java agent's experimental package emitter](https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/main/instrumentation/runtime-telemetry), so existing queries and dashboards work. They also cover what that emitter misses: JARs that are declared but never loaded, and JARs nested inside fat JARs.
-
-| Attribute | Description |
-| --- | --- |
-| `package.path` / `package.type` | Archive file name / extension (`jar`, `war`, `ear`) |
-| `package.name` / `package.version` | `groupId:artifactId` and version from `pom.properties` (version falls back to the manifest) |
-| `package.description` | Manifest `Implementation-Title` and `Implementation-Vendor` |
-| `package.checksum` / `package.checksum_algorithm` | Hex SHA-256 / `SHA-256` |
-| `jlib.jar.path` | Full path, including nested `!/BOOT-INF/lib/...` entries |
-| `jlib.jar.loaded` / `jlib.jar.nested` / `jlib.jar.size` | Whether classes were loaded from it, whether it is nested, size in bytes |
-
-Resource attributes include `service.name`, `process.*`, `host.name` and `jlib.application.id`. The standard SDK environment variables are honored:
-
-| Variable | Purpose |
-| --- | --- |
-| `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` / `OTEL_EXPORTER_OTLP_ENDPOINT` | Collector endpoint (used when `otel` has no endpoint; `/v1/logs` is appended to the generic one) |
-| `OTEL_EXPORTER_OTLP_HEADERS` / `OTEL_EXPORTER_OTLP_LOGS_HEADERS` | Extra headers, e.g. `Authorization=Bearer%20token` |
-| `OTEL_SERVICE_NAME` / `OTEL_RESOURCE_ATTRIBUTES` | Resource identity (defaults to `unknown_service:java`) |
-
-Only the `http/json` protocol is supported. The resource includes `process.command_line`, so be careful if your command line contains secrets.
-
 ### Environment Variables
 ```bash
 # JLib Server URL (default: http://localhost:8080)
@@ -262,25 +244,6 @@ $env:PORT = "3000"
 $env:WS_PORT = "3001"
 ```
 
-## 🛠️ Available Scripts
-
-### Frontend Commands
-```bash
-cd frontend
-
-# Build React app only
-npm run build:only
-
-# Start development and production server
-npm start
-```
-
-### Backend Commands
-```bash
-# Build all Java components
-./mvnw clean verify
-```
-
 ## 🐛 Troubleshooting
 
 ### Common Issues
@@ -291,8 +254,8 @@ npm start
 - Check that applications are connecting to the correct server
 
 **Build failures:**
-- Ensure Java 21+ is installed and `JAVA_HOME` is set
-- Clear Maven cache: `./mvnw clean`
+- Check the [build prerequisites](#build-prerequisites); these apply to source builds, not downloaded JARs
+- Clean Java build outputs: `./mvnw clean`
 - Check for port conflicts (8080, 3000, 3001)
 
 **WebSocket connection issues:**
@@ -304,7 +267,7 @@ npm start
 
 **Enable verbose agent logging:**
 ```bash
-java -Djava.util.logging.config.file=logging.properties -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 -jar your-app.jar
+java -Djava.util.logging.config.file=logging.properties -javaagent:jlib-inspector-agent.jar=server:8080 -jar your-app.jar
 ```
 
 **Check server logs:**
@@ -313,9 +276,64 @@ java -Djava.util.logging.config.file=logging.properties -javaagent:agent/target/
 # Dashboard logs appear in console with timestamp
 ```
 
-## 🏃‍♂️ Demo Scripts
+## Contributing and building from source
 
-For a quick demonstration, run the comprehensive testing script:
+This section is for changing JLib Inspector or building your own artifacts. To use released JARs without building the Java modules, follow [Using JLib Inspector](#using-jlib-inspector) instead.
+
+### Build prerequisites
+
+- **JDK 21+**, with `JAVA_HOME` set
+- **Maven 4+**, provided by the included wrapper (`./mvnw` on Linux/macOS, `mvnw.cmd` on Windows); no separate Maven installation is needed
+- **Node.js 18.12+ and npm** if you are building or running the dashboard from source
+- **Git** to clone the repository
+- **Bash** for the shell examples, or **PowerShell** for the Windows demo script
+
+### Build and test
+
+```bash
+git clone https://github.com/brunoborges/jlib-inspector.git
+cd jlib-inspector
+
+# Build and test all Java modules, including the sample application
+./mvnw clean verify
+
+# Run Java unit tests without packaging
+./mvnw test
+```
+
+The Java build produces shaded agent and server JARs under `agent/target/` and `server/target/`, and the sample application under `sample-spring-app/target/`. Their filenames include the version from the root `pom.xml`.
+
+Build the dashboard separately; Maven does not build it. Run npm commands from `frontend/`:
+
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+The frontend's `npm test` script is currently a no-op; check dashboard changes against the running server and sample application.
+
+### Run the development environment
+
+After building, run these commands in separate terminals, starting from the repository root. Replace `<version>` with the version in the root `pom.xml`.
+
+```bash
+# Terminal 1: Start the locally built server
+java -jar "server/target/jlib-inspector-server-<version>-shaded.jar" 8080
+
+# Terminal 2: Build and start the dashboard
+cd frontend
+npm start
+
+# Terminal 3: Run the sample application with the locally built agent
+java "-javaagent:agent/target/jlib-inspector-agent-<version>-shaded.jar=server:8080,interval:30s" -jar "sample-spring-app/target/sample-spring-app-<version>.jar"
+```
+
+Open **http://localhost:3000**. The sample reports while it runs with `interval:30s`, as well as at shutdown. Make your changes, rerun the relevant build/tests, and exercise the sample application before submitting a pull request.
+
+### Demo scripts
+
+After installing the build prerequisites, you can also run the comprehensive testing script from the repository root:
 
 **Windows (PowerShell):**
 ```powershell
@@ -341,25 +359,7 @@ These scripts will:
 - `curl` (for server health checks)
 - `java` and Maven wrapper `./mvnw` (automatically checked)
 
-For manual testing, use:
-
-```bash
-# Build the project
-./mvnw verify
-
-# Terminal 1: Start JLib Server (shaded jar)
-java -jar server/target/jlib-inspector-server-1.0-SNAPSHOT-shaded.jar 8080
-
-# Terminal 2: Start Dashboard
-cd frontend && npm start
-
-# Terminal 3: Run sample application with shaded agent
-java -javaagent:agent/target/jlib-inspector-agent-1.0-SNAPSHOT-shaded.jar=server:8080 -jar sample-spring-app/target/sample-spring-app-1.0-SNAPSHOT.jar
-
-# Open browser to http://localhost:3000
-```
-
-## 📁 Project Structure
+### Project structure
 
 ```
 jlib-inspector/
@@ -387,13 +387,6 @@ jlib-inspector/
 - **Health checking** - Monitor application and server status
 - **Resource tracking** - JAR file sizes and checksums
 - **Historical data** - First seen and last updated timestamps
-
-## 🤝 Contributing
-
-1. Build the project: `./mvnw verify`
-2. Run tests: `./mvnw test`
-3. Start development environment following the Quick Start guide
-4. Make changes and test with sample applications
 
 ## Articles
 

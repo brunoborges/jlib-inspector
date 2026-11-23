@@ -16,7 +16,7 @@
         <maven.shade.plugin.version>3.6.2</maven.shade.plugin.version>
         <maven.surefire.plugin.version>3.6.1</maven.surefire.plugin.version>
         <jacoco.plugin.version>0.8.16</jacoco.plugin.version>
-        <spring.boot.version>3.5.16</spring.boot.version>
+        <spring.boot.version>4.2.0</spring.boot.version>
         <log4j2.version>2.26.1</log4j2.version>
         <!-- Site/reporting plugins -->
         <maven.site.plugin.version>3.22.0</maven.site.plugin.version>

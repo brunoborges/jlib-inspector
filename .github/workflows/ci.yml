@@ -105,9 +105,7 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Build sample app
-        run: |
-          cd sample-spring-app
-          ../mvnw clean package -B
+        run: ./mvnw -pl sample-spring-app -am clean package -B
 
       - name: Upload sample app artifact
         uses: actions/upload-artifact@v4

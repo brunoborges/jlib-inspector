@@ -21,6 +21,21 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
+
+        <!-- Built before this module so the integration test can attach it with -javaagent -->
+        <dependency>
+            <groupId>io.github.brunoborges</groupId>
+            <artifactId>jlib-inspector-agent</artifactId>
+            <version>${project.version}</version>
+            <classifier>shaded</classifier>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     
@@ -34,6 +49,28 @@
                     <execution>
                         <goals>
                             <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- End-to-end test: runs the repackaged app with the shaded agent attached -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven.surefire.plugin.version}</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <app.jar>${project.build.directory}/${project.build.finalName}.jar</app.jar>
+                        <agent.jar>${project.basedir}/../agent/target/jlib-inspector-agent-${project.version}-shaded.jar</agent.jar>
+                        <spring.boot.version>${spring.boot.version}</spring.boot.version>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
                         </goals>
                     </execution>
                 </executions>

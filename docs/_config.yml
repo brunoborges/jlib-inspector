@@ -5,6 +5,8 @@ baseurl: /jlib-inspector
 repository: brunoborges/jlib-inspector
 # Bump on every release; used for the release button, download links and JAR names.
 latest_release: 1.1.0
+# Dashboard image on GitHub Container Registry (Docker Hub brunoborges/jlib-frontend is legacy).
+container_image: ghcr.io/brunoborges/jlib-frontend
 theme: minima
 markdown: kramdown
 plugins:

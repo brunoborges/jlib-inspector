@@ -24,11 +24,36 @@ title: JLib Inspector
 
 ## Architecture (High Level) {#architecture}
 
-<div class="diagram">[ JVM + Agent ] -- snapshots --> [ Inspector Server ] -- REST --> [ UI / Integrations ]
-			|                              |
-			+-- load events (coalesced) -- +
-Hashing (optional) · Version heuristics · Timestamping
-</div>
+<figure class="architecture" aria-labelledby="architecture">
+	<ol role="list">
+		<li>
+			<svg aria-hidden="true" viewBox="0 0 24 24">
+				<rect x="5" y="5" width="14" height="14" rx="2"/>
+				<path d="M9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3M8 12h2l1-3 2 6 1-3h2"/>
+			</svg>
+			<h3>JVM + Agent</h3>
+			<p>The agent sends inventory snapshots and coalesced load events to the server.</p>
+		</li>
+		<li>
+			<svg aria-hidden="true" viewBox="0 0 24 24">
+				<rect x="3" y="3" width="18" height="7" rx="2"/>
+				<rect x="3" y="14" width="18" height="7" rx="2"/>
+				<path d="M7 6.5h1m-1 11h1m5-11h4m-4 11h4"/>
+			</svg>
+			<h3>Inspector Server</h3>
+			<p>The server makes each application's JAR inventory available through its REST API.</p>
+		</li>
+		<li>
+			<svg aria-hidden="true" viewBox="0 0 24 24">
+				<rect x="2" y="3" width="20" height="15" rx="2"/>
+				<path d="M2 8h20M9 22h6m-3-4v4"/>
+			</svg>
+			<h3>UI &amp; Integrations</h3>
+			<p>Explore loaded JARs in the dashboard or query the same inventory from your own tools.</p>
+		</li>
+	</ol>
+	<figcaption><strong>Inventory metadata</strong> Timestamps, version heuristics, and optional JAR hashes.</figcaption>
+</figure>
 
 Key principles:
 

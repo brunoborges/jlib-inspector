@@ -10,10 +10,13 @@ var builder = DistributedApplication.CreateBuilder(
         DashboardApplicationName = "JLib Inspector Aspire"
     });
 
+var imageVersion = "validation";
+
 var server = builder.AddDockerfile("server", "..", "docker/Dockerfile.backend")
     .WithHttpEndpoint(targetPort: 8080)
     .WithHttpHealthCheck("/health")
-    .WithEnvironment("JDK_JAVA_OPTIONS", "-Xms512m -Xmx1g");
+    .WithEnvironment("JDK_JAVA_OPTIONS", "-Xms512m -Xmx1g")
+    .WithImageTag(imageVersion);
 
 builder.AddDockerfile("frontend", "..", "docker/Dockerfile.frontend")
     .WithHttpEndpoint(targetPort: 3000)
@@ -21,7 +24,8 @@ builder.AddDockerfile("frontend", "..", "docker/Dockerfile.frontend")
     .WithEnvironment("PORT", "3000")
     .WithEnvironment("JLIB_SERVER_URL", server.GetEndpoint("http"))
     .WithReference(server.GetEndpoint("http"))
-    .WaitFor(server);
+    .WaitFor(server)
+    .WithImageTag(imageVersion);
 
 builder.AddDockerfile("sample-spring-app", "..", "docker/Dockerfile.samplespring")
     .WithArgs("java", "-javaagent:agent.jar=server:8080,otel", "-jar", "sample-spring-app.jar")
@@ -29,6 +33,7 @@ builder.AddDockerfile("sample-spring-app", "..", "docker/Dockerfile.samplespring
     .WithEnvironment("JDK_JAVA_OPTIONS", "-Xms512m -Xmx1g")
     .WithEnvironment("JLIB_SERVER_URL", server.GetEndpoint("http"))
     .WithReference(server.GetEndpoint("http"))
-    .WaitFor(server);
+    .WaitFor(server)
+    .WithImageTag(imageVersion);
 
 builder.Build().Run();

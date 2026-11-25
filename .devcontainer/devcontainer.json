@@ -7,7 +7,7 @@
       "jdkDistro": "temurin"
     },
     "ghcr.io/devcontainers/features/maven:1": {
-      "version": "3.9"
+      "version": "4.0.0-rc-7"
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "18"

@@ -43,7 +43,7 @@ This document explains how to run the JLib Inspector using Docker Compose.
 ## Docker Configuration
 
 ### Backend (Dockerfile.backend)
-- Base image: OpenJDK 21
+- Base image: Eclipse Temurin 21 JDK
 - Builds Maven project
 - Exposes port 8080
 - Includes health check with curl
